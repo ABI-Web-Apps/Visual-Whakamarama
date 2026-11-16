@@ -207,17 +207,17 @@ test.describe('guided tour demos', () => {
     const cardTitle = page.locator('[data-tour-card] h2')
     for (let i = 0; i < 20; i++) {
       const title = await cardTitle.textContent()
-      if (title === 'Move through the volume') break
+      if (title === 'Move through the slices') break
       await page.locator('[data-tour-next]').click()
     }
-    await expect(cardTitle).toHaveText('Move through the volume')
+    await expect(cardTitle).toHaveText('Move through the slices')
     await expect(page.locator('[data-panel="mri"]')).toHaveAttribute('data-focused', 'true')
     await expect(page.locator('[data-tour-card] p').last()).not.toHaveText('')
     await expect(page.getByRole('alert')).toHaveCount(0)
 
     // Whichever path the step took, moving on must still work.
     await page.locator('[data-tour-next]').click()
-    await expect(cardTitle).toHaveText('Per-view controls')
+    await expect(cardTitle).toHaveText('Controls')
   })
 
   /**

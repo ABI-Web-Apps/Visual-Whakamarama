@@ -38,18 +38,18 @@ async function walkChapters1And2(page: Page, viewport: { width: number, height: 
   const cardTitle = page.locator('[data-tour-card] h2')
   await expect(cardTitle).toBeVisible()
 
-  // Chapters 1 and 2 are exactly seven steps at every layout: welcome,
-  // case-list, case-heading, about, panels-{wide,narrow}, focus,
-  // description. Click through all seven, checking bounds at each.
-  for (let i = 1; i <= 7; i++) {
+  // Chapters 1 and 2 are exactly three steps at every layout: welcome,
+  // case-list, panels-{wide,narrow}. Click through all three, checking
+  // bounds at each.
+  for (let i = 1; i <= 3; i++) {
     const title = (await cardTitle.textContent())?.trim() ?? '(no title)'
     await assertCardInViewport(page, `step ${i} ("${title}")`)
-    if (i < 7) await page.locator('[data-tour-next]').click()
+    if (i < 3) await page.locator('[data-tour-next]').click()
   }
 
-  // The walk should have actually reached the description step, not
-  // stalled early -- confirms the seven-step count above is still right.
-  await expect(cardTitle).toHaveText('The description')
+  // The walk should have actually reached the panels step, not stalled
+  // early -- confirms the three-step count above is still right.
+  await expect(cardTitle).toHaveText('Three views of one breast')
 }
 
 test('chapters 1-2 stay clickable and on-screen at three-up (1920x1080)', async ({ page }) => {

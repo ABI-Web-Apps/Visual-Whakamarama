@@ -99,12 +99,13 @@ useDocumentTitle(() => `${current.value!.heading} — ${modality.value.label} �
     <!-- design doc §10.1's ASCII places the case heading atop the stage
          column (above the modality stepper), not in the content column. -->
     <template #heading>
-      <!-- `data-tour-region` is load-bearing, not decoration. The tour's
-           `case-heading` step targets this element, and theatre mode only
-           spares a region that IS, CONTAINS or IS CONTAINED BY the target.
-           Without the attribute here nothing matched, so that step dimmed
-           the entire app to 30% and highlighted nothing -- see
-           tour-demo.spec.ts's "every step highlights something". -->
+      <!-- `data-tour-region`: theatre mode only spares a region that IS,
+           CONTAINS or IS CONTAINED BY the target. The tour's old
+           `case-heading` step targeted this element (dropped in November
+           2026); without the attribute that step dimmed the entire app and
+           highlighted nothing -- see tour-demo.spec.ts's "every step
+           highlights something". Kept, so a step can target the heading
+           again. -->
       <div class="tw:p-6 tw:pb-0" data-tour="case-heading" data-tour-region>
         <CaseHeader :case="current!" />
       </div>
