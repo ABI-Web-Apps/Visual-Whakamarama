@@ -6,7 +6,7 @@ import App from './App.vue'
  * The plugin's root element, and the one thing the standalone app does not
  * need: a box that stands in for `<html>`/`<body>`.
  *
- * Every rule in the plugin stylesheet is scoped under `.ber-root` at build
+ * Every rule in the plugin stylesheet is scoped under `.vw-root` at build
  * time (build/postcss-scope.ts), and the rules the standalone app wrote for
  * `:root`, `html` and `body` land on this element instead. It is also the
  * scroll container, so a page taller than the window (About) scrolls here,
@@ -44,7 +44,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="ber-root">
+  <div class="vw-root">
     <App />
   </div>
 </template>

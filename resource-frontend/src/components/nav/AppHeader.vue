@@ -52,7 +52,8 @@ const emit = defineEmits<{ startTour: [] }>()
     </button>
 
     <!--
-      The wordmark carries BOTH names, te reo above English.
+      The wordmark carries BOTH names: "Te Uma" above the app's name, Visual
+      Whakamārama.
 
       It used to read "Te Uma" alone. `Te Uma` is te reo Māori for the breast
       and belongs on this app -- it is a New Zealand resource built with Iwi
@@ -63,14 +64,16 @@ const emit = defineEmits<{ startTour: [] }>()
       `leading-none` on both, so the pair occupies about the same height the
       single line did and the 56px header does not grow.
 
-      THE TYPE STEP AT PHONE IS NOT COSMETIC. Measured on the running app:
-      at 14px this title needs about 160px to set on two lines, and the
-      wordmark is only given 90px at 360px wide and 120px at 390px -- so it
-      broke onto THREE lines and, with the overline above it, overflowed the
-      56px header. 12px brings "Breast Educational" back under the available
-      width, and the step back up at 420px is where 14px starts fitting on
-      two lines again. `min-w-0` is the other half: without it this flex item
-      refuses to shrink below its content and pushes into the controls.
+      THE TYPE STEP AT PHONE IS NOT COSMETIC. Measured on the running app
+      with the app's old, longer name (27 characters): at 14px it
+      needed about 160px to set on two lines, and the wordmark is only given
+      90px at 360px wide and 120px at 390px -- so it broke onto THREE lines
+      and, with the overline above it, overflowed the 56px header. 12px
+      brought it back under the available width, and the step back up at
+      420px is where 14px fitted on two lines again. The current name is
+      shorter, so the steps hold with room to spare. `min-w-0` is the other
+      half: without it this flex item refuses to shrink below its content and
+      pushes into the controls.
     -->
     <AppLink to="/" class="tw:flex tw:min-w-0 tw:items-center tw:gap-2.5 tw:max-md:gap-2">
       <span class="tw:size-2.5 tw:shrink-0 tw:rounded-full tw:bg-brand" aria-hidden="true" />
@@ -82,7 +85,7 @@ const emit = defineEmits<{ startTour: [] }>()
           class="tw:text-[0.75rem] tw:font-bold tw:leading-[1.15] tw:tracking-tight tw:text-text
                  tw:min-[420px]:text-body-sm tw:min-[420px]:leading-tight tw:sm:text-h3 tw:sm:leading-none"
         >
-          Breast Educational Resource
+          Visual Whakamārama
         </span>
       </span>
     </AppLink>

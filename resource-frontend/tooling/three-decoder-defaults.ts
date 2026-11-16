@@ -23,7 +23,7 @@ export const DECODER_LOADER_RE = /[\\/]three[\\/]examples[\\/]jsm[\\/]loaders[\\
  */
 export function threeDecoderDefaults(base: string): Plugin {
   return {
-    name: 'ber:three-decoder-defaults',
+    name: 'vw:three-decoder-defaults',
     apply: 'build',
     enforce: 'pre',
     transform(code, id) {

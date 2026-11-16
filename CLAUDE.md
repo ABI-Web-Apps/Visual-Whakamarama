@@ -1,4 +1,4 @@
-# Breast Educational Resource
+# Visual Whakamārama
 
 A portal plugin (Vue 3 + Vite + Tailwind CSS 4 + Pinia frontend, FastAPI
 backend) that also runs as a standalone site. See `README.md` for commands and
@@ -20,7 +20,7 @@ backend) that also runs as a standalone site. See `README.md` for commands and
   in an arbitrary value write `var(--tw-color-brand)`. A bare
   `var(--color-brand)` resolves to nothing.
 - **Plugin CSS is rewritten at build time** (`tooling/postcss-scope.ts`):
-  scoped under `.ber-root`, layers flattened into ID-weight tiers. Do not add
+  scoped under `.vw-root`, layers flattened into ID-weight tiers. Do not add
   an ID selector (the build refuses it) and do not rely on `@layer`.
   `:root`/`html`/`body` rules land on the plugin root element.
 - **No module-level side effects** -- the UMD bundle re-executes on every

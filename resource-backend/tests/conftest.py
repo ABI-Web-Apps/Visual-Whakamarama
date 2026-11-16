@@ -186,7 +186,7 @@ TOOL_CONFIG = {
     "user_info": {"uuid": "user-001"},
     "assay_info": {
         "uuid": "assay-001",
-        "name": "breast-educational-resource",
+        "name": "visual-whakamarama",
         "cohorts": ["sub-1"],
         "datasets": [
             {

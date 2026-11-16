@@ -1,6 +1,6 @@
 {
-  "name": "breast-educational-resource",
-  "description": "Te Uma: an interactive breast education resource -- anatomy, mammogram and MRI side by side for density grades, benign findings and cancers, with a guided tour",
+  "name": "visual-whakamarama",
+  "description": "Visual Whakamārama: an interactive breast education resource -- anatomy, mammogram and MRI side by side for density grades, benign findings and cancers, with a guided tour",
   "label": "GUI",
   "has_backend": true,
   "frontend_folder": "resource-frontend",

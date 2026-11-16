@@ -407,8 +407,8 @@ test.describe('§12 acceptance, against the built site', () => {
     expect(response.ok()).toBe(true)
 
     const manifest = await response.json()
-    expect(manifest.name).toBe('Breast Educational Resource')
-    expect(manifest.short_name).toBe('Breast Education App')
+    expect(manifest.name).toBe('Visual Whakamārama')
+    expect(manifest.short_name).toBe('Whakamārama')
     expect(manifest.icons.map((i: { sizes: string }) => i.sizes)).toContain('512x512')
   })
 

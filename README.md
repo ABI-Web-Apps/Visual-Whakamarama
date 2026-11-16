@@ -1,4 +1,4 @@
-# Breast Educational Resource (Te Uma)
+# Visual Whakamārama (Te Uma)
 
 An interactive breast education resource from the Auckland Bioengineering
 Institute: anatomy, mammogram and MRI side by side for the four density
@@ -15,7 +15,7 @@ It runs three ways from one source tree:
 | **GitHub Pages** | The static app with the imaging catalogue copied beside it | `.github/workflows/deploy_on_github_pages.yml` |
 
 ```
-breast-educational-resource/
+Visual-Whakamarama/
 ├── resource-frontend/   Vue 3 + Vite + Tailwind CSS 4 + Pinia (no vue-router)
 ├── resource-backend/    FastAPI: the imaging catalogue and the My MRI data/report under /api
 ├── config.portal.json   Portal registration metadata
@@ -153,7 +153,7 @@ supply its own config.
 - **CSS isolation.** Every Tailwind utility carries the `tw:` prefix, so the
   portal's Vuetify utility classes of the same names (`text-caption`,
   `bg-surface`, ...) never land on this app's markup. The plugin build also
-  scopes every rule under `.ber-root` and flattens Tailwind's cascade layers
+  scopes every rule under `.vw-root` and flattens Tailwind's cascade layers
   into specificity tiers (`tooling/postcss-scope.ts`), so the portal's
   unlayered resets cannot override the app and the app's CSS cannot reach the
   portal.
@@ -213,7 +213,7 @@ port 8082.
 >
 > To register without GitHub, upload a clean export of the committed tree,
 > which holds none of them:
-> `git archive --format=zip -o breast-educational-resource.zip HEAD`.
+> `git archive --format=zip -o visual-whakamarama.zip HEAD`.
 
 The backend reads the dataset from the **portal's** MinIO: the plugin compose
 takes its keys from `MINIO_SERVER_ACCESS_KEY` / `MINIO_SERVER_SECRET_KEY`

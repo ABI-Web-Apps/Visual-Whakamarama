@@ -7,7 +7,7 @@
  *
  * Nothing here may have a global side effect: the bundle is re-executed on
  * every mount. The stylesheet is injected by the build and scoped to
- * `.ber-root`, so it cannot reach the portal's own markup.
+ * `.vw-root`, so it cannot reach the portal's own markup.
  */
 import './assets/css/tokens.css'
 import PluginRoot from './PluginRoot.vue'

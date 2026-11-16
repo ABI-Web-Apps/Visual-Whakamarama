@@ -38,7 +38,7 @@ export interface AppRouter {
 
 export interface RouterOptions {
   history: boolean
-  /** The deployment base, e.g. `/` or `/breast-educational-resource/`. */
+  /** The deployment base, e.g. `/` or `/Visual-Whakamarama/`. */
   base: string
   /** Where a memory router starts. Ignored with `history`. */
   initialPath?: string

@@ -18,7 +18,7 @@ import selectorParser from 'postcss-selector-parser'
  *
  * So, for the plugin build only (the standalone app is untouched):
  *
- *   - Every selector is scoped under `.ber-root` (PluginRoot.vue's element).
+ *   - Every selector is scoped under `.vw-root` (PluginRoot.vue's element).
  *     Rules written for `:root`, `:host`, `html` or `body` land on that
  *     element itself; `body[data-tour-active] X` keeps its <body> context
  *     (TourLayer sets that attribute on <body>) and scopes X.
@@ -29,7 +29,7 @@ import selectorParser from 'postcss-selector-parser'
  *     them. Within a tier nothing changes: same selectors, same source order.
  *   - Unlayered, and boosted by at least one ID weight, the scoped rules now
  *     beat the portal's element-level resets on specificity.
- *   - `@keyframes` are renamed (`spin` -> `ber-spin`) so they cannot collide
+ *   - `@keyframes` are renamed (`spin` -> `vw-spin`) so they cannot collide
  *     with a portal animation of the same name.
  *   - A small reset tier (the lowest) puts back the few defaults the portal's
  *     Vuetify reset changes and this app never sets itself: the root starts
@@ -158,7 +158,7 @@ function renameKeyframes(css: Root) {
   const names = new Map<string, string>()
   css.walkAtRules(/keyframes$/i, (at) => {
     const name = at.params.trim()
-    const renamed = `ber-${name}`
+    const renamed = `vw-${name}`
     names.set(name, renamed)
     at.params = renamed
   })

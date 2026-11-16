@@ -17,7 +17,7 @@ services:
     environment:
       # Nginx route prefix, /plugin/<expose_name>. The backend builds no
       # absolute URLs today; it is passed through so it never has to guess.
-      - PLUGIN_ROUTE_PREFIX=${PLUGIN_ROUTE_PREFIX:-/plugin/breast-educational-resource}
+      - PLUGIN_ROUTE_PREFIX=${PLUGIN_ROUTE_PREFIX:-/plugin/visual-whakamarama}
       # MinIO SDK credentials -- the portal's MinIO, on the shared network.
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=${MINIO_SERVER_ACCESS_KEY:-minioadmin}

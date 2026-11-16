@@ -100,7 +100,7 @@ def test_context_carries_the_case_identity():
 
 
 def test_the_product_is_this_app():
-    assert _context()["product"] == "Breast Educational Resource"
+    assert _context()["product"] == "Visual Whakamārama"
 
 
 def test_the_context_carries_no_reading_session():
@@ -564,7 +564,7 @@ def test_html_renders_with_every_section():
 
     html = render_report_html(StubCase(), rich_findings())
     assert "BI-RADS" in html
-    assert "Breast Educational Resource" in html
+    assert "Visual Whakamārama" in html
     assert "Medical Image Annotator" not in html
     assert "BC_1042" in html
     assert "breast tissue" in html.lower()

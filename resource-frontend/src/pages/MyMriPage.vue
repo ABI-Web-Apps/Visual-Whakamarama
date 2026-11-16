@@ -6,7 +6,7 @@ import MyMriReport from '@/components/myMri/MyMriReport.vue'
 import MyMriViewer from '@/components/myMri/MyMriViewer.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import { MY_MRI_COPY, colourSentence } from '@/content/myMri'
-import { useDocumentTitle } from '@/navigation/head'
+import { APP_TITLE, useDocumentTitle } from '@/navigation/head'
 import { providePageRoute } from '@/navigation/router'
 import type { PageRoute } from '@/navigation/routes'
 import { fetchJson } from '@/myMri/api'
@@ -48,7 +48,7 @@ async function retryViewer(): Promise<void> {
   viewerAttempt.value++
 }
 
-useDocumentTitle(() => `${MY_MRI_COPY.title} — Breast Educational Resource`)
+useDocumentTitle(() => `${MY_MRI_COPY.title} — ${APP_TITLE}`)
 </script>
 
 <template>

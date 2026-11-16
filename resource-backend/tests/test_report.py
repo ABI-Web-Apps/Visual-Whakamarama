@@ -47,7 +47,7 @@ def _with_finding(findings: schema.Findings, channel: int, color="#66bb6a") -> s
 def test_report_html_two_findings(loaded_service):
     findings, vol, mask = loaded_service
     html = build_report_html("sub-1", findings, vol, mask, timezone.utc)
-    assert "Finding 1" in html and "Finding 2" in html and "Breast Educational Resource" in html
+    assert "Finding 1" in html and "Finding 2" in html and "Visual Whakamārama" in html
     assert "Medical Image Annotator" not in html and "data:image/png;base64," in html
     assert html.count('class="finding"') == 2
     assert html.count("data:image/png;base64,") == 2

@@ -8,7 +8,7 @@ import ModalityText from '@/components/content/ModalityText.vue'
 import CaseNav from '@/components/nav/CaseNav.vue'
 import CasePanels from '@/components/stage/CasePanels.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import { useDocumentTitle } from '@/navigation/head'
+import { APP_TITLE, useDocumentTitle } from '@/navigation/head'
 import { providePageRoute } from '@/navigation/router'
 import type { PageRoute } from '@/navigation/routes'
 
@@ -56,7 +56,7 @@ watchEffect(() => {
   store.modalityId = modalityId.value
 })
 
-useDocumentTitle(() => `${current.value!.heading} — ${modality.value.label} — Breast Educational Resource`)
+useDocumentTitle(() => `${current.value!.heading} — ${modality.value.label} — ${APP_TITLE}`)
 
 /*
  * There is no `provideStageControls()` here any more, and no `#controls`

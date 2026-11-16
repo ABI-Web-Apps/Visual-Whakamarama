@@ -24,7 +24,7 @@ jobs:
 
       # Pages serves a project site under /<repo-name>/, so the app's base has
       # to match the repo this workflow is running in. Hard-coding
-      # "/breast-educational-resource/" breaks the moment the same code is
+      # "/Visual-Whakamarama/" breaks the moment the same code is
       # deployed from a fork or a second organisation's repo: every asset
       # request 404s under the real name and the page never boots.
       #

@@ -316,7 +316,7 @@ function onKeydown(event: KeyboardEvent) {
     </AppLink>
 
     <!-- No version line here. It lives on the About page instead
-         ("Breast Educational Resource v{version}"), which is where a reader
+         ("Visual Whakamārama v{version}"), which is where a reader
          looks for provenance; in the persistent chrome it was a number on
          every screen that almost nobody ever needs. -->
   </nav>

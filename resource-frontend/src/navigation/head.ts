@@ -1,7 +1,7 @@
 import { onActivated, onDeactivated, ref, watchEffect } from 'vue'
 
 /** The title every page falls back to: the old `app.head.title`. */
-export const APP_TITLE = 'Breast Educational Resource'
+export const APP_TITLE = 'Visual Whakamārama'
 
 /**
  * Sets `document.title` while the calling page is on screen. The stand-in

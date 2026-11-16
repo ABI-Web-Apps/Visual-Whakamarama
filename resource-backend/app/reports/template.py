@@ -35,7 +35,7 @@ CATEGORY_TONE = {
     6: "tone-known",
 }
 
-PRODUCT = "Breast Educational Resource"
+PRODUCT = "Visual Whakamārama"
 
 DISCLAIMER = "Research use. Not for primary diagnostic interpretation."
 
