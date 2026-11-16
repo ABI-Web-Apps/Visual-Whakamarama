@@ -2,9 +2,12 @@
 
 An interactive breast education resource from the Auckland Bioengineering
 Institute: anatomy, mammogram and MRI side by side for the four density
-grades, benign findings and cancers, with a guided tour. A **My Report** page
-shows a patient's own scan, one slice at a time or in 3D, with the marked
-areas, beside a findings report (PDF) built from a dataset held in MinIO.
+grades, benign findings and cancers, with a guided tour. Under YOUR RESULTS,
+**My Images** shows a patient's own anatomy, mammogram and MRI in the same
+three columns (only the MRI exists in the data so far; the other two hold their
+place), and **My Report** shows their scan, one slice at a time or in 3D, with
+the marked areas, beside a findings report (PDF) built from a dataset held in
+MinIO.
 
 It runs three ways from one source tree:
 
@@ -49,10 +52,11 @@ yarn test:artefacts  # rebuilds both, then checks the 3D views paint in each
 `yarn dev` talks to the backend on `http://localhost:8082` (see
 `resource-frontend/.env.example`); the backend allows that origin by default.
 
-### My Report
+### My Images and My Report
 
-The My Report page reads a SPARC dataset from the `measurements` bucket, so it
-needs a MinIO with the dataset in it. The education pages do not.
+The patient pages (`/my-images`, `/my-images/mri`, `/my-report`) read a SPARC
+dataset from the `measurements` bucket, so they need a MinIO with the dataset
+in it. The education pages do not.
 
 The report for sub-1 is filled from a demo reading, measured from the images and
 chosen for the demo, and every report says so under its masthead. Upload
@@ -235,7 +239,7 @@ docker compose up --build   # http://localhost:3158
 The standalone stack includes its own MinIO (`pgsty/minio`), which `minio-init`
 gives a `measurements` bucket. Its API and console are published on 9000/9001;
 override with `MINIO_API_PORT`, `MINIO_CONSOLE_PORT` and `FRONTEND_PORT` when
-those are taken. Upload the dataset as in the My Report section above.
+those are taken. Upload the dataset as in the My Images and My Report section above.
 
 ### GitHub Pages
 
@@ -243,8 +247,8 @@ those are taken. Upload the dataset as in the My Report section above.
 `/<repo>/`, copies the imaging catalogue beside it (`VITE_ASSET_BASE`), and
 publishes to the `gh-pages` branch. It runs on a new release, or on demand
 from the Actions tab. Pages has no backend, so that build leaves the patient pages out:
-setting `VITE_ASSET_BASE` hides YOUR RESULTS and makes `/my-report` (and
-the old `/my-mri`) a 404
+setting `VITE_ASSET_BASE` hides YOUR RESULTS and makes `/my-images`,
+`/my-images/mri`, `/my-report` (and the old `/my-mri`) 404
 (`hasBackend()` in `src/runtime/env.ts`).
 
 ## Important documentation

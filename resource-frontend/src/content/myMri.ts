@@ -22,6 +22,11 @@ export function colourSentence(findings: FindingColour[]): string {
     .join(', ')
 }
 
+/** The session's loading line, with the backend's progress once it reports any. */
+export function sessionProgressText(progress: number, total: number): string {
+  return total > 0 ? `${MY_MRI_COPY.loading} (${progress} of ${total})` : MY_MRI_COPY.loading
+}
+
 export const MY_MRI_COPY = {
   eyebrow: 'MY REPORT',
   title: 'Your report',

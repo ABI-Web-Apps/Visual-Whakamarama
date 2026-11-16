@@ -20,7 +20,15 @@ const showResults = hasBackend()
 // stored case slug alone would keep a case row lit while My Report is open.
 const pageRoute = useOptionalPageRoute()
 const onMyReport = computed(() => pageRoute?.value.name === 'my-report')
-const activeCaseSlug = computed(() => (onMyReport.value ? null : store.caseSlug))
+// My Images covers its MRI page too: that page is a closer look, not a new place.
+const onMyImages = computed(() => pageRoute?.value.name === 'my-images' || pageRoute?.value.name === 'my-images-mri')
+const activeCaseSlug = computed(() => (onMyReport.value || onMyImages.value ? null : store.caseSlug))
+
+/** YOUR RESULTS, in order: the patient's images, then their report. */
+const results = computed(() => [
+  { to: '/my-images', label: 'My Images', subtitle: 'Anatomy, mammogram and MRI', current: onMyImages.value },
+  { to: '/my-report', label: 'My Report', subtitle: 'Scan and report', current: onMyReport.value },
+])
 
 /**
  * Per-group icon paths (client feedback item 9), drawn stroke-only at
@@ -261,23 +269,23 @@ function onKeydown(event: KeyboardEvent) {
         Your results
       </h2>
       <ul class="tw:flex tw:flex-col tw:gap-0.5">
-        <li>
+        <li v-for="row in results" :key="row.to">
           <AppLink
-            to="/my-report"
+            :to="row.to"
             class="tw:relative tw:flex tw:min-h-11 tw:flex-col tw:justify-center tw:rounded-ctl tw:pl-4 tw:pr-2 tw:text-body-sm"
-            :class="onMyReport
+            :class="row.current
               ? 'tw:bg-brand-subtle tw:font-bold tw:text-brand-hover'
               : 'tw:text-text-muted tw:hover:bg-surface-sunken tw:hover:text-text'"
-            :aria-current="onMyReport ? 'page' : undefined"
+            :aria-current="row.current ? 'page' : undefined"
           >
             <span
-              v-if="onMyReport"
+              v-if="row.current"
               data-active-indicator
               class="tw:absolute tw:inset-y-1 tw:left-0 tw:w-1 tw:rounded-r-full tw:bg-brand"
               aria-hidden="true"
             />
-            My Report
-            <span class="tw:text-caption tw:font-normal">Scan and report</span>
+            {{ row.label }}
+            <span class="tw:text-caption tw:font-normal">{{ row.subtitle }}</span>
           </AppLink>
         </li>
       </ul>

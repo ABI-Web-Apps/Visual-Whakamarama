@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import MyMriColumnHeader from '@/components/myMri/MyMriColumnHeader.vue'
 import MyMriColumnState from '@/components/myMri/MyMriColumnState.vue'
 import MyMriReport from '@/components/myMri/MyMriReport.vue'
 import MyMriViewer from '@/components/myMri/MyMriViewer.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import { MY_MRI_COPY, colourSentence } from '@/content/myMri'
+import { MY_MRI_COPY, colourSentence, sessionProgressText } from '@/content/myMri'
 import { APP_TITLE, useDocumentTitle } from '@/navigation/head'
 import { providePageRoute } from '@/navigation/router'
 import type { PageRoute } from '@/navigation/routes'
-import { fetchJson } from '@/myMri/api'
 import { useMyMriSession } from '@/myMri/useMyMriSession'
+import { useViewerRetry } from '@/myMri/useViewerRetry'
 
 const props = defineProps<{ route: PageRoute }>()
 providePageRoute(computed(() => props.route))
@@ -18,35 +18,14 @@ providePageRoute(computed(() => props.route))
 const session = useMyMriSession()
 const { cohort, status, error, progress, total, reload, urls, findings, withReload } = session
 
-const progressText = computed(() => total.value > 0
-  ? `${MY_MRI_COPY.loading} (${progress.value} of ${total.value})`
-  : MY_MRI_COPY.loading)
+const progressText = computed(() => sessionProgressText(progress.value, total.value))
 const sentence = computed(() => colourSentence(findings.value))
 
 /**
- * The viewer's own Try again bumps this, which rebuilds the 3D scene alone: a
- * scan that failed to display needs no new session, and the report column
- * stays as it is. Session failures keep the column's Try again (`reload`).
+ * The viewer's own Try again rebuilds the scan alone; the report column stays
+ * as it is. Session failures keep the column's Try again (`reload`).
  */
-const viewerAttempt = ref(0)
-
-/**
- * The scan and the mask are fetched by copper3d, outside `withReload`, so a
- * backend that restarted (and so forgot the assay) would answer every rebuilt
- * viewer with 409. One findings request through `withReload` first re-posts
- * the config if needed. Its answer is not used: `no_findings` already proves
- * the assay is loaded, and any other failure is the rebuilt viewer's to show.
- */
-async function retryViewer(): Promise<void> {
-  const findingsUrl = urls.value?.findings
-  if (findingsUrl) {
-    try {
-      await withReload(() => fetchJson(findingsUrl))
-    }
-    catch { /* see above */ }
-  }
-  viewerAttempt.value++
-}
+const { attempt: viewerAttempt, retry: retryViewer } = useViewerRetry(session)
 
 useDocumentTitle(() => `${MY_MRI_COPY.title} — ${APP_TITLE}`)
 </script>

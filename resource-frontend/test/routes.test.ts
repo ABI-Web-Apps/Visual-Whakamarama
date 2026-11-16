@@ -35,6 +35,21 @@ describe('/my-report by build', () => {
   })
 })
 
+describe('/my-images by build', () => {
+  afterEach(() => { vi.unstubAllEnvs() })
+
+  it('serves /my-images, case-insensitively, where a backend is deployed', () => {
+    vi.stubEnv('VITE_ASSET_BASE', '')
+    expect(resolvePath('/my-images')).toEqual({ route: { path: '/my-images', name: 'my-images', params: {} } })
+    expect(resolvePath('/My-Images')).toMatchObject({ route: { name: 'my-images' } })
+  })
+
+  it('404s /my-images in a build without a backend (GitHub Pages)', () => {
+    vi.stubEnv('VITE_ASSET_BASE', '/modelView/')
+    expect(resolvePath('/my-images')).toEqual({ route: { path: '/my-images', name: 'not-found', params: {} } })
+  })
+})
+
 describe('route table', () => {
   it('sends the site root to the home case, as pages/index.vue did', () => {
     expect(resolvePath('/')).toEqual({ redirect: HOME_PATH })

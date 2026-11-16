@@ -4,6 +4,7 @@ import { createAppRouter, provideAppRouter } from '@/navigation/router'
 import { casePageKey } from '@/utils/pageKey'
 import AboutPage from '@/pages/AboutPage.vue'
 import CasePage from '@/pages/CasePage.vue'
+import MyImagesPage from '@/pages/MyImagesPage.vue'
 import MyReportPage from '@/pages/MyReportPage.vue'
 import NotFoundPage from '@/pages/NotFoundPage.vue'
 
@@ -38,6 +39,7 @@ const page = computed(() => {
   switch (route.value.name) {
     case 'case': return CasePage
     case 'my-report': return MyReportPage
+    case 'my-images': return MyImagesPage
     default: return AboutPage
   }
 })

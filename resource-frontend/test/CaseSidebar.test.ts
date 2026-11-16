@@ -291,6 +291,32 @@ describe('CaseSidebar: YOUR RESULTS group', () => {
     expect(wrapper.findAll('[aria-current="page"]')).toHaveLength(1)
   })
 
+  const imagesLink = (wrapper: ReturnType<typeof mountSidebar>) =>
+    wrapper.findAll('a').find(a => a.attributes('href') === '/my-images')!
+
+  it('lists My Images, then My Report', () => {
+    const rows = mountSidebar().findAll('a').filter(a => a.attributes('href')!.startsWith('/my-'))
+    expect(rows.map(a => a.attributes('href'))).toEqual(['/my-images', '/my-report'])
+    expect(rows[0]!.text()).toContain('My Images')
+    expect(rows[0]!.text()).toContain('Anatomy, mammogram and MRI')
+  })
+
+  it('marks My Images active on /my-images and on its MRI page, and nothing else', () => {
+    for (const route of [
+      { path: '/my-images', name: 'my-images', params: {} },
+      { path: '/my-images/mri', name: 'my-images-mri', params: {} },
+    ] as PageRoute[]) {
+      const wrapper = mountOn(route)
+      expect(imagesLink(wrapper).attributes('aria-current'), route.path).toBe('page')
+      expect(reportLink(wrapper).attributes('aria-current'), route.path).toBeUndefined()
+      expect(wrapper.findAll('[aria-current="page"]'), route.path).toHaveLength(1)
+    }
+  })
+
+  it('does not mark My Images active on My Report', () => {
+    expect(imagesLink(mountOn(myReport)).attributes('aria-current')).toBeUndefined()
+  })
+
   it('does not mark My Report active on a case page', () => {
     const wrapper = mountOn({ path: '/the-breast', name: 'case', params: { slug: 'the-breast' } })
     expect(reportLink(wrapper).attributes('aria-current')).toBeUndefined()
