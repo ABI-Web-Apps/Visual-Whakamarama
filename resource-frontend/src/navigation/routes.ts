@@ -21,6 +21,8 @@ import { hasBackend } from '@/runtime/env'
  *                             404 without a backend too)
  *   /my-images             -> the patient's own anatomy, mammogram and MRI
  *                             (404 without a backend)
+ *   /my-images/mri         -> that MRI: current slice, previous MRI, 3D
+ *                             (404 without a backend)
  *   /:slug                 -> case, when the slug names an enabled case
  *   /:slug/:modality       -> case; an unknown modality falls back inside
  *                             the page, exactly as `[[modality]].vue` did
@@ -74,6 +76,10 @@ export function resolvePath(raw: string): Resolution {
     // My MRI was this page's first name. Not in LEGACY_ROUTES: that table is
     // the old Nuxt site's case paths, and its tests hold every target to a case.
     if (page === 'my-mri') return { redirect: '/my-report' }
+  }
+  if (hasBackend() && segments.length === 2
+    && segments[0]!.toLowerCase() === 'my-images' && segments[1]!.toLowerCase() === 'mri') {
+    return { route: { path, name: 'my-images-mri', params: {} } }
   }
 
   if (segments.length <= 2 && segments.every(Boolean)) {

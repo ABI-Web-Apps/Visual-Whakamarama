@@ -4,6 +4,7 @@ import { createAppRouter, provideAppRouter } from '@/navigation/router'
 import { casePageKey } from '@/utils/pageKey'
 import AboutPage from '@/pages/AboutPage.vue'
 import CasePage from '@/pages/CasePage.vue'
+import MyImagesMriPage from '@/pages/MyImagesMriPage.vue'
 import MyImagesPage from '@/pages/MyImagesPage.vue'
 import MyReportPage from '@/pages/MyReportPage.vue'
 import NotFoundPage from '@/pages/NotFoundPage.vue'
@@ -40,6 +41,7 @@ const page = computed(() => {
     case 'case': return CasePage
     case 'my-report': return MyReportPage
     case 'my-images': return MyImagesPage
+    case 'my-images-mri': return MyImagesMriPage
     default: return AboutPage
   }
 })

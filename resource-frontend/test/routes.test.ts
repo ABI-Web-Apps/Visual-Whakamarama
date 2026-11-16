@@ -44,9 +44,22 @@ describe('/my-images by build', () => {
     expect(resolvePath('/My-Images')).toMatchObject({ route: { name: 'my-images' } })
   })
 
-  it('404s /my-images in a build without a backend (GitHub Pages)', () => {
+  it('serves the MRI page at /my-images/mri, case-insensitively', () => {
+    vi.stubEnv('VITE_ASSET_BASE', '')
+    expect(resolvePath('/my-images/mri')).toEqual({ route: { path: '/my-images/mri', name: 'my-images-mri', params: {} } })
+    expect(resolvePath('/My-Images/MRI')).toMatchObject({ route: { name: 'my-images-mri' } })
+  })
+
+  it('404s any other page under /my-images', () => {
+    vi.stubEnv('VITE_ASSET_BASE', '')
+    expect(resolvePath('/my-images/other')).toMatchObject({ route: { name: 'not-found' } })
+    expect(resolvePath('/my-images/mri/x')).toMatchObject({ route: { name: 'not-found' } })
+  })
+
+  it('404s /my-images and /my-images/mri in a build without a backend (GitHub Pages)', () => {
     vi.stubEnv('VITE_ASSET_BASE', '/modelView/')
     expect(resolvePath('/my-images')).toEqual({ route: { path: '/my-images', name: 'not-found', params: {} } })
+    expect(resolvePath('/my-images/mri')).toEqual({ route: { path: '/my-images/mri', name: 'not-found', params: {} } })
   })
 })
 
