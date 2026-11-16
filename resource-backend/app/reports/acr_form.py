@@ -113,7 +113,7 @@ def render_value(field_id: str, value) -> str:
 
     Rules:
     - None → UNSET
-    - a check field: True → "Yes", False → UNSET
+    - a check field: True → "Yes", False → "No" (a reading that looked and found none)
     - a select field: the option's title, falling back to the raw value if unknown
     - a float that is integral → without the .0
     - anything else → str(value)
@@ -130,7 +130,7 @@ def render_value(field_id: str, value) -> str:
 
     # Handle check fields
     if field.kind == "check":
-        return "Yes" if value is True else UNSET
+        return "Yes" if value is True else "No"
 
     # Handle select fields
     if field.kind == "select":

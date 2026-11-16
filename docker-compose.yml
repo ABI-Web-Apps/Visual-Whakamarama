@@ -24,6 +24,8 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
       - DERIVED_CACHE_DIR=/resource_backend/cache
+      # 0 turns off the demo reading the report lays over sub-1 (resource-backend/demo/README.md).
+      - DEMO_READINGS=${DEMO_READINGS:-1}
     volumes:
       - backend_cache:/resource_backend/cache
     depends_on:

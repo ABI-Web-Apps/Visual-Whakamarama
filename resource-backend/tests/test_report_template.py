@@ -678,8 +678,12 @@ def test_acr_lesion_sections_render_in_html():
 
 def test_render_value_prints_an_em_dash_for_unset():
     assert render_value("cysts", None) == UNSET
-    assert render_value("cysts", False) == UNSET
     assert render_value("cysts", True) == "Yes"
+
+
+def test_render_value_prints_no_for_a_box_recorded_as_absent():
+    # False is a reading ("looked, not there"); None is the absence of one.
+    assert render_value("cysts", False) == "No"
     assert render_value("quadrant", "UOQ") == "Upper outer quadrant (UOQ)"
     assert render_value("distance_nipple", 3.5) == "3.5"
     assert option_title("quadrant", "central") == "Central"
@@ -757,3 +761,14 @@ def test_no_zone_or_an_unknown_one_prints_utc_and_says_so(name):
     findings = _edited_at(datetime(2026, 10, 22, 21, 51, tzinfo=timezone.utc))
     ctx = build_context(StubCase(), findings, zone=resolve_zone(name))
     assert ctx["findings"][0]["provenance_tags"] == ["Mask edited by hand at 22 Oct 2026, 21:51 UTC"]
+
+
+def test_a_section_recorded_as_none_prints_one_line_instead_of_its_rows():
+    findings = rich_findings()
+    findings.acr_case["implants"] = "none"
+    findings.findings[0].acr_lesion["nme"] = "none"
+    ctx = build_context(StubCase(), findings)
+    implants = next(s for s in ctx["acr"]["case"] if s["id"] == "implants")
+    assert implants["rows"] == [{"id": "implants", "label": "", "text": "No implants or other augmentation"}]
+    nme = next(s for s in ctx["acr"]["lesions"][findings.findings[0].id] if s["id"] == "nme")
+    assert nme["rows"] == [{"id": "nme", "label": "", "text": "No non-mass enhancement"}]

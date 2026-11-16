@@ -177,6 +177,13 @@ class FakeMinio:
         return _FakeStat(self._path(bucket, key))
 
 
+@pytest.fixture(autouse=True)
+def _no_demo_readings(monkeypatch):
+    """The fixtures' cohort is called sub-1 and has the demo's two findings, so the bundled demo
+    reading would fill it. Off for every test; tests/test_demo_reading.py turns it on."""
+    monkeypatch.setenv("DEMO_READINGS", "0")
+
+
 @pytest.fixture()
 def fake_minio(sparc_dataset) -> FakeMinio:
     return FakeMinio(sparc_dataset)

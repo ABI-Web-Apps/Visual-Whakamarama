@@ -1,16 +1,22 @@
 # Demo reading for sub-1
 
-The report PDF prints whatever the dataset's `findings_json` holds. The one delivered with
-sub-1 records only the two marked areas and their kinetics, so most of the report was dashes.
-For the demo, `sub-1/findings_json.json` fills it in. **No clinician wrote this reading**, and
-every report says so under its masthead ("Demo data — not a clinical reading",
-`app/reports/template.py`). When real readings are delivered as the report's input, drop this
-folder and that line.
+The report PDF prints the dataset's `findings_json`. The one delivered with sub-1 records only
+the two marked areas and their kinetics, so most of the report was dashes. For the demo, the
+backend lays a filled reading over it at report time (`app/reports/demo_reading.py`), so the
+report is filled wherever the app runs, with nothing to upload. **No clinician wrote this
+reading**: every report says so under its masthead ("Demo data — not a clinical reading") and
+names "Demo reading (not a clinician)" as its reader.
+
+It fills sub-1 only while its record is unread and has the reading's own findings (same ids,
+labels and mask channels); a reading someone made is never replaced. `DEMO_READINGS=0` in the
+backend's environment turns it off. When real readings are delivered as the report's input,
+delete `app/reports/demo_reading.py`, `app/reports/demo_readings.json`, this folder and the
+demo line.
 
 | File | What it is |
 |---|---|
-| `sub-1/findings_json.json` | The demo reading, uploaded over the dataset's findings |
-| `sub-1/findings_json.original.json` | The record as it was in MinIO before the upload, byte for byte |
+| `../app/reports/demo_readings.json` | The demo reading, keyed by cohort; ships with the backend |
+| `sub-1/findings_json.original.json` | sub-1's record as the dataset delivers it, byte for byte |
 | `measure_sub1.py` | The one-off script behind the measured values (run it to see them) |
 
 ## Where each value came from
@@ -48,12 +54,6 @@ through its centroid (`CHEST_WALL_Y_MM` in the script).
   `t2_nrrd` is an exact copy of the pre-contrast series, so nothing can be read from it.
 - Lymph nodes: normal. Exam category: derived from the findings (4).
 - Associated features (each finding) and other, typically benign findings: all recorded as
-  absent (`false`). The ACR form prints an unticked box as a dash, so on the PDF these rows
-  still read "—"; the record says they were looked at.
-
-## Uploading it
-
-The record replaces `measurements/workdir/primary/sub-1/sam-15/findings_json.json` in the MinIO
-the backend reads. Upload `sub-1/findings_json.json` there (the MinIO console, `mc cp`, or the
-`minio` Python client); upload `findings_json.original.json` to the same key to undo it. The
-backend renders the report again on the next request, because the object's identity changed.
+  absent (`false`), which the report prints as "No". Sections that do not apply are recorded
+  as such and print one line: no implants or other augmentation, no non-mass enhancement on
+  either finding. Other anatomic location: none.

@@ -1,4 +1,4 @@
-"""The demo reading for sub-1 (`demo/sub-1/findings_json.json`).
+"""The demo reading for sub-1 (`app/reports/demo_readings.json`).
 
 The record is uploaded over the dataset's findings so the report has something to say for the
 demo. It must load as a real findings record, fill what the report prints, use only values the
@@ -17,11 +17,13 @@ from app.reports import lexicon, schema
 from app.reports.acr_form import ACR_SECTIONS
 
 DEMO = Path(__file__).resolve().parents[1] / "demo" / "sub-1"
+#: The reading itself ships with the backend (app/reports/demo_reading.py lays it over sub-1).
+READINGS = Path(__file__).resolve().parents[1] / "app" / "reports" / "demo_readings.json"
 
 
 @pytest.fixture(scope="module")
 def demo():
-    return schema.loads((DEMO / "findings_json.json").read_text(encoding="utf-8"))
+    return schema.Findings.model_validate(json.loads(READINGS.read_text(encoding="utf-8"))["sub-1"])
 
 
 @pytest.fixture(scope="module")
@@ -42,7 +44,11 @@ def _free_fields(scope):
 
 def _assert_form_values(values, scope):
     fields = _free_fields(scope)
+    sections = {s.id for s in ACR_SECTIONS if s.scope == scope}
     for key, value in values.items():
+        if key in sections:  # a whole section recorded as not applying
+            assert value == "none", f"section {key}={value!r}"
+            continue
         assert key in fields, f"{key} is not a {scope} field of the ACR form"
         field = fields[key]
         if field.kind == "select":

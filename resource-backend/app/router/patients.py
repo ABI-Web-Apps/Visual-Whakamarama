@@ -253,7 +253,7 @@ def get_report_pdf(
         if (mask_identity and mask is None) or (mask is not None and volume_identity and volume is None):
             raise _error(503, "input_unreadable", "An imaging input could not be read; try again.")
         try:
-            return report.build_report_pdf(cohort, record, volume, mask, zone)
+            return report.build_report_pdf(cohort, record, volume, mask, zone, assay_uuid=assay_uuid)
         except report.ReportUnavailable as e:
             raise unavailable(e) from e
 

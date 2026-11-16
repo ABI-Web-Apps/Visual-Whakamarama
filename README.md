@@ -59,10 +59,10 @@ dataset from the `measurements` bucket, so they need a MinIO with the dataset
 in it. The education pages do not.
 
 The report for sub-1 is filled from a demo reading, measured from the images and
-chosen for the demo, and every report says so under its masthead. Upload
-`resource-backend/demo/sub-1/findings_json.json` over the dataset's
-`primary/sub-1/sam-15/findings_json.json` to see it; `resource-backend/demo/README.md`
-says where each value came from and how to undo it.
+chosen for the demo, which the backend lays over sub-1's unread record at report
+time: nothing to upload. Every report says so under its masthead.
+`DEMO_READINGS=0` turns it off; `resource-backend/demo/README.md` says where each
+value came from.
 
 MinIO publishes its API on host port 9000 and its console on 9001. When
 something else already holds those ports (for example the validator), set
