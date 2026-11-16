@@ -40,8 +40,9 @@ import type { FindingSummary } from '@/myMri/useMyMriSession'
  * - One click on a view both shows its plane and turns the camera to face it;
  *   the validator keeps the camera on a single click and turns it on a double
  *   click. A single view has no volume box around its plane.
- * - Reset is the validator's nav-bar reset plus the opening slices: the 3D
- *   view, the planes back through the marked area, the opening camera.
+ * - Reset is the validator's nav-bar reset plus the opening slices: the
+ *   opening view (`initialView`, 3D by default), the planes back through the
+ *   marked area, the opening camera.
  * - The mask goes through `copperSceneOnDemond.loadGltf`; `loadPureGLB` exists
  *   only on `copperScene`. `loadGltf` recentres the group's `position`, bounds
  *   the dolly on the model and (unless `cameraPositionFlag` is set) frames the
@@ -125,6 +126,8 @@ export interface MyMriSources {
   mri: string
   mask: string
   findings: FindingSummary[]
+  /** The view the scan opens on once it is ready, and the one Reset returns to. Default `'3d'`. */
+  initialView?: MyMriView
 }
 
 export type MyMriSceneStatus = 'loading' | 'ready' | 'error'
@@ -306,6 +309,7 @@ export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSourc
   /** The scan has no marked areas: the planes show alone, and that is not an error. */
   const noMask = ref(false)
   const view = ref<MyMriView>('3d')
+  const initialView: MyMriView = sources.initialView ?? '3d'
   /** The single view's slice; null in the 3D view, where no one slice is "the" slice. */
   const slice = ref<SliceReadout | null>(null)
 
@@ -646,6 +650,7 @@ export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSourc
           centreSlicesOn(landed, marked.getCenter(new Vector3()))
           rememberOpeningSlices()
         }
+        openOnInitialView()
         status.value = 'ready'
         draw()
       },
@@ -662,15 +667,27 @@ export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSourc
     if (disposed || failed) return
     clearTimer()
     noMask.value = true
+    openOnInitialView()
     status.value = 'ready'
     draw()
   }
 
-  /** Back to how the viewer opened: the 3D view, the opening slices, the opening camera. */
+  /**
+   * Shows the opening view once the scan, mask included, is ready -- the same
+   * moment a view button starts working. The 3D view is already on screen by
+   * then and keeps whatever framing it has.
+   */
+  function openOnInitialView() {
+    if (initialView === '3d') return
+    showView(initialView)
+    frame()
+  }
+
+  /** Back to how the viewer opened: the opening view, the opening slices, the opening camera. */
   function resetView() {
     if (!scene) return
     restoreOpeningSlices()
-    showView('3d')
+    showView(initialView)
     frame()
     draw()
   }

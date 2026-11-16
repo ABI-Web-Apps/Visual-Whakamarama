@@ -8,23 +8,30 @@ import { HOME_PATH, normalisePath, resolveFinal, resolvePath } from '../src/navi
  * page with its `validate` guard, about.vue, and the router's own matching.
  */
 /**
- * My MRI needs the backend, so only a build that has one serves it. The
- * suite's own `VITE_ASSET_BASE` (vitest.config.ts) is the GitHub Pages
- * build's, which has none; each case here picks its build explicitly.
+ * The patient pages need the backend, so only a build that has one serves
+ * them. The suite's own `VITE_ASSET_BASE` (vitest.config.ts) is the GitHub
+ * Pages build's, which has none; each case here picks its build explicitly.
  */
-describe('/my-mri by build', () => {
+describe('/my-report by build', () => {
   afterEach(() => { vi.unstubAllEnvs() })
 
-  it('serves /my-mri, case-insensitively, where a backend is deployed', () => {
+  it('serves /my-report, case-insensitively, where a backend is deployed', () => {
     vi.stubEnv('VITE_ASSET_BASE', '')
-    expect(resolvePath('/my-mri')).toEqual({ route: { path: '/my-mri', name: 'my-mri', params: {} } })
-    expect(resolvePath('/MY-MRI')).toMatchObject({ route: { name: 'my-mri' } })
+    expect(resolvePath('/my-report')).toEqual({ route: { path: '/my-report', name: 'my-report', params: {} } })
+    expect(resolvePath('/My-Report')).toMatchObject({ route: { name: 'my-report' } })
   })
 
-  it('404s /my-mri in a build without a backend (GitHub Pages)', () => {
+  it('sends the old /my-mri to /my-report', () => {
+    vi.stubEnv('VITE_ASSET_BASE', '')
+    expect(resolvePath('/my-mri')).toEqual({ redirect: '/my-report' })
+    expect(resolvePath('/MY-MRI')).toEqual({ redirect: '/my-report' })
+    expect(resolveFinal('/my-mri')).toMatchObject({ route: { name: 'my-report' }, redirected: true })
+  })
+
+  it('404s /my-report and /my-mri in a build without a backend (GitHub Pages)', () => {
     vi.stubEnv('VITE_ASSET_BASE', '/modelView/')
+    expect(resolvePath('/my-report')).toEqual({ route: { path: '/my-report', name: 'not-found', params: {} } })
     expect(resolvePath('/my-mri')).toEqual({ route: { path: '/my-mri', name: 'not-found', params: {} } })
-    expect(resolvePath('/MY-MRI')).toMatchObject({ route: { name: 'not-found' } })
   })
 })
 

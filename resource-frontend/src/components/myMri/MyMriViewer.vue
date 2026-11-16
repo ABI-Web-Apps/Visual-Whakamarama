@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { MY_MRI_COPY } from '@/content/myMri'
 import { findingColour } from '@/myMri/findingColour'
 import { useMyMriScene } from '@/myMri/useMyMriScene'
+import type { MyMriView } from '@/myMri/useMyMriScene'
 import type { FindingSummary } from '@/myMri/useMyMriSession'
 
 /**
@@ -18,6 +19,8 @@ const props = defineProps<{
   mri: string
   mask: string
   findings: FindingSummary[]
+  /** The view to open on, and the one Reset returns to. The scene defaults to 3D. */
+  initialView?: MyMriView
 }>()
 defineEmits<{ retry: [] }>()
 
@@ -27,6 +30,7 @@ const { status, error, noMask, view, slice, setView, resetView } = useMyMriScene
   mri: props.mri,
   mask: props.mask,
   findings: props.findings,
+  initialView: props.initialView,
 })
 </script>
 

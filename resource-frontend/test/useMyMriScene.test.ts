@@ -159,8 +159,8 @@ const Host = defineComponent({
 type Api = ReturnType<typeof useMyMriScene>
 
 const mounted: { unmount: () => void }[] = []
-async function mountScene(findings: FindingSummary[] = FINDINGS) {
-  const wrapper = mount(Host, { props: { sources: { mri: MRI, mask: MASK, findings } } })
+async function mountScene(findings: FindingSummary[] = FINDINGS, extra: Partial<MyMriSources> = {}) {
+  const wrapper = mount(Host, { props: { sources: { mri: MRI, mask: MASK, findings, ...extra } } })
   mounted.push(wrapper)
   await flushPromises()
   return { wrapper, api: (wrapper.vm as unknown as { api: Api }).api }
@@ -665,6 +665,45 @@ describe('useMyMriScene', () => {
       expect(api.slice.value).toBeNull()
       expect(visible(meshes)).toEqual([true, true, true])
       expect([slices.x.index, slices.y.index, slices.z.index]).toEqual(opening)
+      expect(scene.camera.position.distanceTo(eye)).toBeCloseTo(0, 9)
+    })
+
+    it('opens on the view it is given: axial is one plane face-on, with its slice number', async () => {
+      const { api } = await mountScene(FINDINGS, { initialView: 'axial' })
+      const { meshes } = landVolume()
+      expect(api.view.value).toBe('3d') // not before the scan is ready
+      landMask()
+      await nextTick()
+      expect(api.view.value).toBe('axial')
+      expect(visible(meshes)).toEqual([false, false, true])
+      expect(api.slice.value?.total).toBe(104)
+      // From inferior, anterior up: the axial preset, face-on.
+      expect(scene.camera.position.z).toBeLessThan(scene.controls.target.z)
+    })
+
+    it('opens a scan with no marked areas on the given view too', async () => {
+      const { api } = await mountScene(FINDINGS, { initialView: 'axial' })
+      const { meshes } = landVolume()
+      gltfCall()[2].onError(httpError(404, { detail: { code: 'no_mask', summary: 'Cohort sub-1 has no mask.' } }))
+      await flushPromises()
+      expect(api.view.value).toBe('axial')
+      expect(visible(meshes)).toEqual([false, false, true])
+    })
+
+    it('Reset goes back to the opening view, not to 3D', async () => {
+      const { api } = await mountScene(FINDINGS, { initialView: 'axial' })
+      const { meshes, slices } = landVolume()
+      landMask()
+      await nextTick()
+      const opening = slices.z.index
+      const eye = scene.camera.position.clone()
+
+      api.setView('3d')
+      api.resetView()
+
+      expect(api.view.value).toBe('axial')
+      expect(visible(meshes)).toEqual([false, false, true])
+      expect(slices.z.index).toBe(opening)
       expect(scene.camera.position.distanceTo(eye)).toBeCloseTo(0, 9)
     })
 

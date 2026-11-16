@@ -17,10 +17,10 @@ const { publicUrl } = useAssetUrl()
 const showResults = hasBackend()
 
 // Pages are kept alive, so the page's own route is the one to read; the
-// stored case slug alone would keep a case row lit while My MRI is open.
+// stored case slug alone would keep a case row lit while My Report is open.
 const pageRoute = useOptionalPageRoute()
-const onMyMri = computed(() => pageRoute?.value.name === 'my-mri')
-const activeCaseSlug = computed(() => (onMyMri.value ? null : store.caseSlug))
+const onMyReport = computed(() => pageRoute?.value.name === 'my-report')
+const activeCaseSlug = computed(() => (onMyReport.value ? null : store.caseSlug))
 
 /**
  * Per-group icon paths (client feedback item 9), drawn stroke-only at
@@ -263,20 +263,20 @@ function onKeydown(event: KeyboardEvent) {
       <ul class="tw:flex tw:flex-col tw:gap-0.5">
         <li>
           <AppLink
-            to="/my-mri"
+            to="/my-report"
             class="tw:relative tw:flex tw:min-h-11 tw:flex-col tw:justify-center tw:rounded-ctl tw:pl-4 tw:pr-2 tw:text-body-sm"
-            :class="onMyMri
+            :class="onMyReport
               ? 'tw:bg-brand-subtle tw:font-bold tw:text-brand-hover'
               : 'tw:text-text-muted tw:hover:bg-surface-sunken tw:hover:text-text'"
-            :aria-current="onMyMri ? 'page' : undefined"
+            :aria-current="onMyReport ? 'page' : undefined"
           >
             <span
-              v-if="onMyMri"
+              v-if="onMyReport"
               data-active-indicator
               class="tw:absolute tw:inset-y-1 tw:left-0 tw:w-1 tw:rounded-r-full tw:bg-brand"
               aria-hidden="true"
             />
-            My MRI
+            My Report
             <span class="tw:text-caption tw:font-normal">Scan and report</span>
           </AppLink>
         </li>

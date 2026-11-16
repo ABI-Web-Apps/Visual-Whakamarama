@@ -23,13 +23,13 @@ export function colourSentence(findings: FindingColour[]): string {
 }
 
 export const MY_MRI_COPY = {
-  eyebrow: 'MY MRI',
-  title: 'Your MRI scan',
+  eyebrow: 'MY REPORT',
+  title: 'Your report',
   subline: (cohort: string) => `Patient ${cohort} · contrast phase 1`,
   loading: 'Loading your scan…',
   tryAgain: 'Try again',
-  viewerHeading: '3D view',
-  viewerLabel: 'Your MRI scan in 3D',
+  viewerHeading: 'MRI',
+  viewerLabel: 'Your MRI scan',
   viewerHint: 'drag · right-drag · scroll',
   viewerViewsLabel: 'View',
   viewerViews: [
@@ -41,7 +41,7 @@ export const MY_MRI_COPY = {
   viewerSlice: (current: number, total: number) => `Slice ${current} / ${total}`,
   viewerSliceHint: 'scroll: slices · Ctrl+scroll: zoom',
   viewerReset: 'Reset',
-  viewerResetLabel: 'Reset the 3D view',
+  viewerResetLabel: 'Reset the view',
   viewerLegendLabel: 'Colour key',
   viewerNoMask: 'No marked areas for this scan.',
   viewerErrors: {
@@ -58,12 +58,12 @@ export const MY_MRI_COPY = {
   reportOpen: 'Open report',
   reportDownload: 'Download',
   panelHeading: 'WHAT YOU\'RE SEEING',
-  intro: 'This is your breast MRI, shown in 3D. The three grey planes are slices through your scan, one in each direction.',
+  intro: 'This is your breast MRI, opened on the slice through the area your clinician marked. Choose 3D under View to see three slices together, one in each direction.',
   markedAreas: 'The coloured shapes are the areas your clinician marked.',
   colourMatch: (sentence: string) => `Each colour matches a finding in your report: ${sentence}.`,
-  controlsLead: 'Drag to turn the view, right-drag to move it, and scroll to zoom.',
+  controlsLead: 'In 3D, drag to turn the view, right-drag to move it, and scroll to zoom.',
   controlsReset: 'Reset',
   controlsTail: 'puts it back.',
   views: 'Axial, Coronal and Sagittal show one slice at a time: across your body, from the front and from the side. Scroll to move through the slices, and hold Ctrl while you scroll to zoom.',
-  reportNote: 'Your report is beside the 3D view. A dash (—) means that item has not been recorded. If anything is unclear, ask your clinician.',
+  reportNote: 'Your report is beside your scan. A dash (—) means that item has not been recorded. If anything is unclear, ask your clinician.',
 } as const

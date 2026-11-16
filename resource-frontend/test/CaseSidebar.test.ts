@@ -68,7 +68,7 @@ describe('CaseSidebar', () => {
     // to /about at its foot and (since client feedback item 8) a dedicated
     // home row above the groups -- neither is a case bullet and neither may
     // be counted here.
-    const links = wrapper.findAll('li a').filter(a => a.attributes('href') !== '/my-mri')
+    const links = wrapper.findAll('li a').filter(a => !a.attributes('href')!.startsWith('/my-'))
       .map(el => wrapper.findAllComponents(AppLinkStub).find(c => c.element === el.element)!)
     const grouped = enabledCases().filter(c => c.slug !== 'the-breast')
     expect(links).toHaveLength(grouped.length)
@@ -143,7 +143,7 @@ describe('CaseSidebar', () => {
 
     it('case rows keep their dot and gain no icon', () => {
       const wrapper = mountSidebar()
-      for (const row of wrapper.findAll('li a').filter(a => a.attributes('href') !== '/my-mri')) {
+      for (const row of wrapper.findAll('li a').filter(a => !a.attributes('href')!.startsWith('/my-'))) {
         expect(row.findAll('svg')).toHaveLength(0)
       }
     })
@@ -270,30 +270,30 @@ describe('CaseSidebar: YOUR RESULTS group', () => {
     })
     return mount(Host, { global: { stubs: { AppLink: AppLinkStub } } })
   }
-  const myMri: PageRoute = { path: '/my-mri', name: 'my-mri', params: {} }
+  const myReport: PageRoute = { path: '/my-report', name: 'my-report', params: {} }
+  const reportLink = (wrapper: ReturnType<typeof mountSidebar>) =>
+    wrapper.findAll('a').find(a => a.attributes('href') === '/my-report')!
 
-  it('lists YOUR RESULTS > My MRI after the cancer group', () => {
+  it('lists YOUR RESULTS after the cancer group', () => {
     const headings = mountSidebar().findAll('h2').map(h => h.text().toLowerCase())
     expect(headings.slice(-2)).toEqual(['breast cancer', 'your results'])
   })
 
-  it('links My MRI to /my-mri with the subtitle', () => {
-    const link = mountSidebar().findAll('a').find(a => a.attributes('href') === '/my-mri')!
-    expect(link.text()).toContain('My MRI')
+  it('links My Report to /my-report with the subtitle', () => {
+    const link = reportLink(mountSidebar())
+    expect(link.text()).toContain('My Report')
     expect(link.text()).toContain('Scan and report')
   })
 
-  it('marks My MRI active on /my-mri, and no case', () => {
-    const wrapper = mountOn(myMri)
-    const link = wrapper.findAll('a').find(a => a.attributes('href') === '/my-mri')!
-    expect(link.attributes('aria-current')).toBe('page')
+  it('marks My Report active on /my-report, and no case', () => {
+    const wrapper = mountOn(myReport)
+    expect(reportLink(wrapper).attributes('aria-current')).toBe('page')
     expect(wrapper.findAll('[aria-current="page"]')).toHaveLength(1)
   })
 
-  it('does not mark My MRI active on a case page', () => {
+  it('does not mark My Report active on a case page', () => {
     const wrapper = mountOn({ path: '/the-breast', name: 'case', params: { slug: 'the-breast' } })
-    const link = wrapper.findAll('a').find(a => a.attributes('href') === '/my-mri')!
-    expect(link.attributes('aria-current')).toBeUndefined()
+    expect(reportLink(wrapper).attributes('aria-current')).toBeUndefined()
   })
 })
 
@@ -307,6 +307,6 @@ describe('CaseSidebar in a build without a backend (GitHub Pages)', () => {
     const wrapper = mountSidebar()
     expect(wrapper.findAll('h2').map(h => h.text()))
       .toEqual(['Breast Density', 'Benign Conditions', 'Breast Cancer'])
-    expect(wrapper.findAll('a').some(a => a.attributes('href') === '/my-mri')).toBe(false)
+    expect(wrapper.findAll('a').some(a => a.attributes('href')!.startsWith('/my-'))).toBe(false)
   })
 })

@@ -48,6 +48,13 @@ describe('MyMriViewer', () => {
     })
   })
 
+  it('hands the scene the view to open on', () => {
+    mount(MyMriViewer, {
+      props: { mri: '/m', mask: '/k', findings: FINDINGS, initialView: 'axial' },
+    })
+    expect(useMyMriScene).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ initialView: 'axial' }))
+  })
+
   it('shows a legend entry per finding, with its colour', () => {
     const legend = mountViewer().get(`ul[aria-label="${MY_MRI_COPY.viewerLegendLabel}"]`)
     const items = legend.findAll('li')

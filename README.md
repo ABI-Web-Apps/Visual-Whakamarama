@@ -2,8 +2,8 @@
 
 An interactive breast education resource from the Auckland Bioengineering
 Institute: anatomy, mammogram and MRI side by side for the four density
-grades, benign findings and cancers, with a guided tour. A **My MRI** page
-shows a patient's own scan in 3D or one slice at a time, with the marked
+grades, benign findings and cancers, with a guided tour. A **My Report** page
+shows a patient's own scan, one slice at a time or in 3D, with the marked
 areas, beside a findings report (PDF) built from a dataset held in MinIO.
 
 It runs three ways from one source tree:
@@ -17,7 +17,7 @@ It runs three ways from one source tree:
 ```
 Visual-Whakamarama/
 ├── resource-frontend/   Vue 3 + Vite + Tailwind CSS 4 + Pinia (no vue-router)
-├── resource-backend/    FastAPI: the imaging catalogue and the My MRI data/report under /api
+├── resource-backend/    FastAPI: the imaging catalogue and the patient's scan, mask and report under /api
 ├── config.portal.json   Portal registration metadata
 ├── docker-compose.yml   Standalone stack
 ├── scripts/             Asset pipeline (imaging, PWA icons)
@@ -49,9 +49,9 @@ yarn test:artefacts  # rebuilds both, then checks the 3D views paint in each
 `yarn dev` talks to the backend on `http://localhost:8082` (see
 `resource-frontend/.env.example`); the backend allows that origin by default.
 
-### My MRI
+### My Report
 
-The My MRI page reads a SPARC dataset from the `measurements` bucket, so it
+The My Report page reads a SPARC dataset from the `measurements` bucket, so it
 needs a MinIO with the dataset in it. The education pages do not.
 
 MinIO publishes its API on host port 9000 and its console on 9001. When
@@ -97,13 +97,13 @@ Instead of step 2 you can upload through the MinIO console
 `minioadmin`): open the `measurements` bucket and upload the contents of
 `static/workdir/` into a `workdir/` folder.
 
-Then open <http://localhost:3158/my-mri>. The report is a WeasyPrint PDF, which
+Then open <http://localhost:3158/my-report>. The report is a WeasyPrint PDF, which
 needs system libraries (Pango, fonts) that only the Docker image installs: on a
 local backend the report column shows "Report rendering needs the Docker
 backend." and the PDF tests are skipped. Use the full Docker stack to see the
 report.
 
-`resource-frontend/test-browser/my-mri.spec.ts` covers the page end to end. It
+`resource-frontend/test-browser/my-report.spec.ts` covers the page end to end. It
 runs only with `MY_MRI_E2E=1` and a dataset in place. Its base URL is the Docker
 stack on :3159 by default. The standalone stack publishes on :3158 unless told
 otherwise, so bring it up with the port the spec expects (plus the MinIO port
@@ -112,7 +112,7 @@ overrides, if you use them):
 ```bash
 FRONTEND_PORT=3159 docker compose up --build -d
 cd resource-frontend
-MY_MRI_E2E=1 yarn playwright test my-mri
+MY_MRI_E2E=1 yarn playwright test my-report
 ```
 
 `playwright.config.ts` always declares `webServer` entries (`yarn dev` on :3158
@@ -125,7 +125,7 @@ with `MINIO_ENDPOINT` pointing at your MinIO (step 3 above) must already be
 running: a uvicorn that Playwright spawns itself does not have that variable.
 
 ```bash
-MY_MRI_E2E=1 MY_MRI_BASE_URL=http://localhost:3158 MY_MRI_BACKEND=local yarn playwright test my-mri
+MY_MRI_E2E=1 MY_MRI_BASE_URL=http://localhost:3158 MY_MRI_BACKEND=local yarn playwright test my-report
 ```
 
 ### Data
@@ -229,15 +229,16 @@ docker compose up --build   # http://localhost:3158
 The standalone stack includes its own MinIO (`pgsty/minio`), which `minio-init`
 gives a `measurements` bucket. Its API and console are published on 9000/9001;
 override with `MINIO_API_PORT`, `MINIO_CONSOLE_PORT` and `FRONTEND_PORT` when
-those are taken. Upload the dataset as in the My MRI section above.
+those are taken. Upload the dataset as in the My Report section above.
 
 ### GitHub Pages
 
 `.github/workflows/deploy_on_github_pages.yml` builds the standalone app under
 `/<repo>/`, copies the imaging catalogue beside it (`VITE_ASSET_BASE`), and
 publishes to the `gh-pages` branch. It runs on a new release, or on demand
-from the Actions tab. Pages has no backend, so that build leaves My MRI out:
-setting `VITE_ASSET_BASE` hides YOUR RESULTS and makes `/my-mri` a 404
+from the Actions tab. Pages has no backend, so that build leaves the patient pages out:
+setting `VITE_ASSET_BASE` hides YOUR RESULTS and makes `/my-report` (and
+the old `/my-mri`) a 404
 (`hasBackend()` in `src/runtime/env.ts`).
 
 ## Important documentation

@@ -31,7 +31,7 @@ function mapFindings(record: FindingsRecord | null): FindingSummary[] {
 /** The page shows `assay_info.cohorts[0]`; a config without one has no patient to load. */
 function noPatient(): MyMriError {
   return {
-    summary: 'No patient is configured for My MRI.',
+    summary: 'No patient is configured for your results.',
     detail: 'assay_info.cohorts in the tool config is empty.',
     code: 'no_cohort',
   }

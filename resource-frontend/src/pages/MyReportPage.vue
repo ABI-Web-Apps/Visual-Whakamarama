@@ -74,6 +74,7 @@ useDocumentTitle(() => `${MY_MRI_COPY.title} — ${APP_TITLE}`)
               :mri="urls.mri"
               :mask="urls.mask"
               :findings="findings"
+              initial-view="axial"
               @retry="retryViewer()"
             />
           </MyMriColumnState>
