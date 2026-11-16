@@ -454,6 +454,25 @@ describe('useMyMriScene', () => {
     expect(budget.release).toHaveBeenCalledWith(key)
   })
 
+  // My Images' MRI page shows the same scan twice, and every patient page is
+  // kept alive: each viewer is its own copy of the volume, so each must count.
+  it('counts two viewers of the same scan separately, and releases only its own', async () => {
+    const first = await mountScene()
+    const second = await mountScene()
+    // Each viewer's own load: `landVolume` only ever lands the first one.
+    for (const call of scene.loadNrrd.mock.calls.slice(0, 2)) {
+      (call as unknown as [string, unknown, (...args: unknown[]) => void])[2](makeVolume(), makeMeshes(), makeSlices())
+    }
+    const [keyA, keyB] = budget.register.mock.calls.map(call => call[0])
+    expect(budget.register).toHaveBeenCalledTimes(2)
+    expect(keyA).not.toBe(keyB)
+
+    second.wrapper.unmount()
+    expect(budget.release.mock.calls.map(call => call[0])).toEqual([keyB])
+    expect(budget.unpin.mock.calls.map(call => call[0])).toEqual([keyB])
+    first.wrapper.unmount()
+  })
+
   it('disposes the scene on unmount', async () => {
     const { wrapper } = await mountScene()
     const { meshes } = landVolume()

@@ -269,6 +269,27 @@ watch([() => store.active, () => store.stepIndex], async () => {
   scheduleDwell()
 }, { immediate: true })
 
+/**
+ * A step that navigates is not pre-painted (see above), and its post-runStep
+ * pass waits for the demo -- which for "Find the lesion" first waits for a
+ * cold MRI to load. Without this the whole load showed no halo at all. The
+ * director reports 'waiting' only once the navigation and the prepare actions
+ * have landed, so the target resolves on the new page here: the MRI panel
+ * while the volume loads (Locate lesion is not rendered yet). The post-runStep
+ * pass still runs and moves the halo once the demo is done.
+ */
+watch(() => store.phase, async (phase) => {
+  if (phase !== 'waiting' || !store.active) return
+  const s = step.value
+  const token = store.runToken
+  if (!s) return
+  await nextTick()
+  if (token !== store.runToken || !store.active || store.phase !== 'waiting') return
+  targetEl.value = director.resolveTarget(s)
+  paintRegions()
+  measure()
+})
+
 /** Toggling play/pause mid-step arms or disarms the dwell timer without
  *  waiting for the next step change. */
 watch(() => store.playing, (playing) => {

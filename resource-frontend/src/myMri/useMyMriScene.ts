@@ -303,6 +303,13 @@ function faceOnDistance(across: number, up: number, fovDegrees: number, aspect: 
  * `host` is the element the renderer's canvas goes in. `sources` is read once:
  * a different scan is a different viewer (the page keys it by URL).
  */
+/**
+ * Numbers each viewer for its budget key. Not `useId()`: that is unique within
+ * one Vue app only. A plain counter, which registers nothing, so it is no
+ * module-level side effect; it starts again with the bundle.
+ */
+let viewerCount = 0
+
 export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSources) {
   const status = ref<MyMriSceneStatus>('loading')
   const error = ref<string | null>(null)
@@ -313,8 +320,15 @@ export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSourc
   /** The single view's slice; null in the 3D view, where no one slice is "the" slice. */
   const slice = ref<SliceReadout | null>(null)
 
-  /** The renderer's scene map and the shared budget both key on this. */
+  /** The renderer's scene map keys on this; the renderer is this viewer's own. */
   const sceneName = `my-mri:${sources.mri}`
+  /**
+   * The shared budget's key: one per viewer, not per scan. Several viewers can
+   * show the same scan at once (My Images' MRI page shows it twice, and every
+   * patient page is kept alive), each holding its own copy of the volume, and
+   * one viewer's teardown must release only its own entry.
+   */
+  const budgetKey = `${sceneName}#${++viewerCount}`
   const controller = new AbortController()
 
   let scene: CopperScene | undefined
@@ -599,8 +613,8 @@ export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSourc
     // renderer has no other scene to give up, and the budget's victims belong
     // to the case stages' renderers, which apply it on their next load.
     const bytes = (volume.data as { byteLength?: number }).byteLength ?? 0
-    getSceneBudget().register(sceneName, bytes)
-    getSceneBudget().pin(sceneName)
+    getSceneBudget().register(budgetKey, bytes)
+    getSceneBudget().pin(budgetKey)
     registered = true
 
     // Open on the 1st-99th percentile window (the validator applies a measured
@@ -701,8 +715,8 @@ export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSourc
     inputHost?.removeEventListener('wheel', markPosed)
     inputHost?.removeEventListener('wheel', onWheel, { capture: true })
     if (registered) {
-      getSceneBudget().unpin(sceneName)
-      getSceneBudget().release(sceneName)
+      getSceneBudget().unpin(budgetKey)
+      getSceneBudget().release(budgetKey)
     }
     // Unregisters the scene and frees every child's geometry, materials and
     // textures (the planes' canvas textures included). The renderer itself is
