@@ -1,0 +1,168 @@
+{
+  "schema_version": 2,
+  "updated_at": "2026-11-16T00:00:00Z",
+  "breast_tissue": {
+    "fgt": "scattered",
+    "bpe_level": "minimal",
+    "bpe_symmetry": "symmetric"
+  },
+  "findings": [
+    {
+      "id": "f_1",
+      "label": "Finding 1",
+      "lesion": {
+        "layer_id": "layer3",
+        "channel": 1,
+        "color": "#ff7043"
+      },
+      "kinetics": {
+        "early_phase": "medium",
+        "delayed_phase": "persistent",
+        "curve": {
+          "phases": [
+            "contrast_pre",
+            "contrast_1",
+            "contrast_2",
+            "contrast_3",
+            "contrast_4"
+          ],
+          "mean_intensity": [
+            420.6,
+            782.3,
+            804.3,
+            828.0,
+            846.1
+          ],
+          "percent_change": [
+            0.0,
+            86.0,
+            91.2,
+            96.9,
+            101.2
+          ]
+        },
+        "source": "computed"
+      },
+      "location": {
+        "laterality": "right",
+        "clock_position": null,
+        "quadrant": "retroareolar",
+        "depth": "middle",
+        "distance_nipple_cm": {
+          "value": 2.8,
+          "source": "computed"
+        },
+        "distance_skin_cm": {
+          "value": 2.3,
+          "source": "computed"
+        },
+        "distance_ribcage_cm": {
+          "value": 3.7,
+          "source": "manual"
+        }
+      },
+      "size": {
+        "max_linear_mm": null,
+        "ap_mm": null,
+        "transverse_mm": null,
+        "craniocaudal_mm": null,
+        "volume_mm3": null
+      },
+      "assessment": 4,
+      "provenance": {
+        "mask_edited": false,
+        "mask_edited_at": null
+      },
+      "acr_lesion": {
+        "shape": "irregular",
+        "margin": "non_circumscribed_indistinct",
+        "internal_enhancement": "heterogeneous",
+        "t2_signal": "not_hyperintense",
+        "ln_intramammary": "normal",
+        "ln_axillary": "normal",
+        "ln_internal_mammary": "normal"
+      }
+    },
+    {
+      "id": "f_2",
+      "label": "Finding 2",
+      "lesion": {
+        "layer_id": "layer3",
+        "channel": 2,
+        "color": "#42a5f5"
+      },
+      "kinetics": {
+        "early_phase": "medium",
+        "delayed_phase": "persistent",
+        "curve": {
+          "phases": [
+            "contrast_pre",
+            "contrast_1",
+            "contrast_2",
+            "contrast_3",
+            "contrast_4"
+          ],
+          "mean_intensity": [
+            395.2,
+            763.4,
+            845.0,
+            884.2,
+            898.0
+          ],
+          "percent_change": [
+            0.0,
+            93.2,
+            113.8,
+            123.8,
+            127.2
+          ]
+        },
+        "source": "computed"
+      },
+      "location": {
+        "laterality": "right",
+        "clock_position": 1,
+        "quadrant": null,
+        "depth": "posterior",
+        "distance_nipple_cm": {
+          "value": 6.4,
+          "source": "computed"
+        },
+        "distance_skin_cm": {
+          "value": 4.1,
+          "source": "computed"
+        },
+        "distance_ribcage_cm": {
+          "value": 1.4,
+          "source": "manual"
+        }
+      },
+      "size": {
+        "max_linear_mm": null,
+        "ap_mm": null,
+        "transverse_mm": null,
+        "craniocaudal_mm": null,
+        "volume_mm3": null
+      },
+      "assessment": 3,
+      "provenance": {
+        "mask_edited": false,
+        "mask_edited_at": null
+      },
+      "acr_lesion": {
+        "shape": "oval",
+        "margin": "circumscribed",
+        "internal_enhancement": "homogeneous",
+        "t2_signal": "hyperintense",
+        "ln_intramammary": "normal",
+        "ln_axillary": "normal",
+        "ln_internal_mammary": "normal"
+      }
+    }
+  ],
+  "assessment": {
+    "category": null,
+    "source": "derived"
+  },
+  "acr_case": {}
+}

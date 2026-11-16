@@ -39,6 +39,12 @@ PRODUCT = "Visual Whakamārama"
 
 DISCLAIMER = "Research use. Not for primary diagnostic interpretation."
 
+# Printed under the masthead of every report. The sub-1 reading shown in the demo was
+# measured and chosen for the demo (resource-backend/demo/README.md); no clinician wrote it,
+# and `schema.empty_findings` explains why an unlabelled invented reading must never ship.
+# Remove this once real readings are delivered as the report's input.
+DEMO_NOTICE = "Demo data — not a clinical reading"
+
 
 def _acr_rows(section, values):
     """One section's rows, INCLUDING unfilled ones -- the report prints the whole form.
@@ -345,6 +351,7 @@ def build_context(case, findings, anatomical_withheld="", zone=timezone.utc):
         "product": PRODUCT,
         "document_title": "BI-RADS® MRI Structured Report",
         "disclaimer": DISCLAIMER,
+        "demo_notice": DEMO_NOTICE,
         "case_name": getattr(case, "name", None) or EM_DASH,
         "meta": [
             {"label": "Case ID", "value": str(getattr(case, "id", "") or EM_DASH)},

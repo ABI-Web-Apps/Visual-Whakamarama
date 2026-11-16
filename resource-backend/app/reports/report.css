@@ -117,6 +117,20 @@ body {
   color: var(--muted);
 }
 
+/* ---------- Demo notice -------------------------------------------------- */
+/* The reading is demo data; the page says so before anything else it says. */
+
+.demo-notice {
+  margin: -2mm 0 5mm;
+  padding: 2mm 3mm;
+  border: 0.6pt solid #f59e0b;
+  border-radius: 1.5mm;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 8pt;
+  font-weight: 700;
+}
+
 /* ---------- Title block ------------------------------------------------- */
 
 .case-name {

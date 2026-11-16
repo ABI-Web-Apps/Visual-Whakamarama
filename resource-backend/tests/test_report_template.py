@@ -103,6 +103,21 @@ def test_the_product_is_this_app():
     assert _context()["product"] == "Visual Whakamārama"
 
 
+def test_the_report_says_it_is_demo_data():
+    # The sub-1 reading is demo data, chosen and measured for a demo: no
+    # clinician wrote it. The report has to say so on every record, filled or not.
+    assert _context()["demo_notice"] == "Demo data — not a clinical reading"
+    assert build_context(StubCase(), Findings())["demo_notice"] == "Demo data — not a clinical reading"
+
+
+def test_html_carries_the_demo_notice_once_under_the_masthead():
+    from app.reports.render import render_report_html
+
+    html = render_report_html(StubCase(), Findings())
+    assert html.count("Demo data — not a clinical reading") == 1
+    assert html.index("</header>") < html.index("Demo data — not a clinical reading") < html.index('class="case-name"')
+
+
 def test_the_context_carries_no_reading_session():
     assert "reading" not in _context()
 
