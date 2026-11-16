@@ -74,6 +74,7 @@ useDocumentTitle(() => `${MY_IMAGES_MRI_COPY.title} — ${APP_TITLE}`)
                 :mask="urls.mask"
                 :findings="findings"
                 initial-view="axial"
+                :label="MY_IMAGES_MRI_COPY.currentLabel"
                 @retry="current.retry()"
               />
             </MyMriColumnState>
@@ -90,6 +91,7 @@ useDocumentTitle(() => `${MY_IMAGES_MRI_COPY.title} — ${APP_TITLE}`)
                 :mask="urls.mask"
                 :findings="findings"
                 initial-view="3d"
+                :label="MY_IMAGES_MRI_COPY.threeDLabel"
                 @retry="threeD.retry()"
               />
             </MyMriColumnState>

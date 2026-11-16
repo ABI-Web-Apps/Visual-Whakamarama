@@ -52,5 +52,6 @@ cd resource-backend && python -m pytest -q
 ships. Every other browser spec runs on `yarn dev`, which uses absolute
 backend URLs and unbundled modules -- the copper3d 4.1 upgrade broke both
 builds while all of them passed. It needs the backend on :8082 and, for the
-My MRI check, a MinIO with the dataset at the backend's `MINIO_ENDPOINT`
-(`localhost:9000` by default; see README "My MRI" for the port overrides).
+My Report check, a MinIO with the dataset at the backend's `MINIO_ENDPOINT`
+(`localhost:9000` by default; see README "My Images and My Report" for the port
+overrides).

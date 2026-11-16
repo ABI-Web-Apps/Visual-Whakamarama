@@ -21,6 +21,8 @@ const props = defineProps<{
   findings: FindingSummary[]
   /** The view to open on, and the one Reset returns to. The scene defaults to 3D. */
   initialView?: MyMriView
+  /** What a screen reader calls the scan; a page with two viewers names each. */
+  label?: string
 }>()
 defineEmits<{ retry: [] }>()
 
@@ -37,7 +39,7 @@ const { status, error, noMask, view, slice, setView, resetView } = useMyMriScene
 <template>
   <div class="tw:relative tw:h-full tw:min-h-72 tw:overflow-hidden tw:rounded-b-card">
     <!-- Always mounted: the renderer is built into this element once. -->
-    <div ref="host" class="tw:absolute tw:inset-0" role="img" :aria-label="MY_MRI_COPY.viewerLabel" />
+    <div ref="host" class="tw:absolute tw:inset-0" role="img" :aria-label="props.label ?? MY_MRI_COPY.viewerLabel" />
 
     <div
       v-if="status === 'error'"

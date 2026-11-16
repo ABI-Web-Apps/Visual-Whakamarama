@@ -1,3 +1,12 @@
+<script lang="ts">
+/**
+ * Numbers the columns' heading ids. Prefixed rather than `useId()`: in plugin
+ * mode the portal's own Vue app shares the document and its ids, and `useId()`
+ * is unique within one app only. A plain counter registers nothing global.
+ */
+let columnCount = 0
+</script>
+
 <script setup lang="ts">
 import AppLink from '@/navigation/AppLink.vue'
 
@@ -9,16 +18,21 @@ import AppLink from '@/navigation/AppLink.vue'
  * With `to`, the whole header is one link that opens the view in more detail:
  * the label plus an Open control, one tab stop. The body below it stays free
  * for a viewer that takes drags, so dragging there never navigates.
+ *
+ * The section is a region named by its heading: My Images' MRI page has two
+ * viewers with the same controls, and the column names tell them apart.
  */
 defineProps<{ label: string, to?: string, openLabel?: string }>()
+const headingId = `vw-result-column-${++columnCount}`
 </script>
 
 <template>
   <section
+    :aria-labelledby="headingId"
     class="tw:flex tw:min-h-80 tw:min-w-0 tw:flex-col tw:overflow-hidden tw:rounded-card tw:border tw:border-border
            tw:bg-surface tw:shadow-sm tw:@[1000px]:min-h-0"
   >
-    <h2 class="tw:flex tw:min-h-10 tw:shrink-0 tw:items-center tw:border-b tw:border-border tw:bg-surface">
+    <h2 :id="headingId" class="tw:flex tw:min-h-10 tw:shrink-0 tw:items-center tw:border-b tw:border-border tw:bg-surface">
       <AppLink
         v-if="to"
         :to="to"

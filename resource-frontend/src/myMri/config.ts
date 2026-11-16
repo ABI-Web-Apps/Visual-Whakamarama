@@ -12,7 +12,7 @@ export interface ToolConfig {
 }
 
 /**
- * The tool config the My MRI page reads. Today it is the bundled JSON; this
+ * The tool config the patient pages (My Images, My Report) read. Today it is the bundled JSON; this
  * is the one function the portal will replace to supply its own.
  */
 export function getToolConfig(): ToolConfig {

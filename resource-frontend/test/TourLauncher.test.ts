@@ -47,4 +47,10 @@ describe('TourLauncher', () => {
     await w.vm.$nextTick()
     expect(w.find('[data-tour-launcher]').exists()).toBe(false)
   })
+
+  it('offers a short tour, with no duration it was not timed for', () => {
+    const text = mount(TourLauncher).get('[data-tour-launcher]').text()
+    expect(text).toContain('New here? A short guided tour.')
+    expect(text).not.toMatch(/\d+[- ]second/)
+  })
 })

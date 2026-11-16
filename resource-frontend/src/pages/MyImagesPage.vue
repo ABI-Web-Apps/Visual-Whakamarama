@@ -75,6 +75,7 @@ useDocumentTitle(() => `${MY_IMAGES_COPY.title} — ${APP_TITLE}`)
                 :mask="urls.mask"
                 :findings="findings"
                 initial-view="3d"
+                :label="MY_IMAGES_COPY.mriLabel"
                 @retry="retry()"
               />
             </MyMriColumnState>

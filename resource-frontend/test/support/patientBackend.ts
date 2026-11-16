@@ -42,7 +42,7 @@ export const DefaultLayoutStub = {
 /** The viewer's own scene is covered by useMyMriScene.test.ts; here it only reports. */
 export const MyMriViewerStub = {
   name: 'MyMriViewer',
-  props: ['mri', 'mask', 'findings', 'initialView'],
+  props: ['mri', 'mask', 'findings', 'initialView', 'label'],
   emits: ['retry'],
   template: '<div data-slot="my-mri-viewer" />',
 }

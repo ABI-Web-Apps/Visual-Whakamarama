@@ -117,4 +117,12 @@ describe('the shortened tour (client feedback, November 2026)', () => {
     expect(step.body).toContain('invasive ductal carcinoma')
     expect(step.bodyFallback).toContain('invasive ductal carcinoma')
   })
+
+  // The tour lost four of its steps; a duration written for the old length
+  // would be wrong, so the copy names none.
+  it('promises no duration it was not timed for', () => {
+    const welcome = tourSteps('wide').find(s => s.id === 'welcome')!
+    expect(welcome.body).not.toMatch(/\d+[- ]second/)
+    expect(welcome.body).toContain('A short tour')
+  })
 })

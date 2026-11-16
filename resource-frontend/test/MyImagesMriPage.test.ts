@@ -50,6 +50,14 @@ describe('MyImagesMriPage', () => {
     expect(viewers(wrapper).every(v => /\/api\/patients\/a-1\/sub-1\/mri$/.test(v.props('mri')))).toBe(true)
   })
 
+  it('names its two viewers differently, so a screen reader can tell them apart', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    const labels = viewers(wrapper).map(v => v.props('label'))
+    expect(labels.every(Boolean)).toBe(true)
+    expect(new Set(labels).size).toBe(2)
+  })
+
   it('rebuilds only the viewer whose Try again was pressed', async () => {
     const wrapper = mountPage()
     await flushPromises()

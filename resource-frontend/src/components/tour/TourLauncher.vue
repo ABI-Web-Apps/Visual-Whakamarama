@@ -37,7 +37,7 @@ const visible = computed(() => !store.hasSeen && !dismissed.value && !store.acti
     <!-- Above the tablet bottom sheet's 80px peek and clear of the phone
          layout's prev/next cards: the app already owns its bottom-right. -->
     <p class="tw:text-caption tw:font-medium tw:whitespace-nowrap tw:text-(--hud-ink)">
-      New here? A 90-second guided tour.
+      New here? A short guided tour.
     </p>
     <div class="tw:flex tw:items-center tw:justify-end tw:gap-2">
       <button

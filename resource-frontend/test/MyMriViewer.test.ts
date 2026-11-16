@@ -55,6 +55,14 @@ describe('MyMriViewer', () => {
     expect(useMyMriScene).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ initialView: 'axial' }))
   })
 
+  it('names the scan for assistive technology, by the label it is given or the default', () => {
+    expect(mountViewer().get('[role="img"]').attributes('aria-label')).toBe(MY_MRI_COPY.viewerLabel)
+    const labelled = mount(MyMriViewer, {
+      props: { mri: '/m', mask: '/k', findings: FINDINGS, label: 'Your MRI in 3D' },
+    })
+    expect(labelled.get('[role="img"]').attributes('aria-label')).toBe('Your MRI in 3D')
+  })
+
   it('shows a legend entry per finding, with its colour', () => {
     const legend = mountViewer().get(`ul[aria-label="${MY_MRI_COPY.viewerLegendLabel}"]`)
     const items = legend.findAll('li')

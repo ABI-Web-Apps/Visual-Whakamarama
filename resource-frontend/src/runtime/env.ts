@@ -53,8 +53,9 @@ export function publicBase(): string {
 /**
  * Whether this build has the backend behind it. A build that sets
  * `VITE_ASSET_BASE` is the no-backend deploy (GitHub Pages): the imaging is
- * copied beside the app and there is no API, so pages that need one (My
- * MRI) are left out of it -- its sidebar entry hidden, its path a 404.
+ * copied beside the app and there is no API, so the pages that need one (My
+ * Images, its MRI page and My Report) are left out of it -- YOUR RESULTS
+ * hidden in the sidebar, their paths a 404.
  */
 export function hasBackend(): boolean {
   return !import.meta.env.VITE_ASSET_BASE

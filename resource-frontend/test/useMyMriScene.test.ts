@@ -690,7 +690,6 @@ describe('useMyMriScene', () => {
     it('opens on the view it is given: axial is one plane face-on, with its slice number', async () => {
       const { api } = await mountScene(FINDINGS, { initialView: 'axial' })
       const { meshes } = landVolume()
-      expect(api.view.value).toBe('3d') // not before the scan is ready
       landMask()
       await nextTick()
       expect(api.view.value).toBe('axial')
@@ -698,6 +697,18 @@ describe('useMyMriScene', () => {
       expect(api.slice.value?.total).toBe(104)
       // From inferior, anterior up: the axial preset, face-on.
       expect(scene.camera.position.z).toBeLessThan(scene.controls.target.z)
+    })
+
+    // The mask lands after the volume; showing all three planes until then
+    // flashed the 3D view before an axial-opening viewer switched.
+    it('shows only the plane of the opening view as soon as the volume lands, before the mask', async () => {
+      const { api } = await mountScene(FINDINGS, { initialView: 'axial' })
+      const { meshes } = landVolume()
+      expect(visible(meshes)).toEqual([false, false, true])
+      expect(api.view.value).toBe('axial')
+      expect(api.status.value).toBe('loading') // the view buttons wait for the mask
+      api.setView('3d') // and a view change still waits for it
+      expect(visible(meshes)).toEqual([false, false, true])
     })
 
     it('opens a scan with no marked areas on the given view too', async () => {

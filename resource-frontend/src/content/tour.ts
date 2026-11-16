@@ -23,7 +23,7 @@ const STEPS: TourStep[] = [
     chapter: 'layout',
     placement: 'center',
     title: 'Welcome to Te Uma',
-    body: 'A 90-second tour of how this resource works. You can leave at any time — press Escape.',
+    body: 'A short tour of how this resource works. You can leave at any time — press Escape.',
   },
   {
     id: 'case-list',

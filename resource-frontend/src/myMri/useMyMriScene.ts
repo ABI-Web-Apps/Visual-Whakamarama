@@ -596,6 +596,11 @@ export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSourc
     planes = byAxis
     slices = landed
     rememberOpeningSlices()
+    // Only the opening view's plane from the start, so a viewer that opens on
+    // a single view never flashes all three planes while the mask loads. The
+    // view buttons still wait for the mask (`setView`); `openOnInitialView`
+    // frames the view again once the slices are centred on the marked area.
+    if (initialView !== '3d') showView(initialView)
 
     // The field of view is the box of the three planes, measured from the
     // meshes so it carries the volume's own offset.
