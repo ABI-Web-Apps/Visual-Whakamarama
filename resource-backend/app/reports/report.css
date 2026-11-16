@@ -18,6 +18,9 @@
   --hairline: #f1f5f9;
   --brand: #1769ff;
   --brand-2: #06b6d4;
+  /* The watch tone's pair (.tone-watch), named for the demo notice. */
+  --watch: #b45309;
+  --watch-bg: #fffbeb;
 }
 
 @page {
@@ -123,10 +126,10 @@ body {
 .demo-notice {
   margin: -2mm 0 5mm;
   padding: 2mm 3mm;
-  border: 0.6pt solid #f59e0b;
+  border: 0.6pt solid var(--watch);
   border-radius: 1.5mm;
-  background: #fffbeb;
-  color: #92400e;
+  background: var(--watch-bg);
+  color: var(--watch);
   font-size: 8pt;
   font-weight: 700;
 }

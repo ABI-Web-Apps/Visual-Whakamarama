@@ -118,6 +118,13 @@ def test_html_carries_the_demo_notice_once_under_the_masthead():
     assert html.index("</header>") < html.index("Demo data — not a clinical reading") < html.index('class="case-name"')
 
 
+def test_the_demo_notice_takes_its_colours_from_the_palette():
+    css = (Path(__file__).resolve().parents[1] / "app" / "reports" / "report.css").read_text(encoding="utf-8")
+    rule = re.search(r"\.demo-notice\s*\{([^}]*)\}", css).group(1)
+    assert "var(--" in rule
+    assert not re.search(r"#[0-9a-fA-F]{3,8}", rule)
+
+
 def test_the_context_carries_no_reading_session():
     assert "reading" not in _context()
 

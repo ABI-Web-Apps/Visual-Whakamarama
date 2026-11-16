@@ -22,10 +22,11 @@ What is measured and how (demo/README.md lists which value came from where):
 - distance to nipple: the smallest distance from a lesion voxel to the nipple point;
 - clock: as the examiner faces the patient, 12 is superior and 3 is the examiner's right
   (the patient's left), from the nipple to the lesion centroid in the coronal plane;
-- quadrant: retroareolar within RETROAREOLAR_MM of the nipple in the coronal plane, else
-  upper/lower and outer (lateral) / inner (medial). Both are printed; the findings schema
-  takes only one, so the record keeps the quadrant for a retroareolar lesion (a clock face
-  has no hour for one) and the clock position otherwise;
+- quadrant: within RETROAREOLAR_MM of the nipple in the coronal plane, retroareolar in the
+  anterior third and central deeper (the BI-RADS usage), else upper/lower and outer
+  (lateral) / inner (medial). Both are printed; the findings schema
+  takes only one, so the record keeps the quadrant for a lesion behind the nipple (a clock
+  face has no hour for one) and the clock position otherwise;
 - chest wall: NOT computed. CHEST_WALL_Y_MM is where the pectoralis begins behind each lesion,
   read by eye on the axial slice through its centroid (y counted from the image's anterior
   edge, as the grid on those slices showed). The distance runs from the lesion's most posterior
@@ -89,9 +90,9 @@ def clock_position(dx, dz):
     return 12 if hour == 0 else hour
 
 
-def quadrant(dx, dz, laterality):
+def quadrant(dx, dz, laterality, depth):
     if math.hypot(dx, dz) < RETROAREOLAR_MM:
-        return "retroareolar"
+        return "retroareolar" if depth == "anterior" else "central"
     upper = dz > 0
     outer = dx < 0 if laterality == "right" else dx > 0
     return ("U" if upper else "L") + ("O" if outer else "I") + "Q"
@@ -128,14 +129,15 @@ def measure():
 
         dx, dz = c_mm[0] - n_mm[0], c_mm[2] - n_mm[2]
         chest_wall_y = CHEST_WALL_Y_MM[channel]
+        third = depth(c_mm[1], n_mm[1], chest_wall_y)
         out[channel] = {
             "voxels": int(len(voxels)),
             "centroid_ijk": [round(float(v), 1) for v in centroid],
             "nipple_ijk": [int(v) for v in nipple],
             "laterality": laterality,
             "clock_position": clock_position(dx, dz),
-            "quadrant": quadrant(dx, dz, laterality),
-            "depth": depth(c_mm[1], n_mm[1], chest_wall_y),
+            "quadrant": quadrant(dx, dz, laterality, third),
+            "depth": third,
             "distance_skin_cm": round(float(to_skin[tuple(voxels.T)].min()) / 10, 1),
             "distance_nipple_cm": round(float(np.linalg.norm(mm - n_mm, axis=1).min()) / 10, 1),
             "distance_ribcage_cm": round((chest_wall_y - float(mm[:, 1].max())) / 10, 1),

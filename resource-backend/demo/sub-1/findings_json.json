@@ -46,7 +46,7 @@
       "location": {
         "laterality": "right",
         "clock_position": null,
-        "quadrant": "retroareolar",
+        "quadrant": "central",
         "depth": "middle",
         "distance_nipple_cm": {
           "value": 2.8,
@@ -80,7 +80,15 @@
         "t2_signal": "not_hyperintense",
         "ln_intramammary": "normal",
         "ln_axillary": "normal",
-        "ln_internal_mammary": "normal"
+        "ln_internal_mammary": "normal",
+        "nipple_retraction": false,
+        "nipple_involvement": false,
+        "skin_retraction": false,
+        "skin_thickening": false,
+        "skin_involvement": false,
+        "pectoralis": false,
+        "chest_wall": false,
+        "peritumoral_edema": false
       }
     },
     {
@@ -156,7 +164,15 @@
         "t2_signal": "hyperintense",
         "ln_intramammary": "normal",
         "ln_axillary": "normal",
-        "ln_internal_mammary": "normal"
+        "ln_internal_mammary": "normal",
+        "nipple_retraction": false,
+        "nipple_involvement": false,
+        "skin_retraction": false,
+        "skin_thickening": false,
+        "skin_involvement": false,
+        "pectoralis": false,
+        "chest_wall": false,
+        "peritumoral_edema": false
       }
     }
   ],
@@ -164,5 +180,15 @@
     "category": null,
     "source": "derived"
   },
-  "acr_case": {}
+  "acr_case": {
+    "high_t1_duct_signal": false,
+    "cysts": false,
+    "postoperative_fluid": false,
+    "post_therapy_thickening": false,
+    "non_enhancing_mass": false,
+    "signal_void": false,
+    "fat_necrosis": false,
+    "hamartoma": false,
+    "enhancing_skin_lesions": false
+  }
 }

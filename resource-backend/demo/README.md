@@ -24,13 +24,14 @@ mask, in patient LPS; `source: "computed"`):
 | | Finding 1 | Finding 2 |
 |---|---|---|
 | Laterality | right | right |
-| Location | retroareolar | 1 o'clock |
+| Location | central (behind the nipple, middle third) | 1 o'clock |
 | Depth | middle | posterior |
 | Distance to skin | 2.3 cm | 4.1 cm |
 | Distance to nipple | 2.8 cm | 6.4 cm |
 
 The nipple is the right breast's most anterior skin point (the patient lies prone). Depth uses
-the chest wall below.
+the chest wall below. Behind the nipple, the anterior third is retroareolar and deeper is
+central, as BI-RADS uses the terms.
 
 **Read by eye** (`source: "manual"`): distance to the chest wall, 3.7 cm and 1.4 cm, from the
 lesion's most posterior voxel to where the pectoralis begins behind it on the axial slice
@@ -46,6 +47,9 @@ through its centroid (`CHEST_WALL_Y_MM` in the script).
 - T2 signal (finding 1 not hyperintense, finding 2 hyperintense): this dataset's
   `t2_nrrd` is an exact copy of the pre-contrast series, so nothing can be read from it.
 - Lymph nodes: normal. Exam category: derived from the findings (4).
+- Associated features (each finding) and other, typically benign findings: all recorded as
+  absent (`false`). The ACR form prints an unticked box as a dash, so on the PDF these rows
+  still read "—"; the record says they were looked at.
 
 ## Uploading it
 

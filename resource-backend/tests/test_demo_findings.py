@@ -6,6 +6,8 @@ ACR form offers, and keep the original's findings exactly: the mask channels, co
 computed kinetics are the dataset's, not the demo's.
 """
 
+import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
@@ -88,7 +90,49 @@ def test_the_findings_are_the_originals(demo, original):
     assert identity(demo) == identity(original)
 
 
+#: The ETag MinIO reported for the object when it was backed up: for a single-part upload, the
+#: MD5 of its bytes. Restoring the dataset means uploading this file back unchanged.
+ORIGINAL_ETAG = "fa99dec1bbab46c449a2e601eb5918be"
+
+
 def test_the_original_is_kept_byte_for_byte_as_found():
-    # Restoring the dataset means uploading this file back unchanged.
     raw = (DEMO / "findings_json.original.json").read_bytes()
-    assert json.loads(raw)["findings"]
+    assert hashlib.md5(raw).hexdigest() == ORIGINAL_ETAG
+
+
+def test_retroareolar_is_only_used_in_the_anterior_third(demo):
+    # BI-RADS: behind the nipple in the anterior third is retroareolar; deeper is central.
+    for finding in demo.findings:
+        if finding.location.quadrant == "retroareolar":
+            assert finding.location.depth == "anterior", finding.id
+
+
+def _check_fields(section_id):
+    return [f.id for s in ACR_SECTIONS if s.id == section_id for f in s.fields if f.kind == "check"]
+
+
+def test_absent_features_are_recorded_as_absent(demo):
+    # A reading that looked and found nothing says so; it does not leave the boxes unread.
+    for finding in demo.findings:
+        for field_id in _check_fields("associated"):
+            assert isinstance(finding.acr_lesion.get(field_id), bool), (finding.id, field_id)
+    for field_id in _check_fields("other_benign"):
+        assert isinstance(demo.acr_case.get(field_id), bool), field_id
+
+
+def _measure_module():
+    spec = importlib.util.spec_from_file_location("measure_sub1", DEMO.parent / "measure_sub1.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize(("depth", "expected"), [("anterior", "retroareolar"), ("middle", "central"), ("posterior", "central")])
+def test_behind_the_nipple_is_retroareolar_only_in_the_anterior_third(depth, expected):
+    assert _measure_module().quadrant(1.0, 2.0, "right", depth) == expected
+
+
+def test_off_the_nipple_the_quadrant_ignores_depth():
+    measure = _measure_module()
+    # 17 mm medial and 19 mm superior of a right nipple: upper inner, at any depth.
+    assert {measure.quadrant(16.9, 19.0, "right", d) for d in ("anterior", "middle", "posterior")} == {"UIQ"}
