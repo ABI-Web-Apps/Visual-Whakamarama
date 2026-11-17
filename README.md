@@ -274,14 +274,16 @@ so the server must accept SSH from outside its own network. If it does not, the
 run stops at "Reach the server" with a timeout.
 
 Each step says where it runs. On your machine, use bash (Git Bash on Windows:
-Windows PowerShell drops the empty `''` passphrase), in your home folder, not
-in this repository, so the private key cannot be committed by accident.
+Windows PowerShell writes `>` output as UTF-16, which ssh cannot read), in your
+home folder, not in this repository, so the private key cannot be committed by
+accident.
 
-1. **Your machine.** Make a key for the workflow alone:
+1. **Your machine.** Make a key for the workflow alone. Press Enter at both
+   passphrase prompts: the workflow cannot type one.
 
    ```bash
    cd ~
-   ssh-keygen -t ed25519 -N '' -C 'github-actions deploy' -f deploy_key
+   ssh-keygen -t ed25519 -C 'github-actions deploy' -f deploy_key
    ```
 
 2. **Your machine.** Let the key in on the server. This logs in the way you
