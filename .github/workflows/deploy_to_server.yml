@@ -1,0 +1,129 @@
+name: Deploy to the server
+
+# Publishing a release deploys its tag to the standalone Docker stack
+# (docker-compose.yml: nginx with the app, the FastAPI backend, MinIO) on the
+# server, over SSH. Merge into main first: a release whose commit is not on
+# main is refused. To deploy an earlier release again, re-run its run.
+#
+# The work on the server is scripts/deploy/server-deploy.sh. One-time setup
+# (the key, the settings below): README, "Deployment > Server".
+#
+#   variables  DEPLOY_HOST, DEPLOY_PATH; DEPLOY_USER (ubuntu), DEPLOY_PORT (22)
+#   secrets    DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS
+
+on:
+  release:
+    types: [published]
+
+# One deploy at a time: a second release waits for the first to finish.
+concurrency:
+  group: deploy-server
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: ${{ format('http://{0}/', vars.DEPLOY_HOST) }}
+    env:
+      TAG: ${{ github.event.release.tag_name }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER || 'ubuntu' }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+
+    steps:
+      - name: Check the release is on the default branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Compared with the default branch, a commit already on it is
+          # "behind" it, or "identical" when it is the branch's tip.
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$DEFAULT_BRANCH...$GITHUB_SHA" --jq .status)
+          case "$status" in
+            identical | behind) echo "$TAG ($GITHUB_SHA) is on $DEFAULT_BRANCH." ;;
+            *)
+              echo "::error::$TAG ($GITHUB_SHA) is not on $DEFAULT_BRANCH ($status). Merge it into $DEFAULT_BRANCH, then publish the release from there."
+              exit 1
+              ;;
+          esac
+
+      - name: Check the deploy settings
+        env:
+          HAS_KEY: ${{ secrets.DEPLOY_SSH_KEY != '' }}
+          HAS_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS != '' }}
+        run: |
+          missing=()
+          [ -n "$DEPLOY_HOST" ] || missing+=("variable DEPLOY_HOST")
+          [ -n "$DEPLOY_PATH" ] || missing+=("variable DEPLOY_PATH")
+          [ "$HAS_KEY" = true ] || missing+=("secret DEPLOY_SSH_KEY")
+          [ "$HAS_KNOWN_HOSTS" = true ] || missing+=("secret DEPLOY_KNOWN_HOSTS")
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing from Settings > Secrets and variables > Actions: ${missing[*]}. See README, Deployment > Server."
+            exit 1
+          fi
+          # These go into the command run on the server: plain characters only.
+          # shellcheck disable=SC2153  # DEPLOY_PORT is set in the job's env
+          for value in "$TAG" "$DEPLOY_PATH" "$DEPLOY_USER" "$DEPLOY_HOST" "$DEPLOY_PORT"; do
+            if [[ ! "$value" =~ ^[A-Za-z0-9._/@+-]+$ ]]; then
+              echo "::error::'$value' has characters this workflow does not pass to the server."
+              exit 1
+            fi
+          done
+
+      - uses: actions/checkout@v4
+        with:
+          # Only the deploy script: the server fetches the release itself, so
+          # the ~350MB imaging catalogue is never downloaded here.
+          sparse-checkout: scripts/deploy
+          filter: blob:none
+
+      - name: Set up SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Pinned, never scanned here: a scan would trust whatever answers.
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host server
+            HostName $DEPLOY_HOST
+            Port $DEPLOY_PORT
+            User $DEPLOY_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking yes
+            ConnectTimeout 20
+            ServerAliveInterval 30
+          EOF
+
+      - name: Reach the server
+        run: |
+          if ! ssh server true; then
+            echo "::error::GitHub's runner could not SSH to $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PORT. A timeout means the server does not take SSH from outside its network (README, Deployment > Server); 'Permission denied' or 'Host key verification failed' means DEPLOY_SSH_KEY or DEPLOY_KNOWN_HOSTS."
+            exit 1
+          fi
+
+      - name: Deploy ${{ github.event.release.tag_name }}
+        env:
+          # Lets the server fetch the release if the repository goes private.
+          GIT_TOKEN: ${{ github.token }}
+        run: |
+          # The token is the first line on stdin, read by the server's shell so
+          # it is on no command line; the script follows it.
+          remote='read -r GIT_TOKEN && export GIT_TOKEN && exec bash -s --'
+          # The arguments expand here on purpose: checked to be plain above.
+          # shellcheck disable=SC2029
+          { printf '%s\n' "$GIT_TOKEN"; cat scripts/deploy/server-deploy.sh; } \
+            | ssh server "$remote '$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git' '$TAG' '$GITHUB_SHA' '$DEPLOY_PATH'"
+          echo "Deployed $TAG ($GITHUB_SHA) to http://$DEPLOY_HOST/" >> "$GITHUB_STEP_SUMMARY"

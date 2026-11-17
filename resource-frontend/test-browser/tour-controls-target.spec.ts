@@ -24,10 +24,10 @@ test('the controls step targets the FOCUSED panel\'s control bar, not always the
   await page.locator('[data-tour-open]').click()
   const cardTitle = page.locator('[data-tour-card] h2')
   for (let i = 0; i < 20; i++) {
-    if ((await cardTitle.textContent())?.trim() === 'Per-view controls') break
+    if ((await cardTitle.textContent())?.trim() === 'Controls') break
     await page.locator('[data-tour-next]').click()
   }
-  await expect(cardTitle).toHaveText('Per-view controls')
+  await expect(cardTitle).toHaveText('Controls')
 
   const focusedPanelId = await page.locator('[data-panel][data-focused="true"]').getAttribute('data-panel')
   // The rotate/slices steps' own prepare actions land on MRI by this point

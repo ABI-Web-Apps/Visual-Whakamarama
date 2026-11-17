@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useAssetUrl } from '@/composables/useAssetUrl'
 import { citations, FEEDBACK_FORM_URL, organisations } from '@/content/team'
 import AppLink from '@/navigation/AppLink.vue'
-import { useDocumentTitle } from '@/navigation/head'
+import { APP_TITLE, useDocumentTitle } from '@/navigation/head'
 import type { PageRoute } from '@/navigation/routes'
 
 // Every page receives its route from App.vue; this one does not need it, but
@@ -21,7 +21,7 @@ defineProps<{ route?: PageRoute }>()
  * the imaging and the model came from, all as real text with the DOIs as
  * real links. See content/team.ts for what that bitmap cost.
  */
-useDocumentTitle(() => 'About — Breast Educational Resource')
+useDocumentTitle(() => `About — ${APP_TITLE}`)
 
 const { publicUrl } = useAssetUrl()
 const appVersion = __APP_VERSION__
@@ -204,7 +204,7 @@ const fullWidthOrgs = computed(() =>
         to give us your valuable feedback about this app.
       </p>
       <p class="tw:mt-4 tw:text-caption tw:tabular-nums tw:text-text-muted" data-app-version>
-        Breast Educational Resource v{{ appVersion }}
+        {{ APP_TITLE }} v{{ appVersion }}
       </p>
     </section>
   </main>

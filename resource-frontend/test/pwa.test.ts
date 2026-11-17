@@ -17,9 +17,9 @@ describe('PWA configuration', () => {
     expect(pwa.registerType).toBe('autoUpdate')
   })
 
-  it('carries the legacy app\'s manifest fields verbatim', () => {
-    expect(pwa.manifest.name).toBe('Breast Educational Resource')
-    expect(pwa.manifest.short_name).toBe('Breast Education App')
+  it('carries the app\'s name, and the legacy manifest\'s other fields verbatim', () => {
+    expect(pwa.manifest.name).toBe('Visual Whakamārama')
+    expect(pwa.manifest.short_name).toBe('Whakamārama')
     expect(pwa.manifest.description).toBe('An ABI Education App for Breast Cancer.')
     expect(pwa.manifest.theme_color).toBe('#ffffff')
   })

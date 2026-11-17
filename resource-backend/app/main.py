@@ -1,4 +1,4 @@
-"""Backend for the Breast Educational Resource.
+"""Backend for Visual Whakamārama.
 
 The app's imaging catalogue -- NRRD volumes, Draco-compressed GLB anatomy
 models and copper3d view presets, ~350MB in all -- is served from here rather
@@ -69,7 +69,7 @@ class CatalogueFiles(StaticFiles):
         return response
 
 
-app = FastAPI(title="Breast Educational Resource", docs_url=None, redoc_url=None)
+app = FastAPI(title="Visual Whakamārama", docs_url=None, redoc_url=None)
 
 app.add_middleware(
     CORSMiddleware,

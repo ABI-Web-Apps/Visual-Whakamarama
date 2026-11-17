@@ -1,4 +1,5 @@
 import { getCase } from '@/content/cases'
+import type { PageRoute } from '@/navigation/routes'
 
 /**
  * The key App.vue's `<KeepAlive>` uses to decide when the case page -- and with it
@@ -31,11 +32,18 @@ import { getCase } from '@/content/cases'
  * navigation regardless of instance reuse, which is why the 404 behaviour
  * survives this. Do not move it into the page.
  *
- * Every non-case route keys on its own path (App.vue).
+ * Every other page keys on its NAME (`pageKeyFor`), not its path: paths match
+ * case-insensitively, so `/My-Images` and `/my-images` are one page, and keyed
+ * on the path they were two kept-alive instances, each with its own viewer.
  */
 const CASE_PAGE_KEY = 'case'
 
 export function casePageKey(slug: string | undefined): string | undefined {
   if (typeof slug !== 'string') return undefined
   return getCase(slug) ? CASE_PAGE_KEY : undefined
+}
+
+/** The KeepAlive key for a resolved page: the shared case key, else the page's name. */
+export function pageKeyFor(route: PageRoute): string {
+  return casePageKey(route.params.slug) ?? route.name
 }

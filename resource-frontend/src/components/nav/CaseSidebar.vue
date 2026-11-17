@@ -13,14 +13,22 @@ import { hasBackend } from '@/runtime/env'
 const store = useViewerStore()
 const { publicUrl } = useAssetUrl()
 
-/** YOUR RESULTS is the patient's own data, which only a build with the backend can serve. */
+/** MY RESULTS is the patient's own data, which only a build with the backend can serve. */
 const showResults = hasBackend()
 
 // Pages are kept alive, so the page's own route is the one to read; the
-// stored case slug alone would keep a case row lit while My MRI is open.
+// stored case slug alone would keep a case row lit while My Report is open.
 const pageRoute = useOptionalPageRoute()
-const onMyMri = computed(() => pageRoute?.value.name === 'my-mri')
-const activeCaseSlug = computed(() => (onMyMri.value ? null : store.caseSlug))
+const onMyReport = computed(() => pageRoute?.value.name === 'my-report')
+// My Images covers its MRI page too: that page is a closer look, not a new place.
+const onMyImages = computed(() => pageRoute?.value.name === 'my-images' || pageRoute?.value.name === 'my-images-mri')
+const activeCaseSlug = computed(() => (onMyReport.value || onMyImages.value ? null : store.caseSlug))
+
+/** MY RESULTS, in order: the patient's images, then their report. */
+const results = computed(() => [
+  { to: '/my-images', label: 'My Images', subtitle: 'Anatomy, mammogram and MRI', current: onMyImages.value },
+  { to: '/my-report', label: 'My Report', subtitle: 'Scan and report', current: onMyReport.value },
+])
 
 /**
  * Per-group icon paths (client feedback item 9), drawn stroke-only at
@@ -53,7 +61,7 @@ const GROUP_ICON: Record<Exclude<CaseGroup, 'overview'>, string[]> = {
 }
 
 /**
- * YOUR RESULTS: a page with a folded corner and two text lines -- a report.
+ * MY RESULTS: a page with a folded corner and two text lines -- a report.
  * Plain rectilinear strokes, which is what survives at 16px.
  */
 const RESULTS_ICON = ['M7 3.5h7l4 4V20.5H7z', 'M14 3.5v4h4', 'M10 12.5h5', 'M10 16.5h5']
@@ -258,26 +266,26 @@ function onKeydown(event: KeyboardEvent) {
         >
           <path v-for="d in RESULTS_ICON" :key="d" :d="d" />
         </svg>
-        Your results
+        My results
       </h2>
       <ul class="tw:flex tw:flex-col tw:gap-0.5">
-        <li>
+        <li v-for="row in results" :key="row.to">
           <AppLink
-            to="/my-mri"
+            :to="row.to"
             class="tw:relative tw:flex tw:min-h-11 tw:flex-col tw:justify-center tw:rounded-ctl tw:pl-4 tw:pr-2 tw:text-body-sm"
-            :class="onMyMri
+            :class="row.current
               ? 'tw:bg-brand-subtle tw:font-bold tw:text-brand-hover'
               : 'tw:text-text-muted tw:hover:bg-surface-sunken tw:hover:text-text'"
-            :aria-current="onMyMri ? 'page' : undefined"
+            :aria-current="row.current ? 'page' : undefined"
           >
             <span
-              v-if="onMyMri"
+              v-if="row.current"
               data-active-indicator
               class="tw:absolute tw:inset-y-1 tw:left-0 tw:w-1 tw:rounded-r-full tw:bg-brand"
               aria-hidden="true"
             />
-            My MRI
-            <span class="tw:text-caption tw:font-normal">Scan and report</span>
+            {{ row.label }}
+            <span class="tw:text-caption tw:font-normal">{{ row.subtitle }}</span>
           </AppLink>
         </li>
       </ul>
@@ -297,10 +305,14 @@ function onKeydown(event: KeyboardEvent) {
       One link wrapping all three, to About, where the same organisations are
       named in text: three separate outbound links here would be three tab
       stops on every page for something nobody navigates by.
+
+      `relative` keeps the link's sr-only name inside the scrolling sidebar:
+      placed against anything further out, it sat below the window and
+      stretched the page.
     -->
     <AppLink
       to="/about"
-      class="tw:mt-auto tw:flex tw:flex-col tw:items-start tw:gap-3 tw:rounded-card tw:border-t tw:border-border
+      class="tw:relative tw:mt-auto tw:flex tw:flex-col tw:items-start tw:gap-3 tw:rounded-card tw:border-t tw:border-border
              tw:px-2 tw:pb-1 tw:pt-5 tw:opacity-70 tw:transition-opacity tw:hover:opacity-100"
     >
       <span class="tw:sr-only">About this resource and the team behind it</span>
@@ -316,7 +328,7 @@ function onKeydown(event: KeyboardEvent) {
     </AppLink>
 
     <!-- No version line here. It lives on the About page instead
-         ("Breast Educational Resource v{version}"), which is where a reader
+         ("Visual Whakamārama v{version}"), which is where a reader
          looks for provenance; in the persistent chrome it was a number on
          every screen that almost nobody ever needs. -->
   </nav>

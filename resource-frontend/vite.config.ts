@@ -26,8 +26,8 @@ import { readAppVersion } from './version'
 export const pwaOptions: Partial<VitePWAOptions> = {
   registerType: 'autoUpdate',
   manifest: {
-    name: 'Breast Educational Resource',
-    short_name: 'Breast Education App',
+    name: 'Visual Whakamārama',
+    short_name: 'Whakamārama',
     description: 'An ABI Education App for Breast Cancer.',
     theme_color: '#ffffff',
     background_color: '#FBF7F8',
@@ -103,7 +103,7 @@ export default defineConfig(({ command }) => {
           tailwindcss(),
           ...(isPluginBuild
             ? [scopeToRoot({
-                rootClass: 'ber-root',
+                rootClass: 'vw-root',
                 isMainStylesheet: file => Boolean(file && /tokens\.css$/.test(file)),
               })]
             : []),
@@ -128,7 +128,7 @@ export default defineConfig(({ command }) => {
 
     server: {
       host: '0.0.0.0',
-      port: 3158,
+      port: 80,
       // `yarn test:artefacts` rebuilds both outputs while `yarn dev` may be
       // running; watching them made the dev server crash on EBUSY on Windows.
       watch: { ignored: ['**/build/**', '**/dist/**'] },
@@ -145,7 +145,7 @@ export default defineConfig(({ command }) => {
       ? {
           lib: {
             entry: './src/index.ts',
-            name: 'BreastEducationalResource',
+            name: 'VisualWhakamarama',
             formats: ['umd'],
             fileName: (format) => `my-app.${format}.js`,
           },

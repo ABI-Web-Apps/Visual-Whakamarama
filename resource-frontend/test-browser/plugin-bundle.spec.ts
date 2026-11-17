@@ -38,7 +38,7 @@ const DIST = resolve(dirname(fileURLToPath(import.meta.url)), '../dist')
 const NODE_MODULES = resolve(dirname(fileURLToPath(import.meta.url)), '../node_modules')
 const PORT = 4181
 const base = `http://localhost:${PORT}`
-const GLOBAL = 'BreastEducationalResource'
+const GLOBAL = 'VisualWhakamarama'
 
 const TYPES: Record<string, string> = {
   '.js': 'text/javascript; charset=utf-8',

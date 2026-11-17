@@ -4,12 +4,13 @@ import { expect, test } from '@playwright/test'
  * The wordmark has to fit the header it is in.
  *
  * This can only be a browser test. happy-dom has no layout engine, so no
- * unit test in this repo can tell how many lines "Breast Educational
- * Resource" breaks onto or how tall that makes its container -- the same
+ * unit test in this repo can tell how many lines the app name (Visual
+ * Whakamārama) breaks onto or how tall that makes its container -- the same
  * blind spot that let the guided tour's card render off-screen.
  *
- * What was wrong: at 14px the title needs about 160px to set on two lines,
- * and the wordmark was given 90px at 360 and 120px at 390. It broke onto
+ * What was wrong (with the old, longer name): at 14px the title needed about
+ * 160px to set on two lines, and the wordmark was given 90px at 360 and
+ * 120px at 390. It broke onto
  * THREE lines, which with the "TE UMA" overline above it filled or exceeded
  * the 56px header. The fix is a type step below 420px plus width reclaimed
  * from the header's own padding, its gaps, and (below 360px) the About

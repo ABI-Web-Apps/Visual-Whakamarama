@@ -22,17 +22,30 @@ export function colourSentence(findings: FindingColour[]): string {
     .join(', ')
 }
 
+/** The session's loading line, with the backend's progress once it reports any. */
+export function sessionProgressText(progress: number, total: number): string {
+  return total > 0 ? `${MY_MRI_COPY.loading} (${progress} of ${total})` : MY_MRI_COPY.loading
+}
+
 export const MY_MRI_COPY = {
-  eyebrow: 'MY MRI',
-  title: 'Your MRI scan',
-  subline: (cohort: string) => `Patient ${cohort} · contrast phase 1`,
+  /** The sidebar group the patient pages sit in, above each page's title. */
+  eyebrow: 'MY RESULTS',
+  title: 'My Report',
   loading: 'Loading your scan…',
   tryAgain: 'Try again',
-  viewerHeading: '3D view',
-  viewerLabel: 'Your MRI scan in 3D',
-  viewerHint: 'drag · right-drag · scroll',
-  viewerReset: 'Reset',
-  viewerResetLabel: 'Reset the 3D view',
+  viewerHeading: 'MRI',
+  viewerLabel: 'Your MRI scan',
+  /** Screen-reader help for the viewer, per view. */
+  viewerHint: 'Drag to turn the view, right-drag to move it, scroll to zoom.',
+  viewerSliceHint: 'Ctrl + scroll: change slice',
+  viewerViewsLabel: 'View',
+  /** `short` is the label when the control bar is too narrow for the full one. */
+  viewerViews: [
+    { view: '3d', label: '3D', short: '3D', title: 'All three slices together' },
+    { view: 'axial', label: 'Axial', short: 'Ax', title: 'One slice at a time, across your body' },
+    { view: 'coronal', label: 'Coronal', short: 'Cor', title: 'One slice at a time, from the front' },
+    { view: 'sagittal', label: 'Sagittal', short: 'Sag', title: 'One slice at a time, from the side' },
+  ],
   viewerLegendLabel: 'Colour key',
   viewerNoMask: 'No marked areas for this scan.',
   viewerErrors: {
@@ -49,11 +62,12 @@ export const MY_MRI_COPY = {
   reportOpen: 'Open report',
   reportDownload: 'Download',
   panelHeading: 'WHAT YOU\'RE SEEING',
-  intro: 'This is your breast MRI, shown in 3D. The three grey planes are slices through your scan, one in each direction.',
+  intro: 'This is your breast MRI, opened on the slice through the area your clinician marked. Choose 3D in the bar under the scan to see three slices together, one in each direction.',
   markedAreas: 'The coloured shapes are the areas your clinician marked.',
   colourMatch: (sentence: string) => `Each colour matches a finding in your report: ${sentence}.`,
-  controlsLead: 'Drag to turn the view, right-drag to move it, and scroll to zoom.',
-  controlsReset: 'Reset',
-  controlsTail: 'puts it back.',
-  reportNote: 'Your report is beside the 3D view. A dash (—) means that item has not been recorded. If anything is unclear, ask your clinician.',
+  controlsLead: 'Scroll to zoom in any view. In 3D, drag to turn the view and right-drag to move it.',
+  controlsReset: 'Reset view',
+  controlsTail: 'puts it back, and Fullscreen fills the screen with it.',
+  views: 'Axial, Coronal and Sagittal show one slice at a time: across your body, from the front and from the side. Hold Ctrl while you scroll to move through the slices.',
+  reportNote: 'Your report is beside your scan. A dash (—) means that item has not been recorded. Drag the bar between them to give either more room. If anything is unclear, ask your clinician.',
 } as const

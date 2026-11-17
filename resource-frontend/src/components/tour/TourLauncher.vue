@@ -37,7 +37,7 @@ const visible = computed(() => !store.hasSeen && !dismissed.value && !store.acti
     <!-- Above the tablet bottom sheet's 80px peek and clear of the phone
          layout's prev/next cards: the app already owns its bottom-right. -->
     <p class="tw:text-caption tw:font-medium tw:whitespace-nowrap tw:text-(--hud-ink)">
-      New here? A 90-second guided tour.
+      New here? A short guided tour.
     </p>
     <div class="tw:flex tw:items-center tw:justify-end tw:gap-2">
       <button
@@ -73,8 +73,8 @@ const visible = computed(() => !store.hasSeen && !dismissed.value && !store.acti
    ~5.6-6.3:1 for every HUD ink against any real page background. */
 .hud-glass {
   background: rgb(20 18 26 / .94);
-  backdrop-filter: blur(14px) saturate(1.15);
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  backdrop-filter: blur(14px) saturate(1.15);
   border: 1px solid var(--hud-line);
   box-shadow: 0 16px 40px rgb(0 0 0 / .45), inset 0 1px 0 rgb(255 255 255 / .07);
 }

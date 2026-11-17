@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MY_MRI_COPY, colourSentence } from '../src/content/myMri'
 import { getToolConfig } from '../src/myMri/config'
-import MyMriPage from '../src/pages/MyMriPage.vue'
+import MyReportPage from '../src/pages/MyReportPage.vue'
 import type { PageRoute } from '../src/navigation/routes'
 
 const DefaultLayoutStub = {
@@ -19,7 +19,7 @@ const DefaultLayoutStub = {
 let viewerMounts = 0
 const MyMriViewerStub = {
   name: 'MyMriViewer',
-  props: ['mri', 'mask', 'findings'],
+  props: ['mri', 'mask', 'findings', 'initialView'],
   emits: ['retry'],
   mounted() { viewerMounts++ },
   template: '<div data-slot="my-mri-viewer" />',
@@ -53,32 +53,48 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-const route: PageRoute = { path: '/my-mri', name: 'my-mri', params: {} }
+const route: PageRoute = { path: '/my-report', name: 'my-report', params: {} }
 
-describe('MyMriPage', () => {
+describe('MyReportPage', () => {
   beforeEach(() => { setActivePinia(createPinia()); stubBackend(noFindings) })
-  const mountPage = () => track(mount(MyMriPage, {
+  const mountPage = () => track(mount(MyReportPage, {
     props: { route },
     global: { stubs: { DefaultLayout: DefaultLayoutStub, MyMriViewer: MyMriViewerStub, MyMriReport: MyMriReportStub } },
   }))
 
-  it('renders the heading with the cohort from the config', () => {
+  it('is My Report, under the My results group, with no patient line', () => {
     const heading = mountPage().get('.heading-slot')
-    expect(heading.text()).toContain('MY MRI')
-    expect(heading.get('h1').text()).toBe('Your MRI scan')
-    expect(heading.text()).toContain('Patient sub-1 · contrast phase 1')
+    expect(heading.text()).toContain('MY RESULTS')
+    expect(heading.get('h1').text()).toBe('My Report')
+    expect(heading.text()).not.toContain('Patient')
+    expect(heading.text()).not.toContain('contrast phase')
   })
 
-  it('renders two stage columns', () => {
-    const stage = mountPage().get('.stage-slot')
-    expect(stage.text()).toContain('3D view')
-    expect(stage.text()).toContain('Report')
+  it('renders two stage columns, headed as every other panel is', () => {
+    const columns = mountPage().get('.stage-slot').findAll('section')
+    expect(columns.map(c => c.get('h2').text())).toEqual(['MRI', 'Report'])
+  })
+
+  it('opens the scan on a third of the row and the report on two, with a gutter to change that', () => {
+    const wrapper = mountPage()
+    const [mri, report] = wrapper.get('.stage-slot').findAll('section')
+    expect(mri!.attributes('style')).toContain('--vw-pane-grow: 1')
+    expect(report!.attributes('style')).toContain('--vw-pane-grow: 2')
+    const gutter = wrapper.get('[role="separator"]')
+    expect(gutter.attributes('aria-label')).toBe('Resize MRI and Report')
+    expect(gutter.attributes('aria-valuenow')).toBe('33')
   })
 
   it('renders the right-panel copy', () => {
     const text = mountPage().get('.content-slot').text()
     expect(text).toContain("WHAT YOU'RE SEEING")
     expect(text).toContain('A dash (—) means')
+    expect(text).toContain('Axial, Coronal and Sagittal show one slice at a time')
+  })
+
+  it('names the tab after the page and the app', () => {
+    mountPage()
+    expect(document.title).toBe('My Report — Visual Whakamārama')
   })
 
   it('omits the colour-matching paragraph while there are no findings', () => {
@@ -86,9 +102,9 @@ describe('MyMriPage', () => {
   })
 })
 
-describe('MyMriPage session states', () => {
+describe('MyReportPage session states', () => {
   beforeEach(() => { setActivePinia(createPinia()) })
-  const mountPage = () => track(mount(MyMriPage, {
+  const mountPage = () => track(mount(MyReportPage, {
     props: { route },
     global: { stubs: { DefaultLayout: DefaultLayoutStub, MyMriViewer: MyMriViewerStub, MyMriReport: MyMriReportStub } },
   }))
@@ -137,6 +153,8 @@ describe('MyMriPage session states', () => {
     expect(viewer.props('mri')).toMatch(/\/api\/patients\/a-1\/sub-1\/mri$/)
     expect(viewer.props('mask')).toMatch(/\/api\/patients\/a-1\/sub-1\/mask\.glb$/)
     expect(viewer.props('findings')).toEqual([{ label: 'Finding 1', channel: 1, color: '#ff7043' }])
+    // The client asked for "the MRI slice with the lesion(s)": it opens on one.
+    expect(viewer.props('initialView')).toBe('axial')
   })
 
   it('retries only the viewer when the viewer asks, leaving the session and report alone', async () => {
@@ -234,15 +252,15 @@ describe('config and copy', () => {
     expect(colourSentence([{ label: 'X', color: '#94a3b8' }])).toBe('grey is X')
     expect(colourSentence([{ label: 'X', color: null }, { label: 'Y', color: 'red' }])).toBe('grey is X, grey is Y')
     expect(colourSentence([])).toBe('')
-    expect(MY_MRI_COPY.subline('sub-2')).toBe('Patient sub-2 · contrast phase 1')
+    expect(MY_MRI_COPY).not.toHaveProperty('subline')
   })
 })
 
-describe('MyMriPage inside the real layout', () => {
+describe('MyReportPage inside the real layout', () => {
   beforeEach(() => { setActivePinia(createPinia()); stubBackend(noFindings) })
 
   it('puts heading, stage columns and panel copy in their slots, with a non-square stage', () => {
-    const wrapper = track(mount(MyMriPage, {
+    const wrapper = track(mount(MyReportPage, {
       props: { route },
       global: {
         stubs: {
@@ -257,9 +275,9 @@ describe('MyMriPage inside the real layout', () => {
     const stage = wrapper.get('[data-stage-column] section')
     expect(stage.attributes('aria-label')).toBe('Your MRI scan and report')
     expect(stage.classes()).not.toContain('max-md:aspect-square')
-    expect(stage.text()).toContain('3D view')
+    expect(stage.text()).toContain('MRI')
     expect(stage.text()).toContain('Report')
-    expect(wrapper.get('[data-stage-column] h1').text()).toBe('Your MRI scan')
+    expect(wrapper.get('[data-stage-column] h1').text()).toBe('My Report')
     expect(wrapper.get('#case-content-panel').text()).toContain("WHAT YOU'RE SEEING")
   })
 })

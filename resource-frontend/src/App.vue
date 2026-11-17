@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { createAppRouter, provideAppRouter } from '@/navigation/router'
-import { casePageKey } from '@/utils/pageKey'
+import { pageKeyFor } from '@/utils/pageKey'
 import AboutPage from '@/pages/AboutPage.vue'
 import CasePage from '@/pages/CasePage.vue'
-import MyMriPage from '@/pages/MyMriPage.vue'
+import MyImagesMriPage from '@/pages/MyImagesMriPage.vue'
+import MyImagesPage from '@/pages/MyImagesPage.vue'
+import MyReportPage from '@/pages/MyReportPage.vue'
 import NotFoundPage from '@/pages/NotFoundPage.vue'
 
 /**
@@ -31,13 +33,16 @@ const route = router.route
  * `utils/pageKey.ts`, where it is documented and unit-tested: every case
  * shares one key, so stepping between cases keeps every decoded scene.
  *
- * Every other page keys on its path.
+ * Every other page keys on its name, so a path typed in another case is the
+ * same page, not a second kept-alive copy of it.
  */
-const pageKey = computed(() => casePageKey(route.value.params.slug) ?? route.value.path)
+const pageKey = computed(() => pageKeyFor(route.value))
 const page = computed(() => {
   switch (route.value.name) {
     case 'case': return CasePage
-    case 'my-mri': return MyMriPage
+    case 'my-report': return MyReportPage
+    case 'my-images': return MyImagesPage
+    case 'my-images-mri': return MyImagesMriPage
     default: return AboutPage
   }
 })

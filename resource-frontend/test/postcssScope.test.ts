@@ -4,11 +4,11 @@ import { rootCompound, scopeSelector, scopeToRoot } from '../tooling/postcss-sco
 
 /**
  * The plugin build's stylesheet transform (tooling/postcss-scope.ts). What it
- * must guarantee: nothing reaches outside `.ber-root`, the cascade between
+ * must guarantee: nothing reaches outside `.vw-root`, the cascade between
  * Tailwind's layers keeps its order, and the result carries no layers for
  * the portal's unlayered CSS to beat.
  */
-const ROOT = 'ber-root'
+const ROOT = 'vw-root'
 
 function run(css: string, file = '/x/tokens.css') {
   return postcss([scopeToRoot({ rootClass: ROOT, isMainStylesheet: f => Boolean(f?.endsWith('tokens.css')) })])
@@ -71,12 +71,12 @@ describe('scopeToRoot', () => {
       @layer theme { :root { --tw-animate-spin: spin 1s linear infinite } }
       .a { animation: spin 1s; animation-name: spin }
     `)
-    expect(out).toContain('@keyframes ber-spin')
-    expect(out).toContain('--tw-animate-spin: ber-spin 1s linear infinite')
-    expect(out).toContain('animation: ber-spin 1s')
-    expect(out).toContain('animation-name: ber-spin')
+    expect(out).toContain('@keyframes vw-spin')
+    expect(out).toContain('--tw-animate-spin: vw-spin 1s linear infinite')
+    expect(out).toContain('animation: vw-spin 1s')
+    expect(out).toContain('animation-name: vw-spin')
     // A property NAME containing the word is not an animation reference.
-    expect(out).not.toContain('--tw-animate-ber-spin')
+    expect(out).not.toContain('--tw-animate-vw-spin')
   })
 
   it('leaves keyframe steps alone', () => {

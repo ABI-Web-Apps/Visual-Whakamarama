@@ -35,9 +35,24 @@ CATEGORY_TONE = {
     6: "tone-known",
 }
 
-PRODUCT = "Breast Educational Resource"
+PRODUCT = "Visual Whakamārama"
 
 DISCLAIMER = "Research use. Not for primary diagnostic interpretation."
+
+# Printed under the masthead of every report. The sub-1 reading shown in the demo was
+# measured and chosen for the demo (resource-backend/demo/README.md); no clinician wrote it,
+# and `schema.empty_findings` explains why an unlabelled invented reading must never ship.
+# Remove this once real readings are delivered as the report's input.
+DEMO_NOTICE = "Demo data — not a clinical reading"
+
+
+#: What a section recorded as "none" (its own id as the key: `{"implants": "none"}`) prints in
+#: place of its rows: a reading can say a whole section does not apply, which the form's own
+#: fields cannot.
+SECTION_NONE = {
+    "implants": "No implants or other augmentation",
+    "nme": "No non-mass enhancement",
+}
 
 
 def _acr_rows(section, values):
@@ -46,6 +61,9 @@ def _acr_rows(section, values):
     Bound fields are skipped: they are rendered by their own named sections, and printing a
     value twice leaves a reader unable to tell which is authoritative.
     """
+    if values.get(section.id) == "none":
+        text = SECTION_NONE.get(section.id, "None")
+        return {"id": section.id, "title": section.title, "rows": [{"id": section.id, "label": "", "text": text}]}
     return {
         "id": section.id,
         "title": section.title,
@@ -345,6 +363,7 @@ def build_context(case, findings, anatomical_withheld="", zone=timezone.utc):
         "product": PRODUCT,
         "document_title": "BI-RADS® MRI Structured Report",
         "disclaimer": DISCLAIMER,
+        "demo_notice": DEMO_NOTICE,
         "case_name": getattr(case, "name", None) or EM_DASH,
         "meta": [
             {"label": "Case ID", "value": str(getattr(case, "id", "") or EM_DASH)},

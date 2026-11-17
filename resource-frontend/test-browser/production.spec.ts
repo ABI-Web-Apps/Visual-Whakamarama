@@ -239,23 +239,23 @@ test.describe('§12 acceptance, against the built site', () => {
    * session error and never mounts the viewer -- that is the environment, not
    * the code under test, so the test skips rather than fails.
    */
-  test('My MRI loads the scan and paints it', async ({ page }) => {
+  test('My Report loads the scan and paints it', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
-    await page.goto(`${base}/my-mri`)
+    await page.goto(`${base}/my-report`)
 
-    const viewer = page.getByRole('img', { name: 'Your MRI scan in 3D' })
-    // The 3D column's session error. The report column has an error state of
+    const viewer = page.getByRole('img', { name: 'Your MRI scan' })
+    // The MRI column's session error. The report column has an error state of
     // its own (a local backend cannot render the PDF), which says nothing
-    // about the scan, so everything here is scoped to the 3D column.
-    const column = page.locator('section', { has: page.getByRole('heading', { name: '3D view' }), hasNot: page.getByRole('heading', { name: 'Report' }) })
+    // about the scan, so everything here is scoped to the MRI column.
+    const column = page.locator('section', { has: page.getByRole('heading', { name: 'MRI', exact: true }), hasNot: page.getByRole('heading', { name: 'Report', exact: true }) })
     const sessionError = column.locator('[data-state="error"]')
     await expect(viewer.or(sessionError)).toBeVisible({ timeout: 60_000 })
     test.skip(await sessionError.isVisible(), 'the backend could not open the patient dataset (is MINIO_ENDPOINT right?)')
 
     // Enabled once the volume has loaded and been placed.
-    await expect(page.getByRole('button', { name: 'Reset the 3D view' })).toBeEnabled({ timeout: 120_000 })
+    await expect(column.getByRole('button', { name: 'Reset view' })).toBeEnabled({ timeout: 120_000 })
     await expect(column.getByRole('alert')).toHaveCount(0)
-    await expect.poll(() => centreDrawnFraction(viewer), {
+    await expect.poll(() => centreDrawnFraction(viewer, { background: 'left-edge' }), {
       message: 'the viewer is ready but drew no scan',
       timeout: 30_000,
     }).toBeGreaterThan(0.2)
@@ -407,8 +407,8 @@ test.describe('§12 acceptance, against the built site', () => {
     expect(response.ok()).toBe(true)
 
     const manifest = await response.json()
-    expect(manifest.name).toBe('Breast Educational Resource')
-    expect(manifest.short_name).toBe('Breast Education App')
+    expect(manifest.name).toBe('Visual Whakamārama')
+    expect(manifest.short_name).toBe('Whakamārama')
     expect(manifest.icons.map((i: { sizes: string }) => i.sizes)).toContain('512x512')
   })
 

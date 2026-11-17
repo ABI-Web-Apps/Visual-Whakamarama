@@ -18,6 +18,9 @@
   --hairline: #f1f5f9;
   --brand: #1769ff;
   --brand-2: #06b6d4;
+  /* The watch tone's pair (.tone-watch), named for the demo notice. */
+  --watch: #b45309;
+  --watch-bg: #fffbeb;
 }
 
 @page {
@@ -115,6 +118,20 @@ body {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+/* ---------- Demo notice -------------------------------------------------- */
+/* The reading is demo data; the page says so before anything else it says. */
+
+.demo-notice {
+  margin: -2mm 0 5mm;
+  padding: 2mm 3mm;
+  border: 0.6pt solid var(--watch);
+  border-radius: 1.5mm;
+  background: var(--watch-bg);
+  color: var(--watch);
+  font-size: 8pt;
+  font-weight: 700;
 }
 
 /* ---------- Title block ------------------------------------------------- */

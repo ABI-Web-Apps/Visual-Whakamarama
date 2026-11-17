@@ -39,7 +39,13 @@ onMounted(() => { tourMounted.value = true })
 <template>
   <!-- `ground` (not `bg-bg`) is what the app's glass has to sit on: the page
        colour plus three very low-alpha radials. See tokens.css. -->
-  <div class="tw:ground tw:flex tw:h-dvh tw:flex-col tw:overflow-hidden">
+  <!-- `relative` makes this box the containing block of last resort, so its
+       `overflow-hidden` clips every absolutely placed descendant. Without it
+       one that found no positioned ancestor (the sidebar's sr-only text, in a
+       build whose glass had lost its backdrop filter) was placed against the
+       page instead, and stretched the document below the app: the page
+       scrolled to a white strip under it. -->
+  <div class="tw:ground tw:relative tw:flex tw:h-dvh tw:flex-col tw:overflow-hidden">
     <!-- Skip link: first tab stop, hidden until focused. Below-xl the
          resident-looking sidebar is really 10+ off-canvas links a keyboard
          user would otherwise have to tab past on every single page. -->

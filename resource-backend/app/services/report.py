@@ -29,6 +29,7 @@ from typing import NamedTuple
 
 from app.geometry import canonical
 from app.reports import schema
+from app.reports.demo_reading import DEMO_READER, with_demo_reading
 from app.reports.render import render_report_html, render_report_pdf
 from app.reports.sizes import anatomical_withheld, compute_sizes
 from app.reports.slice_image import centroid_of, render_slice_png
@@ -173,7 +174,7 @@ def _with_computed(recorded: schema.Size, computed: schema.Size) -> schema.Size:
 
 
 def prepare_report(cohort: str, findings: schema.Findings, volume_bytes: bytes | None,
-                   mask_bytes: bytes | None) -> ReportParts:
+                   mask_bytes: bytes | None, assay_uuid: str | None = None) -> ReportParts:
     """The report's case, its findings with measured sizes, and one slice image per finding.
 
     `findings` is not modified. None means the input was not delivered. Nothing here raises on
@@ -189,14 +190,16 @@ def prepare_report(cohort: str, findings: schema.Findings, volume_bytes: bytes |
         series = read_canonical(volume_bytes, "registration_1_nrrd.nrrd")
         missing = "" if series is not None else (NO_SERIES if not volume_bytes else SERIES_UNREADABLE)
 
-    record = findings.model_copy(deep=True)
+    # An unread sub-1 gets the demo reading (app/reports/demo_reading.py); the report names it.
+    record, demo = with_demo_reading(cohort, findings)
+    record = record.model_copy(deep=True)
     sizes = compute_sizes(mask[0], mask[1], [f.lesion.channel for f in record.findings]) if mask is not None else {}
     for finding in record.findings:
         finding.size = _with_computed(finding.size, sizes.get(finding.lesion.channel, schema.Size()))
 
     images = {f.id: {"reason": missing} for f in record.findings} if missing else lesion_images(record.findings, series, mask)
     return ReportParts(
-        case=SimpleNamespace(name=cohort, id=cohort, assay_uuid=None, user_uuid=None),
+        case=SimpleNamespace(name=cohort, id=cohort, assay_uuid=assay_uuid, user_uuid=DEMO_READER if demo else None),
         findings=record,
         anatomical_withheld=anatomical_withheld(mask[1]) if mask is not None else "",
         lesion_images=images,
@@ -204,19 +207,19 @@ def prepare_report(cohort: str, findings: schema.Findings, volume_bytes: bytes |
 
 
 def build_report_html(cohort: str, findings: schema.Findings, volume_bytes: bytes | None,
-                      mask_bytes: bytes | None, zone: tzinfo) -> str:
+                      mask_bytes: bytes | None, zone: tzinfo, assay_uuid: str | None = None) -> str:
     """The report as HTML: what the PDF renders, and testable without WeasyPrint."""
-    parts = prepare_report(cohort, findings, volume_bytes, mask_bytes)
+    parts = prepare_report(cohort, findings, volume_bytes, mask_bytes, assay_uuid)
     return render_report_html(parts.case, parts.findings, parts.anatomical_withheld, parts.lesion_images, zone)
 
 
 def build_report_pdf(cohort: str, findings: schema.Findings, volume_bytes: bytes | None,
-                     mask_bytes: bytes | None, zone: tzinfo) -> bytes:
+                     mask_bytes: bytes | None, zone: tzinfo, assay_uuid: str | None = None) -> bytes:
     """The report as PDF bytes. Raises ReportUnavailable, before reading any volume, when
     WeasyPrint cannot be loaded."""
     require_weasyprint()
     started = time.perf_counter()
-    parts = prepare_report(cohort, findings, volume_bytes, mask_bytes)
+    parts = prepare_report(cohort, findings, volume_bytes, mask_bytes, assay_uuid)
     pdf = render_report_pdf(parts.case, parts.findings, parts.anatomical_withheld, parts.lesion_images, zone)
     logger.info("rendered the report of %s in %.1f s (%d bytes)", cohort, time.perf_counter() - started, len(pdf))
     return pdf

@@ -207,6 +207,31 @@ describe('TourLayer: does not pre-paint a stale target across navigation', () =>
     await flushPromises()
     expect(region.hasAttribute('data-tour-focus')).toBe(true)
   })
+
+  // "Find the lesion" navigates to the ductal case and then waits for its MRI
+  // (seconds on a cold load). The director reports 'waiting' only after the
+  // navigation and the prepare actions have landed, so the step's target is
+  // on the new page by then and must be ringed for the whole wait, not only
+  // once the demo has finished.
+  it('paints a navigating step\'s target as soon as it is waiting for its stage', async () => {
+    const store = useTourStore()
+    mount(TourLayer)
+
+    store.start('wide', 2, '/test')
+    await flushPromises()
+    pending.get('a')!()
+    await flushPromises()
+
+    store.next()
+    await flushPromises()
+    const region = document.querySelector('[data-region="nav"]')!
+    expect(region.hasAttribute('data-tour-focus')).toBe(false)
+
+    store.phase = 'waiting' // what awaitStage sets once the navigation has landed
+    await flushPromises()
+    expect(region.hasAttribute('data-tour-focus')).toBe(true)
+    expect(pending.has('nav')).toBe(true) // still waiting: runStep has not finished
+  })
 })
 
 /**

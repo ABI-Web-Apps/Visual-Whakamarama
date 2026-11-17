@@ -23,7 +23,7 @@ const STEPS: TourStep[] = [
     chapter: 'layout',
     placement: 'center',
     title: 'Welcome to Te Uma',
-    body: 'A 90-second tour of how this resource works. You can leave at any time — press Escape.',
+    body: 'A short tour of how this resource works. You can leave at any time — press Escape.',
   },
   {
     id: 'case-list',
@@ -34,33 +34,17 @@ const STEPS: TourStep[] = [
     title: 'Every case lives here',
     body: 'Cases are grouped by what they show: a normal breast, the four breast density grades, benign findings, and cancers.',
   },
-  {
-    id: 'case-heading',
-    chapter: 'layout',
-    target: ['[data-tour="case-heading"]'],
-    // Below xl the previous step opened the case-nav drawer (a fixed,
-    // scrim-covered overlay there); it must close again once the tour moves
-    // past it, or every later step's halo is drawn under a dimmed drawer.
-    prepare: [{ kind: 'closeSidebar' }],
-    placement: 'bottom',
-    title: 'Where you are',
-    body: 'The heading names the group and the case you are looking at.',
-  },
-  {
-    id: 'about',
-    chapter: 'layout',
-    target: ['[data-header-actions]'],
-    placement: 'bottom',
-    title: 'Who made this',
-    body: 'About holds the team, the imaging and model sources with their DOIs, and a feedback form. The app version is shown there too.',
-  },
 
   // ── Chapter 2: reading a case (anatomy GLB only) ───────────────────────
+  // Below xl the case-list step opened the case-nav drawer (a fixed,
+  // scrim-covered overlay there); it must close again once the tour moves
+  // past it, or every later step's halo is drawn under a dimmed drawer.
   {
     id: 'panels-wide',
     chapter: 'reading',
     layout: 'wide',
     target: ['[data-tour="panels"]'],
+    prepare: [{ kind: 'closeSidebar' }],
     placement: 'bottom',
     title: 'Three views of one breast',
     body: 'Anatomy, mammogram and MRI sit side by side, so you can read across them.',
@@ -70,29 +54,10 @@ const STEPS: TourStep[] = [
     chapter: 'reading',
     layout: 'narrow',
     target: ['[data-tour="panel-tabs"]'],
+    prepare: [{ kind: 'closeSidebar' }],
     placement: 'bottom',
     title: 'Three views of one breast',
     body: 'Anatomy, mammogram and MRI. Tap a tab to switch between them.',
-  },
-  {
-    id: 'focus',
-    chapter: 'reading',
-    target: ['[data-panel="mammogram"]', '[data-tour="panel-tabs"]'],
-    demo: { kind: 'focusPanel', panel: 'mammogram' },
-    requiresStage: 'mammogram',
-    placement: 'bottom',
-    title: 'The highlighted view',
-    body: 'The outlined panel is the one being described. Watch — switching to the mammogram changes the text beside it.',
-    bodyFallback: 'The outlined panel is the one being described. Select another panel and the text beside it follows.',
-  },
-  {
-    id: 'description',
-    chapter: 'reading',
-    target: ['#case-content-panel'],
-    prepare: [{ kind: 'expandSheet' }],
-    placement: 'left',
-    title: 'The description',
-    body: 'Plain-language notes on the view you have selected.',
   },
 
   // ── Chapter 3: interacting ─────────────────────────────────────────────
@@ -116,7 +81,7 @@ const STEPS: TourStep[] = [
     demo: { kind: 'scrubSlices', panel: 'mri', durationMs: 2200 },
     requiresStage: 'mri',
     placement: 'left',
-    title: 'Move through the volume',
+    title: 'Move through the slices',
     body: 'An MRI is a stack of slices. This one is stepping through them.',
     bodyFallback: 'Drag up and down on the MRI to move through its slices, or use the [ and ] keys.',
   },
@@ -129,34 +94,27 @@ const STEPS: TourStep[] = [
     // as a fallback for the rare case no panel is marked focused yet.
     target: ['[data-panel][data-focused="true"] [data-tour="stage-controls"]', '[data-tour="stage-controls"]'],
     placement: 'top',
-    title: 'Per-view controls',
+    title: 'Controls',
     body: 'Reset the view, go fullscreen, and — where a case has one — jump straight to the lesion.',
   },
 
   // ── Chapter 4: finding a lesion ────────────────────────────────────────
   {
-    id: 'lesion-case',
-    chapter: 'lesion',
-    route: '/cancer-ductal/mri',
-    target: ['[data-panel="mri"]'],
-    placement: 'left',
-    title: 'A case with a lesion',
-    body: 'This is an invasive ductal carcinoma. Its MRI is loading here.',
-  },
-  {
     id: 'locate',
     chapter: 'lesion',
-    target: ['[data-tour="locate-lesion"]'],
+    route: '/cancer-ductal/mri',
+    // Locate lesion only renders once the volume has loaded (StageControls'
+    // hasLesion). Until then the halo rings the MRI panel the volume is
+    // loading into.
+    target: ['[data-tour="locate-lesion"]', '[data-panel="mri"]'],
     demo: { kind: 'locateLesion', panel: 'mri' },
     requiresStage: 'mri',
     placement: 'top',
     title: 'Find the lesion',
-    body: 'Locate lesion jumps to the slice the lesion sits on.',
-    // Locate lesion only renders once a volume has loaded (StageControls'
-    // hasLesion), which is exactly the condition that puts this step here --
-    // so the fallback must not send the reader after a control that is not
-    // on screen.
-    bodyFallback: 'Once this case\'s MRI has finished loading, Locate lesion jumps to the slice the lesion sits on.',
+    body: 'This is an invasive ductal carcinoma. Locate lesion jumps to the slice the lesion sits on.',
+    // The fallback must not send the reader after a control that is not on
+    // screen yet.
+    bodyFallback: 'This is an invasive ductal carcinoma. Once its MRI has finished loading, Locate lesion jumps to the slice the lesion sits on.',
   },
   {
     id: 'prev-next',

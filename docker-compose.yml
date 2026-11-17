@@ -1,4 +1,4 @@
-# Standalone stack: the site on http://localhost:3158 with its own backend.
+# Standalone stack: the site on http://localhost (port 80; FRONTEND_PORT overrides) with its own backend.
 #
 #   docker compose up --build
 #
@@ -10,7 +10,7 @@ services:
       context: ./resource-frontend
       dockerfile: Dockerfile
     ports:
-      - "${FRONTEND_PORT:-3158}:80"
+      - "${FRONTEND_PORT:-80}:80"
     depends_on:
       - backend
     restart: "no"
@@ -24,6 +24,8 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
       - DERIVED_CACHE_DIR=/resource_backend/cache
+      # 0 turns off the demo reading the report lays over sub-1 (resource-backend/demo/README.md).
+      - DEMO_READINGS=${DEMO_READINGS:-1}
     volumes:
       - backend_cache:/resource_backend/cache
     depends_on:

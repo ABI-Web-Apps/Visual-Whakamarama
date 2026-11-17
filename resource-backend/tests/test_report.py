@@ -47,7 +47,7 @@ def _with_finding(findings: schema.Findings, channel: int, color="#66bb6a") -> s
 def test_report_html_two_findings(loaded_service):
     findings, vol, mask = loaded_service
     html = build_report_html("sub-1", findings, vol, mask, timezone.utc)
-    assert "Finding 1" in html and "Finding 2" in html and "Breast Educational Resource" in html
+    assert "Finding 1" in html and "Finding 2" in html and "Visual Whakamārama" in html
     assert "Medical Image Annotator" not in html and "data:image/png;base64," in html
     assert html.count('class="finding"') == 2
     assert html.count("data:image/png;base64,") == 2
@@ -259,7 +259,7 @@ def fake_render(monkeypatch):
     """Replaces the PDF renderer, and the WeasyPrint check, with stand-ins that record each render."""
     renders = _Renders()
 
-    def render(cohort, findings, volume, mask, zone):
+    def render(cohort, findings, volume, mask, zone, **_):
         renders.append(zone)
         renders.inputs.append((volume, mask))
         return b"%PDF-fake " + str(len(renders)).encode()
@@ -402,7 +402,7 @@ def test_two_cohorts_with_identical_inputs_each_get_their_own_report(
     monkeypatch.setattr(
         report,
         "build_report_pdf",
-        lambda cohort, findings, volume, mask, zone: build_report_html(cohort, findings, volume, mask, zone).encode(),
+        lambda cohort, findings, volume, mask, zone, **_: build_report_html(cohort, findings, volume, mask, zone).encode(),
     )
     tool_config["assay_info"]["cohorts"] = ["sub-1", "sub-2"]
     assert client.post("/api/tool-config", json=tool_config).status_code == 200

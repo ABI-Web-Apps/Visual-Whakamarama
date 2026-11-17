@@ -1,4 +1,4 @@
-# Breast Educational Resource
+# Visual Whakamārama
 
 A portal plugin (Vue 3 + Vite + Tailwind CSS 4 + Pinia frontend, FastAPI
 backend) that also runs as a standalone site. See `README.md` for commands and
@@ -20,7 +20,7 @@ backend) that also runs as a standalone site. See `README.md` for commands and
   in an arbitrary value write `var(--tw-color-brand)`. A bare
   `var(--color-brand)` resolves to nothing.
 - **Plugin CSS is rewritten at build time** (`tooling/postcss-scope.ts`):
-  scoped under `.ber-root`, layers flattened into ID-weight tiers. Do not add
+  scoped under `.vw-root`, layers flattened into ID-weight tiers. Do not add
   an ID selector (the build refuses it) and do not rely on `@layer`.
   `:root`/`html`/`body` rules land on the plugin root element.
 - **No module-level side effects** -- the UMD bundle re-executes on every
@@ -45,6 +45,7 @@ backend) that also runs as a standalone site. See `README.md` for commands and
 ```bash
 cd resource-frontend && yarn test && yarn type-check && yarn build && yarn build:plugin
 cd resource-frontend && yarn test:artefacts   # rebuilds both, then the 3D views on build/ and dist/
+bash scripts/deploy/test-server-deploy.sh     # after changing scripts/deploy/ or deploy_to_server.yml
 cd resource-backend && python -m pytest -q
 ```
 
@@ -52,5 +53,6 @@ cd resource-backend && python -m pytest -q
 ships. Every other browser spec runs on `yarn dev`, which uses absolute
 backend URLs and unbundled modules -- the copper3d 4.1 upgrade broke both
 builds while all of them passed. It needs the backend on :8082 and, for the
-My MRI check, a MinIO with the dataset at the backend's `MINIO_ENDPOINT`
-(`localhost:9000` by default; see README "My MRI" for the port overrides).
+My Report check, a MinIO with the dataset at the backend's `MINIO_ENDPOINT`
+(`localhost:9000` by default; see README "My Images and My Report" for the port
+overrides).

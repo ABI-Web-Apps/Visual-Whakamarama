@@ -100,7 +100,29 @@ def test_context_carries_the_case_identity():
 
 
 def test_the_product_is_this_app():
-    assert _context()["product"] == "Breast Educational Resource"
+    assert _context()["product"] == "Visual Whakamārama"
+
+
+def test_the_report_says_it_is_demo_data():
+    # The sub-1 reading is demo data, chosen and measured for a demo: no
+    # clinician wrote it. The report has to say so on every record, filled or not.
+    assert _context()["demo_notice"] == "Demo data — not a clinical reading"
+    assert build_context(StubCase(), Findings())["demo_notice"] == "Demo data — not a clinical reading"
+
+
+def test_html_carries_the_demo_notice_once_under_the_masthead():
+    from app.reports.render import render_report_html
+
+    html = render_report_html(StubCase(), Findings())
+    assert html.count("Demo data — not a clinical reading") == 1
+    assert html.index("</header>") < html.index("Demo data — not a clinical reading") < html.index('class="case-name"')
+
+
+def test_the_demo_notice_takes_its_colours_from_the_palette():
+    css = (Path(__file__).resolve().parents[1] / "app" / "reports" / "report.css").read_text(encoding="utf-8")
+    rule = re.search(r"\.demo-notice\s*\{([^}]*)\}", css).group(1)
+    assert "var(--" in rule
+    assert not re.search(r"#[0-9a-fA-F]{3,8}", rule)
 
 
 def test_the_context_carries_no_reading_session():
@@ -564,7 +586,7 @@ def test_html_renders_with_every_section():
 
     html = render_report_html(StubCase(), rich_findings())
     assert "BI-RADS" in html
-    assert "Breast Educational Resource" in html
+    assert "Visual Whakamārama" in html
     assert "Medical Image Annotator" not in html
     assert "BC_1042" in html
     assert "breast tissue" in html.lower()
@@ -656,8 +678,12 @@ def test_acr_lesion_sections_render_in_html():
 
 def test_render_value_prints_an_em_dash_for_unset():
     assert render_value("cysts", None) == UNSET
-    assert render_value("cysts", False) == UNSET
     assert render_value("cysts", True) == "Yes"
+
+
+def test_render_value_prints_no_for_a_box_recorded_as_absent():
+    # False is a reading ("looked, not there"); None is the absence of one.
+    assert render_value("cysts", False) == "No"
     assert render_value("quadrant", "UOQ") == "Upper outer quadrant (UOQ)"
     assert render_value("distance_nipple", 3.5) == "3.5"
     assert option_title("quadrant", "central") == "Central"
@@ -735,3 +761,14 @@ def test_no_zone_or_an_unknown_one_prints_utc_and_says_so(name):
     findings = _edited_at(datetime(2026, 10, 22, 21, 51, tzinfo=timezone.utc))
     ctx = build_context(StubCase(), findings, zone=resolve_zone(name))
     assert ctx["findings"][0]["provenance_tags"] == ["Mask edited by hand at 22 Oct 2026, 21:51 UTC"]
+
+
+def test_a_section_recorded_as_none_prints_one_line_instead_of_its_rows():
+    findings = rich_findings()
+    findings.acr_case["implants"] = "none"
+    findings.findings[0].acr_lesion["nme"] = "none"
+    ctx = build_context(StubCase(), findings)
+    implants = next(s for s in ctx["acr"]["case"] if s["id"] == "implants")
+    assert implants["rows"] == [{"id": "implants", "label": "", "text": "No implants or other augmentation"}]
+    nme = next(s for s in ctx["acr"]["lesions"][findings.findings[0].id] if s["id"] == "nme")
+    assert nme["rows"] == [{"id": "nme", "label": "", "text": "No non-mass enhancement"}]

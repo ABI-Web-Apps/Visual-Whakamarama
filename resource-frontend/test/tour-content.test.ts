@@ -68,7 +68,7 @@ describe('tour script', () => {
     for (const layout of LAYOUTS) {
       const first = tourSteps(layout).filter(s => s.chapter === 'layout')
       expect(first.every(s => !s.demo && !s.requiresStage)).toBe(true)
-      expect(first.length).toBeGreaterThanOrEqual(4)
+      expect(first.length).toBeGreaterThanOrEqual(2)
     }
   })
 
@@ -81,11 +81,48 @@ describe('tour script', () => {
     expect(step.target).toContain('[data-tour="stage-controls"]')
   })
 
-  // B2: case-heading is the step the tour reaches right after case-list
-  // opens the (below-xl) case-nav drawer. Without closing it here, the
-  // drawer -- and its scrim -- stays over steps 3-14.
-  it('the case-heading step closes the sidebar the case-list step opened', () => {
-    const step = tourSteps('wide').find(s => s.id === 'case-heading')!
-    expect(step.prepare).toContainEqual({ kind: 'closeSidebar' })
+  // B2: case-list opens the (below-xl) case-nav drawer. The step right after
+  // it must close the drawer again, or the drawer -- and its scrim -- stays
+  // over every later step. That step used to be case-heading; it is now the
+  // panels step.
+  it('the step after case-list closes the sidebar the case-list step opened', () => {
+    for (const layout of LAYOUTS) {
+      const steps = tourSteps(layout)
+      const next = steps[steps.findIndex(s => s.id === 'case-list') + 1]!
+      expect(next.prepare, `${layout}/${next.id}`).toContainEqual({ kind: 'closeSidebar' })
+    }
+  })
+})
+
+describe('the shortened tour (client feedback, November 2026)', () => {
+  it('runs these steps, in this order', () => {
+    const rest = ['rotate', 'slices', 'controls', 'locate', 'prev-next', 'finish']
+    expect(tourSteps('wide').map(s => s.id)).toEqual(['welcome', 'case-list', 'panels-wide', ...rest])
+    expect(tourSteps('narrow').map(s => s.id)).toEqual(['welcome', 'case-list', 'panels-narrow', ...rest])
+  })
+
+  it('names the slice and controls steps as the client asked', () => {
+    const steps = tourSteps('wide')
+    expect(steps.find(s => s.id === 'slices')!.title).toBe('Move through the slices')
+    expect(steps.find(s => s.id === 'controls')!.title).toBe('Controls')
+  })
+
+  it('opens the lesion case and finds the lesion in one step', () => {
+    const step = tourSteps('wide').find(s => s.id === 'locate')!
+    expect(step.title).toBe('Find the lesion')
+    expect(step.route).toBe('/cancer-ductal/mri')
+    expect(step.target).toEqual(['[data-tour="locate-lesion"]', '[data-panel="mri"]'])
+    expect(step.demo).toEqual({ kind: 'locateLesion', panel: 'mri' })
+    expect(step.requiresStage).toBe('mri')
+    expect(step.body).toContain('invasive ductal carcinoma')
+    expect(step.bodyFallback).toContain('invasive ductal carcinoma')
+  })
+
+  // The tour lost four of its steps; a duration written for the old length
+  // would be wrong, so the copy names none.
+  it('promises no duration it was not timed for', () => {
+    const welcome = tourSteps('wide').find(s => s.id === 'welcome')!
+    expect(welcome.body).not.toMatch(/\d+[- ]second/)
+    expect(welcome.body).toContain('A short tour')
   })
 })

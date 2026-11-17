@@ -810,6 +810,19 @@ describe('tour bridge registration', () => {
     expect(getTourStage('mri')).toBeUndefined()
   })
 
+  it('stays out of the tour with tour off, and leaves the case page\'s row alone on unmount', async () => {
+    const casePage = mountStage({ panelId: 'anatomy' })
+    await settle()
+    const row = getTourStage('anatomy')
+    const example = mountStage({ panelId: 'anatomy', tour: false })
+    await settle()
+    expect(getTourStage('anatomy')).toBe(row)
+    expect(example.find('[data-tour]').exists()).toBe(false)
+    example.unmount()
+    expect(getTourStage('anatomy')).toBe(row)
+    casePage.unmount()
+  })
+
   it('reports the lesion slice its props carry, so the director need not know the content model', async () => {
     const wrapper = mountStage({ panelId: 'mri', modality: MRI, lesionSliceIndex: 62 })
     await settle()

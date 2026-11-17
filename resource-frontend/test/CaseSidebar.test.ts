@@ -22,7 +22,7 @@ function mountSidebar() {
 /**
  * The sidebar as it ships with a backend (standalone, plugin). The suite's
  * own `VITE_ASSET_BASE` (vitest.config.ts) is the GitHub Pages build's, which
- * has no backend and so no YOUR RESULTS group; that build has its own block.
+ * has no backend and so no MY RESULTS group; that build has its own block.
  */
 beforeEach(() => { vi.stubEnv('VITE_ASSET_BASE', '') })
 afterEach(() => { vi.unstubAllEnvs() })
@@ -68,7 +68,7 @@ describe('CaseSidebar', () => {
     // to /about at its foot and (since client feedback item 8) a dedicated
     // home row above the groups -- neither is a case bullet and neither may
     // be counted here.
-    const links = wrapper.findAll('li a').filter(a => a.attributes('href') !== '/my-mri')
+    const links = wrapper.findAll('li a').filter(a => !a.attributes('href')!.startsWith('/my-'))
       .map(el => wrapper.findAllComponents(AppLinkStub).find(c => c.element === el.element)!)
     const grouped = enabledCases().filter(c => c.slug !== 'the-breast')
     expect(links).toHaveLength(grouped.length)
@@ -115,10 +115,10 @@ describe('CaseSidebar', () => {
       expect(wrapper.get('[data-home-row]').attributes('aria-current')).toBeUndefined()
     })
 
-    it('renders exactly the three real case group headings, then Your results', () => {
+    it('renders exactly the three real case group headings, then My results', () => {
       const wrapper = mountSidebar()
       expect(wrapper.findAll('h2').map(h => h.text()))
-        .toEqual(['Breast Density', 'Benign Conditions', 'Breast Cancer', 'Your results'])
+        .toEqual(['Breast Density', 'Benign Conditions', 'Breast Cancer', 'My results'])
     })
   })
 
@@ -143,7 +143,7 @@ describe('CaseSidebar', () => {
 
     it('case rows keep their dot and gain no icon', () => {
       const wrapper = mountSidebar()
-      for (const row of wrapper.findAll('li a').filter(a => a.attributes('href') !== '/my-mri')) {
+      for (const row of wrapper.findAll('li a').filter(a => !a.attributes('href')!.startsWith('/my-'))) {
         expect(row.findAll('svg')).toHaveLength(0)
       }
     })
@@ -249,7 +249,7 @@ describe('CaseSidebar', () => {
   /**
    * The version used to sit under the partner logos here. It is gone at the
    * human's instruction, and nothing is lost by that: the About page has
-   * carried "Breast Educational Resource v{version}" the whole time, which
+   * carried "Visual Whakamārama v{version}" the whole time, which
    * is where a reader goes looking for provenance anyway. Pinning the
    * ABSENCE, because a stray reintroduction would otherwise be invisible.
    */
@@ -258,7 +258,7 @@ describe('CaseSidebar', () => {
   })
 })
 
-describe('CaseSidebar: YOUR RESULTS group', () => {
+describe('CaseSidebar: MY RESULTS group', () => {
   beforeEach(() => { setActivePinia(createPinia()) })
   afterEach(() => { document.body.innerHTML = '' })
 
@@ -270,30 +270,56 @@ describe('CaseSidebar: YOUR RESULTS group', () => {
     })
     return mount(Host, { global: { stubs: { AppLink: AppLinkStub } } })
   }
-  const myMri: PageRoute = { path: '/my-mri', name: 'my-mri', params: {} }
+  const myReport: PageRoute = { path: '/my-report', name: 'my-report', params: {} }
+  const reportLink = (wrapper: ReturnType<typeof mountSidebar>) =>
+    wrapper.findAll('a').find(a => a.attributes('href') === '/my-report')!
 
-  it('lists YOUR RESULTS > My MRI after the cancer group', () => {
+  it('lists MY RESULTS after the cancer group', () => {
     const headings = mountSidebar().findAll('h2').map(h => h.text().toLowerCase())
-    expect(headings.slice(-2)).toEqual(['breast cancer', 'your results'])
+    expect(headings.slice(-2)).toEqual(['breast cancer', 'my results'])
   })
 
-  it('links My MRI to /my-mri with the subtitle', () => {
-    const link = mountSidebar().findAll('a').find(a => a.attributes('href') === '/my-mri')!
-    expect(link.text()).toContain('My MRI')
+  it('links My Report to /my-report with the subtitle', () => {
+    const link = reportLink(mountSidebar())
+    expect(link.text()).toContain('My Report')
     expect(link.text()).toContain('Scan and report')
   })
 
-  it('marks My MRI active on /my-mri, and no case', () => {
-    const wrapper = mountOn(myMri)
-    const link = wrapper.findAll('a').find(a => a.attributes('href') === '/my-mri')!
-    expect(link.attributes('aria-current')).toBe('page')
+  it('marks My Report active on /my-report, and no case', () => {
+    const wrapper = mountOn(myReport)
+    expect(reportLink(wrapper).attributes('aria-current')).toBe('page')
     expect(wrapper.findAll('[aria-current="page"]')).toHaveLength(1)
   })
 
-  it('does not mark My MRI active on a case page', () => {
+  const imagesLink = (wrapper: ReturnType<typeof mountSidebar>) =>
+    wrapper.findAll('a').find(a => a.attributes('href') === '/my-images')!
+
+  it('lists My Images, then My Report', () => {
+    const rows = mountSidebar().findAll('a').filter(a => a.attributes('href')!.startsWith('/my-'))
+    expect(rows.map(a => a.attributes('href'))).toEqual(['/my-images', '/my-report'])
+    expect(rows[0]!.text()).toContain('My Images')
+    expect(rows[0]!.text()).toContain('Anatomy, mammogram and MRI')
+  })
+
+  it('marks My Images active on /my-images and on its MRI page, and nothing else', () => {
+    for (const route of [
+      { path: '/my-images', name: 'my-images', params: {} },
+      { path: '/my-images/mri', name: 'my-images-mri', params: {} },
+    ] as PageRoute[]) {
+      const wrapper = mountOn(route)
+      expect(imagesLink(wrapper).attributes('aria-current'), route.path).toBe('page')
+      expect(reportLink(wrapper).attributes('aria-current'), route.path).toBeUndefined()
+      expect(wrapper.findAll('[aria-current="page"]'), route.path).toHaveLength(1)
+    }
+  })
+
+  it('does not mark My Images active on My Report', () => {
+    expect(imagesLink(mountOn(myReport)).attributes('aria-current')).toBeUndefined()
+  })
+
+  it('does not mark My Report active on a case page', () => {
     const wrapper = mountOn({ path: '/the-breast', name: 'case', params: { slug: 'the-breast' } })
-    const link = wrapper.findAll('a').find(a => a.attributes('href') === '/my-mri')!
-    expect(link.attributes('aria-current')).toBeUndefined()
+    expect(reportLink(wrapper).attributes('aria-current')).toBeUndefined()
   })
 })
 
@@ -303,10 +329,10 @@ describe('CaseSidebar in a build without a backend (GitHub Pages)', () => {
     vi.stubEnv('VITE_ASSET_BASE', '/modelView/')
   })
 
-  it('leaves out YOUR RESULTS, whose page needs the backend', () => {
+  it('leaves out MY RESULTS, whose page needs the backend', () => {
     const wrapper = mountSidebar()
     expect(wrapper.findAll('h2').map(h => h.text()))
       .toEqual(['Breast Density', 'Benign Conditions', 'Breast Cancer'])
-    expect(wrapper.findAll('a').some(a => a.attributes('href') === '/my-mri')).toBe(false)
+    expect(wrapper.findAll('a').some(a => a.attributes('href')!.startsWith('/my-'))).toBe(false)
   })
 })

@@ -1,10 +1,13 @@
-# Breast Educational Resource (Te Uma)
+# Visual Whakamārama (Te Uma)
 
 An interactive breast education resource from the Auckland Bioengineering
 Institute: anatomy, mammogram and MRI side by side for the four density
-grades, benign findings and cancers, with a guided tour. A **My MRI** page
-shows a patient's own scan in 3D, with the marked areas, beside a findings
-report (PDF) built from a dataset held in MinIO.
+grades, benign findings and cancers, with a guided tour. Under YOUR RESULTS,
+**My Images** shows a patient's own anatomy, mammogram and MRI in the same
+three columns (only the MRI exists in the data so far; the other two hold their
+place), and **My Report** shows their scan, one slice at a time or in 3D, with
+the marked areas, beside a findings report (PDF) built from a dataset held in
+MinIO.
 
 It runs three ways from one source tree:
 
@@ -15,9 +18,9 @@ It runs three ways from one source tree:
 | **GitHub Pages** | The static app with the imaging catalogue copied beside it | `.github/workflows/deploy_on_github_pages.yml` |
 
 ```
-breast-educational-resource/
+Visual-Whakamarama/
 ├── resource-frontend/   Vue 3 + Vite + Tailwind CSS 4 + Pinia (no vue-router)
-├── resource-backend/    FastAPI: the imaging catalogue and the My MRI data/report under /api
+├── resource-backend/    FastAPI: the imaging catalogue and the patient's scan, mask and report under /api
 ├── config.portal.json   Portal registration metadata
 ├── docker-compose.yml   Standalone stack
 ├── scripts/             Asset pipeline (imaging, PWA icons)
@@ -49,10 +52,17 @@ yarn test:artefacts  # rebuilds both, then checks the 3D views paint in each
 `yarn dev` talks to the backend on `http://localhost:8082` (see
 `resource-frontend/.env.example`); the backend allows that origin by default.
 
-### My MRI
+### My Images and My Report
 
-The My MRI page reads a SPARC dataset from the `measurements` bucket, so it
-needs a MinIO with the dataset in it. The education pages do not.
+The patient pages (`/my-images`, `/my-images/mri`, `/my-report`) read a SPARC
+dataset from the `measurements` bucket, so they need a MinIO with the dataset
+in it. The education pages do not.
+
+The report for sub-1 is filled from a demo reading, measured from the images and
+chosen for the demo, which the backend lays over sub-1's unread record at report
+time: nothing to upload. Every report says so under its masthead.
+`DEMO_READINGS=0` turns it off; `resource-backend/demo/README.md` says where each
+value came from.
 
 MinIO publishes its API on host port 9000 and its console on 9001. When
 something else already holds those ports (for example the validator), set
@@ -97,13 +107,13 @@ Instead of step 2 you can upload through the MinIO console
 `minioadmin`): open the `measurements` bucket and upload the contents of
 `static/workdir/` into a `workdir/` folder.
 
-Then open <http://localhost:3158/my-mri>. The report is a WeasyPrint PDF, which
+Then open <http://localhost:3158/my-report>. The report is a WeasyPrint PDF, which
 needs system libraries (Pango, fonts) that only the Docker image installs: on a
 local backend the report column shows "Report rendering needs the Docker
 backend." and the PDF tests are skipped. Use the full Docker stack to see the
 report.
 
-`resource-frontend/test-browser/my-mri.spec.ts` covers the page end to end. It
+`resource-frontend/test-browser/my-report.spec.ts` covers the page end to end. It
 runs only with `MY_MRI_E2E=1` and a dataset in place. Its base URL is the Docker
 stack on :3159 by default. The standalone stack publishes on :3158 unless told
 otherwise, so bring it up with the port the spec expects (plus the MinIO port
@@ -112,7 +122,7 @@ overrides, if you use them):
 ```bash
 FRONTEND_PORT=3159 docker compose up --build -d
 cd resource-frontend
-MY_MRI_E2E=1 yarn playwright test my-mri
+MY_MRI_E2E=1 yarn playwright test my-report
 ```
 
 `playwright.config.ts` always declares `webServer` entries (`yarn dev` on :3158
@@ -125,7 +135,7 @@ with `MINIO_ENDPOINT` pointing at your MinIO (step 3 above) must already be
 running: a uvicorn that Playwright spawns itself does not have that variable.
 
 ```bash
-MY_MRI_E2E=1 MY_MRI_BASE_URL=http://localhost:3158 MY_MRI_BACKEND=local yarn playwright test my-mri
+MY_MRI_E2E=1 MY_MRI_BASE_URL=http://localhost:3158 MY_MRI_BACKEND=local yarn playwright test my-report
 ```
 
 ### Data
@@ -153,7 +163,7 @@ supply its own config.
 - **CSS isolation.** Every Tailwind utility carries the `tw:` prefix, so the
   portal's Vuetify utility classes of the same names (`text-caption`,
   `bg-surface`, ...) never land on this app's markup. The plugin build also
-  scopes every rule under `.ber-root` and flattens Tailwind's cascade layers
+  scopes every rule under `.vw-root` and flattens Tailwind's cascade layers
   into specificity tiers (`tooling/postcss-scope.ts`), so the portal's
   unlayered resets cannot override the app and the app's CSS cannot reach the
   portal.
@@ -213,7 +223,7 @@ port 8082.
 >
 > To register without GitHub, upload a clean export of the committed tree,
 > which holds none of them:
-> `git archive --format=zip -o breast-educational-resource.zip HEAD`.
+> `git archive --format=zip -o visual-whakamarama.zip HEAD`.
 
 The backend reads the dataset from the **portal's** MinIO: the plugin compose
 takes its keys from `MINIO_SERVER_ACCESS_KEY` / `MINIO_SERVER_SECRET_KEY`
@@ -229,15 +239,110 @@ docker compose up --build   # http://localhost:3158
 The standalone stack includes its own MinIO (`pgsty/minio`), which `minio-init`
 gives a `measurements` bucket. Its API and console are published on 9000/9001;
 override with `MINIO_API_PORT`, `MINIO_CONSOLE_PORT` and `FRONTEND_PORT` when
-those are taken. Upload the dataset as in the My MRI section above.
+those are taken. Upload the dataset as in the My Images and My Report section above.
+
+### Server (on release)
+
+Publishing a release deploys it to a server running the standalone stack.
+`.github/workflows/deploy_to_server.yml` connects over SSH and runs
+`scripts/deploy/server-deploy.sh` in the deploy folder, which:
+
+1. Fetches the release's tag and checks it out. Only the files the repository
+   tracks change, and files the release dropped are removed. Untracked and
+   ignored files stay: `.env`, `resource-backend/minio_data/` (the dataset in
+   MinIO), `resource-backend/static/workdir/`. Edits made on the server to
+   tracked files are saved to `.deploy-backups/` first and listed as a warning
+   in the run, so keep server settings in `.env` (`FRONTEND_PORT`, `MINIO_*`,
+   `DEMO_READINGS`).
+2. Runs `docker compose up -d --build --remove-orphans` and waits up to five
+   minutes for `/` and `/api/health` to answer.
+3. Removes this stack's images that the rebuild left unused.
+
+The release's commit must be on `main`: merge first. A release made from another
+branch fails before it reaches the server. To put an earlier release back,
+re-run its workflow run. A release also runs the GitHub Pages workflow, as
+before.
+
+A first deploy into a folder set up by hand works. A git clone is updated in
+place, and a copied folder becomes a checkout. Compose names the stack after the
+folder, so if the old stack was started there, its containers are replaced, not
+duplicated.
+
+**One-time setup.** The server needs git, Docker with Compose v2, curl, and a
+deploy user in the `docker` group. GitHub's runners connect from the internet,
+so the server must accept SSH from outside its own network. If it does not, the
+run stops at "Reach the server" with a timeout.
+
+Each step says where it runs. On your machine, use bash (Git Bash on Windows:
+Windows PowerShell writes `>` output as UTF-16, which ssh cannot read), in your
+home folder, not in this repository, so the private key cannot be committed by
+accident.
+
+1. **Your machine.** Make a key for the workflow alone. Press Enter at both
+   passphrase prompts: the workflow cannot type one.
+
+   ```bash
+   cd ~
+   ssh-keygen -t ed25519 -C 'github-actions deploy' -f deploy_key
+   ```
+
+2. **Your machine.** Let the key in on the server. This logs in the way you
+   do today (password or your own key) and appends the new public key to the
+   server's `~/.ssh/authorized_keys`:
+
+   ```bash
+   cat deploy_key.pub | ssh ubuntu@<host> 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys'
+   ```
+
+   If you reach the server some other way, append the single line of
+   `deploy_key.pub` to `~/.ssh/authorized_keys` on the server instead.
+
+3. **The server.** Print the server's host key as the line the workflow pins,
+   read from the server's own key file rather than scanned over the network,
+   so nothing between you and the server can answer in its place. (Windows'
+   `ssh-keyscan` cannot scan recent servers anyway: `choose_kex: unsupported
+   KEX method`.) Put the server's address, as in `DEPLOY_HOST`, for `<host>`,
+   or `[<host>]:<port>` if SSH is not on 22:
+
+   ```bash
+   echo "<host> $(cut -d' ' -f1,2 /etc/ssh/ssh_host_ed25519_key.pub)"
+   ```
+
+   It prints one line, `<host> ssh-ed25519 AAAA...`: the `DEPLOY_KNOWN_HOSTS`
+   secret.
+
+4. **GitHub, in the browser.** In the repository's Settings > Secrets and
+   variables > Actions, add:
+
+   | Kind | Name | Value |
+   |---|---|---|
+   | Secret | `DEPLOY_SSH_KEY` | the contents of `deploy_key` (the private key) |
+   | Secret | `DEPLOY_KNOWN_HOSTS` | the line printed in step 3 |
+   | Variable | `DEPLOY_HOST` | the server's address |
+   | Variable | `DEPLOY_PATH` | the deploy folder, an absolute path |
+   | Variable | `DEPLOY_USER` | only if not `ubuntu` |
+   | Variable | `DEPLOY_PORT` | only if SSH is not on 22 |
+
+   Then, on your machine, delete `deploy_key` and `deploy_key.pub`. The job
+   runs in the `production` environment, so these can be set there instead
+   (Settings > Environments), which can also require an approval per deploy.
+
+5. **The server.** Check the deploy user can use Docker without `sudo`:
+   `docker ps` must list containers, not fail with "permission denied". If it
+   fails: `sudo usermod -aG docker ubuntu`, then log out and in again.
+
+After a change to `scripts/deploy/` or the workflow, run
+`bash scripts/deploy/test-server-deploy.sh`. It needs only bash and git: it runs
+the script on scratch folders with docker and curl stubbed.
 
 ### GitHub Pages
 
 `.github/workflows/deploy_on_github_pages.yml` builds the standalone app under
 `/<repo>/`, copies the imaging catalogue beside it (`VITE_ASSET_BASE`), and
 publishes to the `gh-pages` branch. It runs on a new release, or on demand
-from the Actions tab. Pages has no backend, so that build leaves My MRI out:
-setting `VITE_ASSET_BASE` hides YOUR RESULTS and makes `/my-mri` a 404
+from the Actions tab. Pages has no backend, so that build leaves the patient pages out:
+setting `VITE_ASSET_BASE` hides My results and makes `/my-images`,
+`/my-images/mri`, `/my-report` (and the old `/my-mri`) 404
 (`hasBackend()` in `src/runtime/env.ts`).
 
 ## Important documentation

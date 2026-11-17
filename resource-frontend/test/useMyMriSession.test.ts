@@ -109,7 +109,7 @@ describe('useMyMriSession', () => {
     const { session } = setup()
     await flushPromises()
     expect(session.status.value).toBe('error')
-    expect(session.error.value).toMatchObject({ summary: 'No patient is configured for My MRI.', code: 'no_cohort' })
+    expect(session.error.value).toMatchObject({ summary: 'No patient is configured for your results.', code: 'no_cohort' })
     expect(calls).toEqual([])
   })
 

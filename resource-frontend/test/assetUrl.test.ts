@@ -65,7 +65,7 @@ describe('resolveAssetBase', () => {
  * while `yarn dev`'s absolute `http://localhost:8082/api/...` worked.
  */
 describe('absoluteUrl', () => {
-  const page = 'https://portal.example.org/plugin/ber/my-mri'
+  const page = 'https://portal.example.org/plugin/vw/my-report'
 
   it('resolves a root-relative URL against the page origin', () => {
     expect(absoluteUrl('/api/modelView/density-1/right/mri.nrrd', page))
@@ -73,8 +73,8 @@ describe('absoluteUrl', () => {
   })
 
   it('keeps a plugin route prefix', () => {
-    expect(absoluteUrl('/plugin/ber/api/patients/a-1/sub-1/mri', page))
-      .toBe('https://portal.example.org/plugin/ber/api/patients/a-1/sub-1/mri')
+    expect(absoluteUrl('/plugin/vw/api/patients/a-1/sub-1/mri', page))
+      .toBe('https://portal.example.org/plugin/vw/api/patients/a-1/sub-1/mri')
   })
 
   it('resolves a path-relative URL against the page\'s folder', () => {

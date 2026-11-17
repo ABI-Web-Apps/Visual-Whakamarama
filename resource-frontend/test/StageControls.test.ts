@@ -32,6 +32,30 @@ function buttonNamed(wrapper: ReturnType<typeof mountBar>, label: string) {
 }
 
 describe('StageControls', () => {
+  it('puts a stage\'s own controls in the bar, after its own buttons and before the readout', () => {
+    const wrapper = mount(StageControls, {
+      props: { sliceIndex: 3, sliceMax: 10, settledSliceIndex: 3, lesionSliceIndex: 0, ready: true },
+      slots: { default: '<button type="button" data-extra>Axial</button>' },
+    })
+    const order = Array.from(wrapper.element.children).map(el =>
+      el.hasAttribute('data-extra') ? 'extra' : el.tagName === 'P' ? 'readout' : el.getAttribute('aria-label') ?? el.tagName)
+    expect(order.slice(0, 4)).toEqual(['Reset view', 'Fullscreen', 'extra', 'readout'])
+  })
+
+  it('is a tour target unless told otherwise', () => {
+    expect(mountBar().attributes('data-tour')).toBe('stage-controls')
+    const off = mountBar({ tour: false, lesionSliceIndex: 90, sliceMax: 104 })
+    expect(off.attributes('data-tour')).toBeUndefined()
+    expect(off.find('[data-tour]').exists()).toBe(false)
+  })
+
+  it('shows a slice hint over the readout on hover, when it has one', () => {
+    expect(mountBar({ sliceIndex: 4, sliceMax: 10 }).find('[data-slice-hint]').exists()).toBe(false)
+    const hint = mountBar({ sliceIndex: 4, sliceMax: 10, sliceHint: 'Ctrl + scroll: change slice' }).get('[data-slice-hint]')
+    expect(hint.text()).toBe('Ctrl + scroll: change slice')
+    expect(hint.classes()).toEqual(expect.arrayContaining(['opacity-0', 'group-hover:opacity-100', 'right-0']))
+  })
+
   it('always offers reset and fullscreen', () => {
     const wrapper = mountBar()
     expect(buttonNamed(wrapper, 'Reset view')).toBeTruthy()

@@ -1,5 +1,5 @@
 {
-  "name": "breast-educational-resource",
+  "name": "visual-whakamarama",
   "version": "2.0.3",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:browser": "playwright test",
-    "test:artefacts": "yarn build && cross-env VITE_PLUGIN_ROUTE_PREFIX=/plugin/ber yarn build:plugin && cross-env REQUIRE_ARTEFACTS=1 playwright test production plugin-bundle",
+    "test:artefacts": "yarn build && cross-env VITE_PLUGIN_ROUTE_PREFIX=/plugin/vw yarn build:plugin && cross-env REQUIRE_ARTEFACTS=1 playwright test production plugin-bundle",
     "assets": "node ../scripts/optimize-assets.mjs",
     "icons": "node ../scripts/generate-pwa-icons.mjs"
   },

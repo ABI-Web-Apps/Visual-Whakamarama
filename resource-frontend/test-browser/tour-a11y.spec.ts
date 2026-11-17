@@ -55,7 +55,7 @@ test.describe('guided tour accessibility', () => {
 
     for (let i = 0; i < 25; i++) {
       const title = await page.locator('[data-tour-card] h2').textContent()
-      if (title === 'Move through the volume') break
+      if (title === 'Move through the slices') break
       await page.locator('[data-tour-next]').click()
     }
     // The fallback copy, not the demo copy, and the tour is still walkable.
@@ -94,12 +94,10 @@ test.describe('guided tour accessibility', () => {
     // chapter 3's slice step on the way there.
     await page.locator('[data-tour-chapter="lesion"]').click()
     const cardTitle = page.locator('[data-tour-card] h2')
-    await expect(cardTitle).toHaveText('A case with a lesion')
-    await page.locator('[data-tour-next]').click()
     await expect(cardTitle).toHaveText('Find the lesion')
 
     const card = page.locator('[data-tour-card]')
     await expect(card).not.toContainText('Press Locate lesion')
-    await expect(card).toContainText('Once this case\'s MRI has finished loading')
+    await expect(card).toContainText('Once its MRI has finished loading')
   })
 })
