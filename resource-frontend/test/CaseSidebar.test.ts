@@ -22,7 +22,7 @@ function mountSidebar() {
 /**
  * The sidebar as it ships with a backend (standalone, plugin). The suite's
  * own `VITE_ASSET_BASE` (vitest.config.ts) is the GitHub Pages build's, which
- * has no backend and so no YOUR RESULTS group; that build has its own block.
+ * has no backend and so no MY RESULTS group; that build has its own block.
  */
 beforeEach(() => { vi.stubEnv('VITE_ASSET_BASE', '') })
 afterEach(() => { vi.unstubAllEnvs() })
@@ -115,10 +115,10 @@ describe('CaseSidebar', () => {
       expect(wrapper.get('[data-home-row]').attributes('aria-current')).toBeUndefined()
     })
 
-    it('renders exactly the three real case group headings, then Your results', () => {
+    it('renders exactly the three real case group headings, then My results', () => {
       const wrapper = mountSidebar()
       expect(wrapper.findAll('h2').map(h => h.text()))
-        .toEqual(['Breast Density', 'Benign Conditions', 'Breast Cancer', 'Your results'])
+        .toEqual(['Breast Density', 'Benign Conditions', 'Breast Cancer', 'My results'])
     })
   })
 
@@ -258,7 +258,7 @@ describe('CaseSidebar', () => {
   })
 })
 
-describe('CaseSidebar: YOUR RESULTS group', () => {
+describe('CaseSidebar: MY RESULTS group', () => {
   beforeEach(() => { setActivePinia(createPinia()) })
   afterEach(() => { document.body.innerHTML = '' })
 
@@ -274,9 +274,9 @@ describe('CaseSidebar: YOUR RESULTS group', () => {
   const reportLink = (wrapper: ReturnType<typeof mountSidebar>) =>
     wrapper.findAll('a').find(a => a.attributes('href') === '/my-report')!
 
-  it('lists YOUR RESULTS after the cancer group', () => {
+  it('lists MY RESULTS after the cancer group', () => {
     const headings = mountSidebar().findAll('h2').map(h => h.text().toLowerCase())
-    expect(headings.slice(-2)).toEqual(['breast cancer', 'your results'])
+    expect(headings.slice(-2)).toEqual(['breast cancer', 'my results'])
   })
 
   it('links My Report to /my-report with the subtitle', () => {
@@ -329,7 +329,7 @@ describe('CaseSidebar in a build without a backend (GitHub Pages)', () => {
     vi.stubEnv('VITE_ASSET_BASE', '/modelView/')
   })
 
-  it('leaves out YOUR RESULTS, whose page needs the backend', () => {
+  it('leaves out MY RESULTS, whose page needs the backend', () => {
     const wrapper = mountSidebar()
     expect(wrapper.findAll('h2').map(h => h.text()))
       .toEqual(['Breast Density', 'Benign Conditions', 'Breast Cancer'])

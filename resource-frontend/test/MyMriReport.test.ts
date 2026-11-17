@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MyMriReport from '../src/components/myMri/MyMriReport.vue'
+import StageControls from '../src/components/stage/StageControls.vue'
 
 const jsonRes = (status: number, body: unknown) => new Response(JSON.stringify(body), { status })
 const pdfRes = () => new Response(new Blob(['%PDF-1.7 test'], { type: 'application/pdf' }), { status: 200 })
@@ -44,6 +45,33 @@ describe('MyMriReport', () => {
     const dl = w.get('a[download]')
     expect(dl.attributes('href')).toBe('blob:report-1')
     expect(dl.attributes('download')).toBe('sub-1-mri-report.pdf')
+  })
+
+  it('has the panel control bar under the PDF: Reset view, Fullscreen and Download', async () => {
+    const w = mountReport()
+    const bar = w.getComponent(StageControls)
+    expect(bar.props('compact')).toBe(true)
+    expect(bar.attributes('data-tour')).toBeUndefined()
+    // Reset view waits for the PDF; Download appears with it.
+    expect(bar.get('button[aria-label="Reset view"]').attributes('disabled')).toBeDefined()
+    expect(bar.find('a[download]').exists()).toBe(false)
+    await flushPromises()
+    expect(bar.get('button[aria-label="Reset view"]').attributes('disabled')).toBeUndefined()
+    expect(bar.get('button[aria-label="Fullscreen"]').exists()).toBe(true)
+    expect(bar.get('a[download]').attributes('aria-label')).toBe('Download')
+    // Fullscreen fills the screen with the report and its bar together.
+    expect(w.element.hasAttribute('data-stage-panel')).toBe(true)
+  })
+
+  it('Reset view opens the PDF again as it first opened, without fetching it again', async () => {
+    const w = mountReport()
+    await flushPromises()
+    const before = w.get('iframe').element
+    await w.get('button[aria-label="Reset view"]').trigger('click')
+    const after = w.get('iframe')
+    expect(after.element).not.toBe(before)
+    expect(after.attributes('src')).toBe('blob:report-1')
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1)
   })
 
   it('sends the reader time zone', async () => {

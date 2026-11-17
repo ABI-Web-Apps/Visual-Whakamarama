@@ -375,18 +375,25 @@ body[data-tour-active] [data-focused="true"] {
    top edge, hairline, and the two-layer ambient shadow. `pane` is for
    chrome that floats; `pane-flat` is the same material with no drop shadow,
    for chrome that is docked to an edge and gets its separation from the
-   hairline alone (the header, the sidebar, the content column). */
+   hairline alone (the header, the sidebar, the content column).
+
+   The prefixed `backdrop-filter` comes FIRST, here and in every rule that
+   writes both. The build's CSS minifier keeps only the last of the pair, and
+   Chromium ignores the prefixed one: with the standard property first, the
+   production CSS had no blur at all, and without it the sidebar stopped
+   being a containing block, so its screen-reader-only text escaped the
+   clip and made the whole page scroll (test/backdropFilter.test.ts). */
 @utility pane {
   background-color: var(--glass-tint);
-  backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-edge), var(--glass-hairline), --theme(--shadow-md);
 }
 
 @utility pane-flat {
   background-color: var(--glass-tint-high);
-  backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-edge);
 }
 
@@ -397,8 +404,8 @@ body[data-tour-active] [data-focused="true"] {
    friends to change elevation per tier. */
 @utility pane-lift {
   background-color: var(--glass-tint-high);
-  backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-edge), --theme(--shadow-lg);
 }
 

@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MyMriViewer from '../src/components/myMri/MyMriViewer.vue'
+import StageControls from '../src/components/stage/StageControls.vue'
 import { MY_MRI_COPY } from '../src/content/myMri'
 import type { FindingSummary } from '../src/myMri/useMyMriSession'
 
@@ -75,8 +76,28 @@ describe('MyMriViewer', () => {
     expect(mountViewer([]).find('ul').exists()).toBe(false)
   })
 
-  it('shows the controls hint', () => {
-    expect(mountViewer().text()).toContain('drag · right-drag · scroll')
+  it('describes the gestures for each view to a screen reader', async () => {
+    const wrapper = mountViewer()
+    const help = () => wrapper.get(`#${wrapper.get('[role="img"]').attributes('aria-describedby')}`)
+    expect(help().text()).toBe(MY_MRI_COPY.viewerHint)
+    expect(help().classes()).toContain('sr-only')
+    scene.view.value = 'axial'
+    await nextTick()
+    expect(help().text()).toBe(MY_MRI_COPY.viewerSliceHint)
+  })
+
+  it('has no hints or controls over the scan: the bar under it holds them all', () => {
+    const wrapper = mountViewer()
+    expect(wrapper.text()).not.toContain('drag · right-drag · scroll')
+    const bar = wrapper.getComponent(StageControls)
+    expect(bar.find(`[role="group"][aria-label="${MY_MRI_COPY.viewerViewsLabel}"]`).exists()).toBe(true)
+    expect(bar.find('button[aria-label="Reset view"]').exists()).toBe(true)
+    expect(bar.find('button[aria-label="Fullscreen"]').exists()).toBe(true)
+    // The case stages' bar, icon-only, and not one the guided tour can find.
+    expect(bar.props('compact')).toBe(true)
+    expect(bar.attributes('data-tour')).toBeUndefined()
+    // Fullscreen fills the screen with the scan and its bar together.
+    expect(wrapper.element.hasAttribute('data-stage-panel')).toBe(true)
   })
 
   it('offers the 3D view and the three single views, the current one pressed', async () => {
@@ -84,9 +105,9 @@ describe('MyMriViewer', () => {
     const wrapper = mountViewer()
     const group = wrapper.get(`[role="group"][aria-label="${MY_MRI_COPY.viewerViewsLabel}"]`)
     const buttons = group.findAll('button')
-    expect(buttons.map(b => b.text())).toEqual(['3D', 'Axial', 'Coronal', 'Sagittal'])
+    expect(buttons.map(b => b.get('span').text())).toEqual(['3D', 'Axial', 'Coronal', 'Sagittal'])
     expect(buttons.map(b => b.attributes('aria-pressed'))).toEqual(['true', 'false', 'false', 'false'])
-    // Like Reset, they wait for the scene.
+    // Like Reset view, they wait for the scene.
     expect(buttons.every(b => b.attributes('disabled') !== undefined)).toBe(true)
 
     scene.status.value = 'ready'
@@ -99,32 +120,57 @@ describe('MyMriViewer', () => {
     expect(buttons.map(b => b.attributes('aria-pressed'))).toEqual(['false', 'true', 'false', 'false'])
   })
 
-  it('keeps the views and Reset in one wrapping row, so a narrow stage cannot overlap them', () => {
-    const wrapper = mountViewer()
-    const group = wrapper.get(`[role="group"][aria-label="${MY_MRI_COPY.viewerViewsLabel}"]`)
-    const reset = wrapper.get(`button[aria-label="${MY_MRI_COPY.viewerResetLabel}"]`)
-    const row = group.element.parentElement!
-    expect(reset.element.parentElement).toBe(row)
-    expect(row.className).toContain('tw:flex-wrap')
+  it('names each view in full, or short where the bar is narrow, the name always holding the word shown', () => {
+    const group = mountViewer().get(`[role="group"][aria-label="${MY_MRI_COPY.viewerViewsLabel}"]`)
+    const axial = group.findAll('button')[1]!
+    // Named by its text, never an aria-label, so the name is what is on screen.
+    expect(axial.attributes('aria-label')).toBeUndefined()
+    const [full, short, spoken, tip] = axial.findAll('span')
+    expect(full!.text()).toBe('Axial')
+    expect(full!.classes()).toEqual(expect.arrayContaining(['hidden', '@[13rem]:inline']))
+    expect(short!.text()).toBe('Ax')
+    expect(short!.classes()).toContain('@[13rem]:hidden')
+    // Short, the full word still reaches a screen reader: "Ax Axial".
+    expect(spoken!.text()).toBe('Axial')
+    expect(spoken!.classes()).toEqual(expect.arrayContaining(['sr-only', '@[13rem]:hidden']))
+    expect(tip!.text()).toBe('One slice at a time, across your body')
+    expect(tip!.attributes('aria-hidden')).toBe('true')
+    // 3D is the same either way, so it has no spoken partner.
+    expect(group.findAll('button')[0]!.findAll('span').map(s => s.text())).toEqual(['3D', '3D', 'All three slices together'])
   })
 
-  it('shows the slice number and the scroll hint in a single view', async () => {
-    const wrapper = mountViewer()
-    expect(wrapper.text()).not.toContain('Slice')
+  it('shows the slice number in the bar in a single view, and announces it once the wheel stops', async () => {
+    vi.useFakeTimers()
+    try {
+      const wrapper = mountViewer()
+      expect(wrapper.find('p[aria-hidden="true"]').exists()).toBe(false)
 
-    scene.view.value = 'axial'
-    scene.slice.value = { current: 46, total: 104 }
-    await nextTick()
-    expect(wrapper.get('[aria-live="polite"]').text()).toBe('Slice 46 / 104')
-    expect(wrapper.text()).toContain('scroll: slices · Ctrl+scroll: zoom')
-    expect(wrapper.text()).not.toContain('drag · right-drag · scroll')
+      scene.view.value = 'axial'
+      scene.slice.value = { current: 46, total: 104 }
+      await nextTick()
+      const readout = wrapper.getComponent(StageControls).get('p[aria-hidden="true"]')
+      expect(readout.text()).toContain('46 / 104')
+      expect(readout.get('[data-slice-hint]').text()).toBe(MY_MRI_COPY.viewerSliceHint)
+
+      vi.advanceTimersByTime(300)
+      await nextTick()
+      expect(wrapper.get('[aria-live="polite"]').text()).toBe('Slice 46 of 104')
+      scene.slice.value = { current: 47, total: 104 }
+      await nextTick()
+      expect(wrapper.get('[aria-live="polite"]').text()).toBe('Slice 46 of 104')
+      vi.advanceTimersByTime(300)
+      await nextTick()
+      expect(wrapper.get('[aria-live="polite"]').text()).toBe('Slice 47 of 104')
+    }
+    finally {
+      vi.useRealTimers()
+    }
   })
 
-  it('resets the view from the Reset button, which waits for the scene', async () => {
+  it('resets the view from Reset view in the bar, which waits for the scene', async () => {
     scene.status.value = 'loading'
     const wrapper = mountViewer()
-    const reset = wrapper.get(`button[aria-label="${MY_MRI_COPY.viewerResetLabel}"]`)
-    expect(reset.text()).toBe('Reset')
+    const reset = wrapper.get('button[aria-label="Reset view"]')
     expect(reset.attributes('disabled')).toBeDefined()
     expect(wrapper.find('[role="status"]').text()).toContain(MY_MRI_COPY.loading)
 
@@ -136,6 +182,17 @@ describe('MyMriViewer', () => {
     expect(scene.resetView).toHaveBeenCalledTimes(1)
   })
 
+  it('reports once that it has settled, ready or failed', async () => {
+    scene.status.value = 'loading'
+    const wrapper = mountViewer()
+    expect(wrapper.emitted('settled')).toBeUndefined()
+    scene.status.value = 'ready'
+    await nextTick()
+    scene.status.value = 'error'
+    await nextTick()
+    expect(wrapper.emitted('settled')).toHaveLength(1)
+  })
+
   it('shows a load failure over the canvas with a Try again of its own', async () => {
     scene.status.value = 'loading'
     const wrapper = mountViewer()
@@ -144,7 +201,7 @@ describe('MyMriViewer', () => {
     await nextTick()
     const alert = wrapper.get('[role="alert"]')
     expect(alert.text()).toContain('Your scan could not be loaded.')
-    expect(wrapper.find(`button[aria-label="${MY_MRI_COPY.viewerResetLabel}"]`).exists()).toBe(false)
+    expect(wrapper.get('button[aria-label="Reset view"]').attributes('disabled')).toBeDefined()
     expect(wrapper.find('ul').exists()).toBe(false)
     await alert.get('button').trigger('click')
     expect(alert.get('button').text()).toBe(MY_MRI_COPY.tryAgain)
@@ -157,6 +214,6 @@ describe('MyMriViewer', () => {
     expect(wrapper.find('ul').exists()).toBe(false)
     expect(wrapper.text()).toContain('No marked areas for this scan.')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
-    expect(wrapper.get(`button[aria-label="${MY_MRI_COPY.viewerResetLabel}"]`).attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('button[aria-label="Reset view"]').attributes('disabled')).toBeUndefined()
   })
 })

@@ -73,8 +73,8 @@ const visible = computed(() => !store.hasSeen && !dismissed.value && !store.acti
    ~5.6-6.3:1 for every HUD ink against any real page background. */
 .hud-glass {
   background: rgb(20 18 26 / .94);
-  backdrop-filter: blur(14px) saturate(1.15);
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  backdrop-filter: blur(14px) saturate(1.15);
   border: 1px solid var(--hud-line);
   box-shadow: 0 16px 40px rgb(0 0 0 / .45), inset 0 1px 0 rgb(255 255 255 / .07);
 }

@@ -45,6 +45,7 @@ backend) that also runs as a standalone site. See `README.md` for commands and
 ```bash
 cd resource-frontend && yarn test && yarn type-check && yarn build && yarn build:plugin
 cd resource-frontend && yarn test:artefacts   # rebuilds both, then the 3D views on build/ and dist/
+bash scripts/deploy/test-server-deploy.sh     # after changing scripts/deploy/ or deploy_to_server.yml
 cd resource-backend && python -m pytest -q
 ```
 

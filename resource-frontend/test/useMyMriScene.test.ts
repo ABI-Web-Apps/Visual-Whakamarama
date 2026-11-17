@@ -605,7 +605,7 @@ describe('useMyMriScene', () => {
       expect(distance()).toBeCloseTo(opening, 6)
     })
 
-    it('scrolls through the slices of a single view instead of zooming', async () => {
+    it('moves through the slices of a single view with Ctrl held, instead of zooming', async () => {
       const { api, slices, canvas, zoom } = await mountReady()
       api.setView('axial')
       const start = api.slice.value!.current
@@ -613,7 +613,8 @@ describe('useMyMriScene', () => {
       slices.z.repaint.mockClear()
       renderer.render.mockClear()
 
-      const down = wheel(canvas, { deltaY: 100 })
+      const down = wheel(canvas, { deltaY: 100, ctrlKey: true })
+      // Prevented, so the browser does not zoom the page either.
       expect(down.defaultPrevented).toBe(true)
       expect(zoom).not.toHaveBeenCalled()
       expect(api.slice.value!.current).toBe(start + 1)
@@ -623,46 +624,50 @@ describe('useMyMriScene', () => {
       expect(renderer.render).toHaveBeenCalled()
       expect(scene.camera.position.distanceTo(eye)).toBe(0)
 
-      wheel(canvas, { deltaY: -3 })
+      // ⌘ on a Mac.
+      wheel(canvas, { deltaY: -3, metaKey: true })
       expect(api.slice.value!.current).toBe(start)
 
       // A sideways scroll moves nothing.
-      wheel(canvas, { deltaY: 0, deltaX: 100 })
+      wheel(canvas, { deltaY: 0, deltaX: 100, ctrlKey: true })
       expect(api.slice.value!.current).toBe(start)
     })
 
     it('stops at the first and the last slice', async () => {
       const { api, slices, canvas } = await mountReady()
       api.setView('axial')
-      for (let i = 0; i < 200; i++) wheel(canvas, { deltaY: 100 })
+      for (let i = 0; i < 200; i++) wheel(canvas, { deltaY: 100, ctrlKey: true })
       expect(api.slice.value).toEqual({ current: 104, total: 104 })
       expect(slices.z.index).toBeCloseTo(103 * 1.5, 9)
-      for (let i = 0; i < 200; i++) wheel(canvas, { deltaY: -100 })
+      for (let i = 0; i < 200; i++) wheel(canvas, { deltaY: -100, ctrlKey: true })
       expect(api.slice.value).toEqual({ current: 1, total: 104 })
       expect(slices.z.index).toBe(0)
     })
 
-    it('leaves the wheel to the zoom with Ctrl or ⌘ held, and in the 3D view', async () => {
+    it('leaves the plain wheel to the zoom in every view, and Ctrl+wheel too in 3D', async () => {
       const { api, slices, canvas, zoom } = await mountReady()
       const index = slices.z.index
 
+      // 3D: plain, and with Ctrl -- there is no one slice to move.
       wheel(canvas)
-      expect(zoom).toHaveBeenCalledTimes(1)
+      wheel(canvas, { ctrlKey: true })
+      expect(zoom).toHaveBeenCalledTimes(2)
 
-      api.setView('axial')
-      const start = api.slice.value!.current
-      expect(wheel(canvas, { ctrlKey: true }).defaultPrevented).toBe(false)
-      wheel(canvas, { metaKey: true })
-      expect(zoom).toHaveBeenCalledTimes(3)
-      expect(api.slice.value!.current).toBe(start)
+      for (const single of ['axial', 'coronal', 'sagittal'] as const) {
+        api.setView(single)
+        const start = api.slice.value!.current
+        expect(wheel(canvas).defaultPrevented).toBe(false)
+        expect(api.slice.value!.current).toBe(start)
+      }
+      expect(zoom).toHaveBeenCalledTimes(5)
       expect(slices.z.index).toBe(index)
     })
 
     it('keeps a scrolled slice across view changes', async () => {
       const { api, canvas } = await mountReady()
       api.setView('axial')
-      wheel(canvas)
-      wheel(canvas)
+      wheel(canvas, { ctrlKey: true })
+      wheel(canvas, { ctrlKey: true })
       const scrolled = api.slice.value!.current
       api.setView('3d')
       api.setView('axial')
@@ -675,9 +680,9 @@ describe('useMyMriScene', () => {
       const eye = scene.camera.position.clone()
 
       api.setView('sagittal')
-      wheel(canvas)
+      wheel(canvas, { ctrlKey: true })
       api.setView('axial')
-      wheel(canvas)
+      wheel(canvas, { ctrlKey: true })
       api.resetView()
 
       expect(api.view.value).toBe('3d')
@@ -761,7 +766,7 @@ describe('useMyMriScene', () => {
       api.setView('axial')
       const index = slices.z.index
       wrapper.unmount()
-      wheel(canvas)
+      wheel(canvas, { ctrlKey: true })
       expect(slices.z.index).toBe(index)
     })
   })

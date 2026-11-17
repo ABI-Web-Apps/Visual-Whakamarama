@@ -509,15 +509,17 @@ export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSourc
   }
 
   /**
-   * In a single view the wheel moves through the slices (the PACS convention,
-   * the validator's `onPanelWheel`); with Ctrl or ⌘ held, and always in the 3D
-   * view, it falls through to the trackball's zoom. Registered on the host in
-   * the capture phase so it runs before the trackball's own listener on the
-   * canvas inside it; stopping the event there also keeps a slice step from
-   * counting as a camera gesture (`markPosed`).
+   * The wheel zooms in every view, 3D and single alike: it falls through to
+   * the trackball. With Ctrl or ⌘ held, in a single view, it moves through
+   * the slices instead (and never zooms the page). In 3D there is no one
+   * slice to move, so Ctrl+wheel zooms there too.
+   *
+   * Registered on the host in the capture phase so it runs before the
+   * trackball's own listener on the canvas inside it; stopping the event there
+   * also keeps a slice step from counting as a camera gesture (`markPosed`).
    */
   function onWheel(event: WheelEvent) {
-    if (disposed || view.value === '3d' || event.ctrlKey || event.metaKey || event.deltaY === 0) return
+    if (disposed || view.value === '3d' || !(event.ctrlKey || event.metaKey) || event.deltaY === 0) return
     event.preventDefault()
     event.stopPropagation()
     stepSlice(event.deltaY > 0 ? 1 : -1)

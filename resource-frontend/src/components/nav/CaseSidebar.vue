@@ -13,7 +13,7 @@ import { hasBackend } from '@/runtime/env'
 const store = useViewerStore()
 const { publicUrl } = useAssetUrl()
 
-/** YOUR RESULTS is the patient's own data, which only a build with the backend can serve. */
+/** MY RESULTS is the patient's own data, which only a build with the backend can serve. */
 const showResults = hasBackend()
 
 // Pages are kept alive, so the page's own route is the one to read; the
@@ -24,7 +24,7 @@ const onMyReport = computed(() => pageRoute?.value.name === 'my-report')
 const onMyImages = computed(() => pageRoute?.value.name === 'my-images' || pageRoute?.value.name === 'my-images-mri')
 const activeCaseSlug = computed(() => (onMyReport.value || onMyImages.value ? null : store.caseSlug))
 
-/** YOUR RESULTS, in order: the patient's images, then their report. */
+/** MY RESULTS, in order: the patient's images, then their report. */
 const results = computed(() => [
   { to: '/my-images', label: 'My Images', subtitle: 'Anatomy, mammogram and MRI', current: onMyImages.value },
   { to: '/my-report', label: 'My Report', subtitle: 'Scan and report', current: onMyReport.value },
@@ -61,7 +61,7 @@ const GROUP_ICON: Record<Exclude<CaseGroup, 'overview'>, string[]> = {
 }
 
 /**
- * YOUR RESULTS: a page with a folded corner and two text lines -- a report.
+ * MY RESULTS: a page with a folded corner and two text lines -- a report.
  * Plain rectilinear strokes, which is what survives at 16px.
  */
 const RESULTS_ICON = ['M7 3.5h7l4 4V20.5H7z', 'M14 3.5v4h4', 'M10 12.5h5', 'M10 16.5h5']
@@ -266,7 +266,7 @@ function onKeydown(event: KeyboardEvent) {
         >
           <path v-for="d in RESULTS_ICON" :key="d" :d="d" />
         </svg>
-        Your results
+        My results
       </h2>
       <ul class="tw:flex tw:flex-col tw:gap-0.5">
         <li v-for="row in results" :key="row.to">
@@ -305,10 +305,14 @@ function onKeydown(event: KeyboardEvent) {
       One link wrapping all three, to About, where the same organisations are
       named in text: three separate outbound links here would be three tab
       stops on every page for something nobody navigates by.
+
+      `relative` keeps the link's sr-only name inside the scrolling sidebar:
+      placed against anything further out, it sat below the window and
+      stretched the page.
     -->
     <AppLink
       to="/about"
-      class="tw:mt-auto tw:flex tw:flex-col tw:items-start tw:gap-3 tw:rounded-card tw:border-t tw:border-border
+      class="tw:relative tw:mt-auto tw:flex tw:flex-col tw:items-start tw:gap-3 tw:rounded-card tw:border-t tw:border-border
              tw:px-2 tw:pb-1 tw:pt-5 tw:opacity-70 tw:transition-opacity tw:hover:opacity-100"
     >
       <span class="tw:sr-only">About this resource and the team behind it</span>

@@ -253,7 +253,7 @@ test.describe('§12 acceptance, against the built site', () => {
     test.skip(await sessionError.isVisible(), 'the backend could not open the patient dataset (is MINIO_ENDPOINT right?)')
 
     // Enabled once the volume has loaded and been placed.
-    await expect(page.getByRole('button', { name: 'Reset the view' })).toBeEnabled({ timeout: 120_000 })
+    await expect(column.getByRole('button', { name: 'Reset view' })).toBeEnabled({ timeout: 120_000 })
     await expect(column.getByRole('alert')).toHaveCount(0)
     await expect.poll(() => centreDrawnFraction(viewer, { background: 'left-edge' }), {
       message: 'the viewer is ready but drew no scan',

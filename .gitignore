@@ -24,3 +24,5 @@ resource-backend/static/modelView.complete
 # dependencies and virtualenvs in their own .gitignore files.
 
 resource-backend/static/workdir
+# Server edits to tracked files that a deploy replaced (scripts/deploy/server-deploy.sh).
+.deploy-backups/

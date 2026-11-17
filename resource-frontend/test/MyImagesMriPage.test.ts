@@ -19,18 +19,20 @@ describe('MyImagesMriPage', () => {
   beforeEach(() => { setActivePinia(createPinia()); stubBackend(noFindings) })
   const mountPage = () => track(mount(MyImagesMriPage, {
     props: { route },
+    attachTo: document.body,
     global: { stubs: { DefaultLayout: DefaultLayoutStub, MyMriViewer: MyMriViewerStub, AppLink: AppLinkStub } },
   }))
   const columns = (wrapper: ReturnType<typeof mountPage>) => wrapper.get('.stage-slot').findAll('section')
   const viewers = (wrapper: ReturnType<typeof mountPage>) => wrapper.findAllComponents({ name: 'MyMriViewer' })
 
-  it('leads back to My Images, under the My Images heading', () => {
+  it('is My MRI, under the My results group, leading back to My Images, with no patient line', () => {
     const heading = mountPage().get('.heading-slot')
     const back = heading.get('a')
     expect(back.attributes('href')).toBe('/my-images')
     expect(back.text()).toContain('My Images')
-    expect(heading.text()).toContain('MY IMAGES')
-    expect(heading.get('h1').text()).toBe('Your MRI')
+    expect(heading.text()).toContain('MY RESULTS')
+    expect(heading.get('h1').text()).toBe('My MRI')
+    expect(heading.text()).not.toContain('Patient')
   })
 
   it('shows the current MRI, the previous MRI and the 3D view, in that order', () => {
@@ -91,6 +93,49 @@ describe('MyImagesMriPage', () => {
 
   it('names the tab after the page and the app', () => {
     mountPage()
-    expect(document.title).toBe('Your MRI — Visual Whakamārama')
+    expect(document.title).toBe('My MRI — Visual Whakamārama')
+  })
+
+  describe('minimising the previous MRI', () => {
+    const gutterNames = (wrapper: ReturnType<typeof mountPage>) =>
+      wrapper.findAll('[role="separator"]').map(g => g.attributes('aria-label'))
+
+    it('offers a minimise button on the previous MRI only', () => {
+      const wrapper = mountPage()
+      const buttons = columns(wrapper).map(c => c.find('button[data-collapse]'))
+      expect(buttons.map(b => b.exists())).toEqual([false, true, false])
+      expect(buttons[1]!.attributes('aria-label')).toBe('Minimise Previous MRI')
+      expect(gutterNames(wrapper)).toEqual(['Resize Current MRI and Previous MRI', 'Resize Previous MRI and 3D'])
+    })
+
+    it('folds it to a rail at the end of the row, the other two sharing the row, and puts it back', async () => {
+      const wrapper = mountPage()
+      await flushPromises()
+      const viewerKeys = () => viewers(wrapper).map(v => v.vm.$.vnode.key)
+      const keys = viewerKeys()
+
+      await columns(wrapper)[1]!.get('button[data-collapse]').trigger('click')
+      await flushPromises()
+      expect(columns(wrapper).map(c => c.get('h2').text())).toEqual(['Current MRI', '3D'])
+      expect(gutterNames(wrapper)).toEqual(['Resize Current MRI and 3D'])
+      const rail = wrapper.get('[data-collapsed-pane]')
+      expect(rail.attributes('aria-label')).toBe('Show Previous MRI')
+      expect(rail.text()).toContain('Previous MRI')
+      // Drawn after the open columns and their gutter.
+      const orderOf = (el: { attributes: (n: string) => string | undefined }) =>
+        Number(/order: (\d+)/.exec(el.attributes('style') ?? '')![1])
+      expect(orderOf(rail)).toBeGreaterThan(Math.max(...columns(wrapper).map(orderOf)))
+      // Focus moves to the rail, not off the page.
+      expect(document.activeElement).toBe(rail.element)
+      // The two viewers are the same ones: nothing reloads.
+      expect(viewerKeys()).toEqual(keys)
+
+      await rail.trigger('click')
+      await flushPromises()
+      expect(columns(wrapper).map(c => c.get('h2').text())).toEqual(['Current MRI', 'Previous MRI', '3D'])
+      expect(wrapper.find('[data-collapsed-pane]').exists()).toBe(false)
+      expect(document.activeElement).toBe(columns(wrapper)[1]!.get('button[data-collapse]').element)
+      expect(viewerKeys()).toEqual(keys)
+    })
   })
 })

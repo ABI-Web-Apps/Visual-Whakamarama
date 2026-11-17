@@ -6,6 +6,8 @@ import type { Case, ModalityId, PanelId } from '@/content/types'
 import { useAppRouter } from '@/navigation/router'
 import CopperStage from '@/components/stage/CopperStage.vue'
 import PanelTabs from '@/components/stage/PanelTabs.vue'
+import PaneGutter from '@/components/layout/PaneGutter.vue'
+import { PANE_CLASS, ROW_DRAGGING_CLASS, resizeLabel, usePaneSplit } from '@/composables/usePaneSplit'
 
 /**
  * The three viewing slots.
@@ -114,6 +116,18 @@ watch(() => props.case.slug, () => {
 function loadEnabledFor(id: PanelId) {
   return released.value || id === focusedPanel.value
 }
+
+/**
+ * Three-up widths, draggable from the gutter between two panels, as on every
+ * row of panels in the app (usePaneSplit). One split for all cases: this
+ * component is kept across cases, so a lecturer who widened the MRI keeps it
+ * wide while stepping through the series. Every case has the same three slots.
+ */
+const split = usePaneSplit([
+  { id: 'anatomy', weight: 1 },
+  { id: 'mammogram', weight: 1 },
+  { id: 'mri', weight: 1 },
+])
 </script>
 
 <template>
@@ -164,107 +178,122 @@ function loadEnabledFor(id: PanelId) {
          between them -- three flat regions, no depth. Inset, the stage reads
          as a slab floating on the ground, which is the whole point of
          putting the chrome in glass. -->
+    <!-- Three-up is a flex row now, not a three-column grid: each panel's
+         width is its share of the row (usePaneSplit), and the gutters between
+         them -- which also make the gap a grid did -- move those shares. -->
     <div
       data-tour="panels"
       class="tw:flex tw:min-h-0 tw:flex-1 tw:flex-col tw:px-3 tw:pb-3
-             tw:@[1000px]:grid tw:@[1000px]:grid-cols-3 tw:@[1000px]:gap-3 tw:@[1000px]:p-3"
+             tw:@[1000px]:flex-row tw:@[1000px]:p-3"
+      :class="split.dragging.value ? ROW_DRAGGING_CLASS : ''"
     >
-      <div
-        v-for="panel in props.case.panels"
-        :key="panel.id"
-        :data-panel="panel.id"
-        :data-focused="panel.id === focusedPanel"
-        data-tour-region
-        :class="[
-          // `flex-1` is load-bearing, not decoration. Without it this cell
-          // has no height in the one-up (flex-column) arrangement, the
-          // stage wrapper inside it resolves to 0, and copper3d's canvas --
-          // sized to whatever it last measured -- spills out of the cell
-          // and over its neighbours. `overflow-hidden` is the second half:
-          // a canvas is not clipped by its parent unless something says so.
-          'tw:relative tw:min-h-0 tw:min-w-0 tw:flex-1 tw:flex-col tw:overflow-hidden tw:bg-surface',
-          // A card at every width. One-up used to be edge to edge on the
-          // grounds that a border there is just a box round the page; that
-          // was true when the page had no ground worth seeing.
-          'tw:rounded-card tw:border tw:shadow-sm tw:transition-shadow tw:duration-200',
-          panel.id === focusedPanel
-            // The WHOLE card is the highlight, not a tinted title strip: a
-            // brand border all the way round plus a lift off the page, so
-            // which canvas the paragraph on the right belongs to is
-            // readable from across a lecture theatre.
-            //
-            // Four corner brackets were tried here instead, on the argument
-            // that four corners are how a radiologist marks a region and
-            // that it would echo the tour's own spotlight. It was wrong at
-            // this scale: the mark works on a small target, but stretched to
-            // the corners of a full panel card it reads as a frame that
-            // failed to draw rather than as a reticle. A focus indicator has
-            // to look finished before it looks clever.
-            ? 'tw:flex tw:@[1000px]:border-brand tw:@[1000px]:ring-1 tw:@[1000px]:ring-brand tw:@[1000px]:shadow-lg'
-            : 'tw:hidden tw:@[1000px]:flex tw:@[1000px]:border-border',
-        ]"
-        @focusin="focus(panel.id)"
-        @pointerdown="focus(panel.id)"
-      >
-        <!-- Three-up only: the slot's own label, plus its variant control
-             where it has one. One-up gets both from PanelTabs above. -->
-        <div
-          class="tw:hidden tw:items-center tw:gap-2 tw:border-b tw:px-3 tw:py-1.5 tw:@[1000px]:flex"
-          :class="panel.id === focusedPanel
-            ? 'tw:border-brand/30 tw:bg-brand-subtle'
-            : 'tw:border-border tw:bg-surface'"
-        >
-          <span
-            class="tw:text-caption tw:font-bold tw:uppercase tw:tracking-[0.12em]"
-            :class="panel.id === focusedPanel ? 'tw:text-brand-hover' : 'tw:text-text-muted'"
-          >
-            {{ panel.label }}
-          </span>
-          <!--
-            `.stop` on both, and it is load-bearing. The cell focuses itself
-            on pointerdown/focusin, which navigates to whatever modality
-            that slot is currently on -- so on an UNFOCUSED panel a click
-            here fired two navigations, the focus one to the slot's current
-            modality and the button's to the chosen one, and the first won.
-            Clicking "2D" on the mammogram panel landed on 3D mammogram.
-            `onVariant` navigates to the chosen modality, which focuses the
-            slot anyway, so nothing is lost by suppressing it here.
-          -->
-          <span
-            v-if="panel.modalities.length > 1"
-            data-variant
-            class="tw:ml-auto tw:flex tw:gap-1"
-            @pointerdown.stop
-            @focusin.stop
-          >
-            <button
-              v-for="m in panel.modalities"
-              :key="m.id"
-              type="button"
-              class="tw:rounded-chip tw:px-2 tw:py-0.5 tw:text-caption"
-              :class="m.id === modalityFor(panel.id).id
-                ? 'tw:bg-brand-subtle tw:font-bold tw:text-brand-hover'
-                : 'tw:text-text-muted tw:hover:bg-surface-sunken'"
-              :aria-pressed="m.id === modalityFor(panel.id).id"
-              @click="onVariant({ panel: panel.id, modality: m.id })"
-            >
-              {{ m.label }}
-            </button>
-          </span>
-        </div>
-
-        <CopperStage
-          :slug="props.case.slug"
-          :group="props.case.group"
-          :panel-id="panel.id"
-          :panel-label="panel.label"
-          :lesion-slice-index="lesionSliceIndexFor(props.case, modalityFor(panel.id).id)"
-          :modality="modalityFor(panel.id)"
-          :compact="true"
-          :load-enabled="loadEnabledFor(panel.id)"
-          @settled="release"
+      <template v-for="(panel, i) in props.case.panels" :key="panel.id">
+        <PaneGutter
+          v-if="i > 0"
+          :split="split"
+          :before="props.case.panels[i - 1]!.id"
+          :after="panel.id"
+          :label="resizeLabel(props.case.panels[i - 1]!.label, panel.label)"
         />
-      </div>
+        <div
+          v-bind="split.paneAttrs(panel.id)"
+          :style="split.paneStyle(panel.id)"
+          :data-panel="panel.id"
+          :data-focused="panel.id === focusedPanel"
+          data-tour-region
+          :class="[
+            // `flex-1` is load-bearing, not decoration. Without it this cell
+            // has no height in the one-up (flex-column) arrangement, the
+            // stage wrapper inside it resolves to 0, and copper3d's canvas --
+            // sized to whatever it last measured -- spills out of the cell
+            // and over its neighbours. `overflow-hidden` is the second half:
+            // a canvas is not clipped by its parent unless something says so.
+            'tw:relative tw:min-h-0 tw:min-w-0 tw:flex-1 tw:flex-col tw:overflow-hidden tw:bg-surface',
+            // Above 1000px: basis 0 and the panel's share of the row as its grow.
+            PANE_CLASS,
+            // A card at every width. One-up used to be edge to edge on the
+            // grounds that a border there is just a box round the page; that
+            // was true when the page had no ground worth seeing.
+            'tw:rounded-card tw:border tw:shadow-sm tw:transition-shadow tw:duration-200',
+            panel.id === focusedPanel
+              // The WHOLE card is the highlight, not a tinted title strip: a
+              // brand border all the way round plus a lift off the page, so
+              // which canvas the paragraph on the right belongs to is
+              // readable from across a lecture theatre.
+              //
+              // Four corner brackets were tried here instead, on the argument
+              // that four corners are how a radiologist marks a region and
+              // that it would echo the tour's own spotlight. It was wrong at
+              // this scale: the mark works on a small target, but stretched to
+              // the corners of a full panel card it reads as a frame that
+              // failed to draw rather than as a reticle. A focus indicator has
+              // to look finished before it looks clever.
+              ? 'tw:flex tw:@[1000px]:border-brand tw:@[1000px]:ring-1 tw:@[1000px]:ring-brand tw:@[1000px]:shadow-lg'
+              : 'tw:hidden tw:@[1000px]:flex tw:@[1000px]:border-border',
+          ]"
+          @focusin="focus(panel.id)"
+          @pointerdown="focus(panel.id)"
+        >
+          <!-- Three-up only: the slot's own label, plus its variant control
+               where it has one. One-up gets both from PanelTabs above. -->
+          <div
+            class="tw:hidden tw:items-center tw:gap-2 tw:border-b tw:px-3 tw:py-1.5 tw:@[1000px]:flex"
+            :class="panel.id === focusedPanel
+              ? 'tw:border-brand/30 tw:bg-brand-subtle'
+              : 'tw:border-border tw:bg-surface'"
+          >
+            <span
+              class="tw:text-caption tw:font-bold tw:uppercase tw:tracking-[0.12em]"
+              :class="panel.id === focusedPanel ? 'tw:text-brand-hover' : 'tw:text-text-muted'"
+            >
+              {{ panel.label }}
+            </span>
+            <!--
+              `.stop` on both, and it is load-bearing. The cell focuses itself
+              on pointerdown/focusin, which navigates to whatever modality
+              that slot is currently on -- so on an UNFOCUSED panel a click
+              here fired two navigations, the focus one to the slot's current
+              modality and the button's to the chosen one, and the first won.
+              Clicking "2D" on the mammogram panel landed on 3D mammogram.
+              `onVariant` navigates to the chosen modality, which focuses the
+              slot anyway, so nothing is lost by suppressing it here.
+            -->
+            <span
+              v-if="panel.modalities.length > 1"
+              data-variant
+              class="tw:ml-auto tw:flex tw:gap-1"
+              @pointerdown.stop
+              @focusin.stop
+            >
+              <button
+                v-for="m in panel.modalities"
+                :key="m.id"
+                type="button"
+                class="tw:rounded-chip tw:px-2 tw:py-0.5 tw:text-caption"
+                :class="m.id === modalityFor(panel.id).id
+                  ? 'tw:bg-brand-subtle tw:font-bold tw:text-brand-hover'
+                  : 'tw:text-text-muted tw:hover:bg-surface-sunken'"
+                :aria-pressed="m.id === modalityFor(panel.id).id"
+                @click="onVariant({ panel: panel.id, modality: m.id })"
+              >
+                {{ m.label }}
+              </button>
+            </span>
+          </div>
+
+          <CopperStage
+            :slug="props.case.slug"
+            :group="props.case.group"
+            :panel-id="panel.id"
+            :panel-label="panel.label"
+            :lesion-slice-index="lesionSliceIndexFor(props.case, modalityFor(panel.id).id)"
+            :modality="modalityFor(panel.id)"
+            :compact="true"
+            :load-enabled="loadEnabledFor(panel.id)"
+            @settled="release"
+          />
+        </div>
+      </template>
     </div>
   </div>
 </template>

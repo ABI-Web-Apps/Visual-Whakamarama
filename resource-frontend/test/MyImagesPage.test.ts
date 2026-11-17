@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MyImagesPage from '../src/pages/MyImagesPage.vue'
 import type { PageRoute } from '../src/navigation/routes'
 import {
@@ -14,23 +14,34 @@ import {
 } from './support/patientBackend'
 
 const AppLinkStub = { props: ['to'], template: '<a :href="to"><slot /></a>' }
+/** The example stages' own loading is CopperStage's (CopperStage.test.ts); here they only report. */
+const CopperStageStub = {
+  name: 'CopperStage',
+  props: ['slug', 'group', 'panelId', 'panelLabel', 'lesionSliceIndex', 'modality', 'compact', 'loadEnabled', 'tour'],
+  template: '<div data-slot="copper-stage" />',
+}
 const route: PageRoute = { path: '/my-images', name: 'my-images', params: {} }
 
 describe('MyImagesPage', () => {
   beforeEach(() => { setActivePinia(createPinia()); stubBackend(noFindings) })
   const mountPage = () => track(mount(MyImagesPage, {
     props: { route },
-    global: { stubs: { DefaultLayout: DefaultLayoutStub, MyMriViewer: MyMriViewerStub, AppLink: AppLinkStub } },
+    global: {
+      stubs: { DefaultLayout: DefaultLayoutStub, MyMriViewer: MyMriViewerStub, AppLink: AppLinkStub, CopperStage: CopperStageStub },
+    },
   }))
+  const stageIn = (wrapper: ReturnType<typeof mountPage>, label: string) =>
+    columnNamed(wrapper, label).getComponent({ name: 'CopperStage' })
   const columns = (wrapper: ReturnType<typeof mountPage>) => wrapper.get('.stage-slot').findAll('section')
   const columnNamed = (wrapper: ReturnType<typeof mountPage>, label: string) =>
     columns(wrapper).find(c => c.get('h2').text().startsWith(label))!
 
-  it('renders the heading with the cohort from the config', () => {
+  it('is My Images, under the My results group, with no patient line', () => {
     const heading = mountPage().get('.heading-slot')
-    expect(heading.text()).toContain('MY IMAGES')
-    expect(heading.get('h1').text()).toBe('Your images')
-    expect(heading.text()).toContain('Patient sub-1')
+    expect(heading.text()).toContain('MY RESULTS')
+    expect(heading.get('h1').text()).toBe('My Images')
+    expect(heading.text()).not.toContain('Patient')
+    expect(heading.text()).not.toContain('contrast phase')
   })
 
   it('shows anatomy, mammogram and MRI in three columns, in that order', () => {
@@ -38,14 +49,63 @@ describe('MyImagesPage', () => {
     expect(labels.map(l => l.split(/\s/)[0])).toEqual(['Anatomy', 'Mammogram', 'MRI'])
   })
 
-  it('holds the anatomy and mammogram places, each with an example to look at instead', () => {
+  it('shows the Density C anatomy and mammogram in their columns, marked as example data', () => {
     const wrapper = mountPage()
-    const anatomy = columnNamed(wrapper, 'Anatomy')
-    expect(anatomy.text()).toContain('Your anatomy model is not available yet.')
-    expect(anatomy.get('a').attributes('href')).toBe('/the-breast/anatomy')
-    const mammogram = columnNamed(wrapper, 'Mammogram')
-    expect(mammogram.text()).toContain('Your mammogram is not available yet.')
-    expect(mammogram.get('a').attributes('href')).toBe('/the-breast/mammogram')
+    for (const [label, panel, missing] of [
+      ['Anatomy', 'anatomy', 'Your anatomy model is not available yet.'],
+      ['Mammogram', 'mammogram', 'Your mammogram is not available yet.'],
+    ] as const) {
+      const column = columnNamed(wrapper, label)
+      // In the heading, so the region's name says so too.
+      expect(column.get('h2 [data-badge]').text()).toBe('Example')
+      const note = column.get('[data-example-note]')
+      expect(note.text()).toContain('Example data from Density C.')
+      expect(note.text()).toContain(missing)
+      expect(note.get('a').attributes('href')).toBe(`/density-c/${panel}`)
+      const stage = stageIn(wrapper, label)
+      expect(stage.props('slug')).toBe('density-c')
+      expect(stage.props('panelId')).toBe(panel)
+      expect(stage.props('modality').id).toBe(panel)
+      expect(stage.props('modality').asset).toContain('density-3/')
+      // Not the case page's stage: the guided tour must never find it.
+      expect(stage.props('tour')).toBe(false)
+      expect(stage.props('compact')).toBe(true)
+    }
+  })
+
+  it('holds the examples back until the patient MRI has loaded', async () => {
+    stubBackend(() => jsonRes(200, { findings: [] }))
+    const wrapper = mountPage()
+    await flushPromises()
+    expect(stageIn(wrapper, 'Anatomy').props('loadEnabled')).toBe(false)
+    expect(stageIn(wrapper, 'Mammogram').props('loadEnabled')).toBe(false)
+    wrapper.getComponent({ name: 'MyMriViewer' }).vm.$emit('settled')
+    await flushPromises()
+    expect(stageIn(wrapper, 'Anatomy').props('loadEnabled')).toBe(true)
+    expect(stageIn(wrapper, 'Mammogram').props('loadEnabled')).toBe(true)
+  })
+
+  describe('with fake timers', () => {
+    beforeEach(() => { vi.useFakeTimers() })
+    afterEach(() => { vi.useRealTimers() })
+
+    it('releases the examples after a while even if the MRI never settles', async () => {
+      const wrapper = mountPage()
+      expect(stageIn(wrapper, 'Anatomy').props('loadEnabled')).toBe(false)
+      await vi.advanceTimersByTimeAsync(15_000)
+      expect(stageIn(wrapper, 'Anatomy').props('loadEnabled')).toBe(true)
+    })
+  })
+
+  it('puts a gutter to drag between each two columns, the widths equal to start', () => {
+    const wrapper = mountPage()
+    const gutters = wrapper.findAll('[role="separator"]')
+    expect(gutters.map(g => g.attributes('aria-label'))).toEqual([
+      'Resize Anatomy and Mammogram',
+      'Resize Mammogram and MRI',
+    ])
+    expect(gutters.map(g => g.attributes('aria-valuenow'))).toEqual(['50', '50'])
+    for (const column of columns(wrapper)) expect(column.attributes('style')).toContain('--vw-pane-grow: 1')
   })
 
   it('opens the MRI in more detail from its column header', () => {
@@ -64,7 +124,7 @@ describe('MyImagesPage', () => {
     expect(viewer.props('findings')).toEqual([{ label: 'Finding 1', channel: 1, color: '#ff7043' }])
   })
 
-  it('keeps the placeholders when the session fails, and offers Try again in the MRI column', async () => {
+  it('keeps the examples when the session fails, loading them at once, and offers Try again in the MRI column', async () => {
     stubBackend(noFindings, sessionError)
     const wrapper = mountPage()
     await flushPromises()
@@ -73,6 +133,7 @@ describe('MyImagesPage', () => {
     expect(mri.findAll('button').some(b => b.text() === 'Try again')).toBe(true)
     expect(columnNamed(wrapper, 'Anatomy').text()).toContain('not available yet')
     expect(columnNamed(wrapper, 'Mammogram').text()).toContain('not available yet')
+    expect(stageIn(wrapper, 'Anatomy').props('loadEnabled')).toBe(true)
   })
 
   it('explains the three columns in the side panel', () => {
@@ -83,6 +144,6 @@ describe('MyImagesPage', () => {
 
   it('names the tab after the page and the app', () => {
     mountPage()
-    expect(document.title).toBe('Your images — Visual Whakamārama')
+    expect(document.title).toBe('My Images — Visual Whakamārama')
   })
 })

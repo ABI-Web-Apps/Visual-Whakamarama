@@ -62,17 +62,27 @@ describe('MyReportPage', () => {
     global: { stubs: { DefaultLayout: DefaultLayoutStub, MyMriViewer: MyMriViewerStub, MyMriReport: MyMriReportStub } },
   }))
 
-  it('renders the heading with the cohort from the config', () => {
+  it('is My Report, under the My results group, with no patient line', () => {
     const heading = mountPage().get('.heading-slot')
-    expect(heading.text()).toContain('MY REPORT')
-    expect(heading.get('h1').text()).toBe('Your report')
-    expect(heading.text()).toContain('Patient sub-1 · contrast phase 1')
+    expect(heading.text()).toContain('MY RESULTS')
+    expect(heading.get('h1').text()).toBe('My Report')
+    expect(heading.text()).not.toContain('Patient')
+    expect(heading.text()).not.toContain('contrast phase')
   })
 
-  it('renders two stage columns', () => {
-    const stage = mountPage().get('.stage-slot')
-    expect(stage.text()).toContain('MRI')
-    expect(stage.text()).toContain('Report')
+  it('renders two stage columns, headed as every other panel is', () => {
+    const columns = mountPage().get('.stage-slot').findAll('section')
+    expect(columns.map(c => c.get('h2').text())).toEqual(['MRI', 'Report'])
+  })
+
+  it('opens the scan on a third of the row and the report on two, with a gutter to change that', () => {
+    const wrapper = mountPage()
+    const [mri, report] = wrapper.get('.stage-slot').findAll('section')
+    expect(mri!.attributes('style')).toContain('--vw-pane-grow: 1')
+    expect(report!.attributes('style')).toContain('--vw-pane-grow: 2')
+    const gutter = wrapper.get('[role="separator"]')
+    expect(gutter.attributes('aria-label')).toBe('Resize MRI and Report')
+    expect(gutter.attributes('aria-valuenow')).toBe('33')
   })
 
   it('renders the right-panel copy', () => {
@@ -84,7 +94,7 @@ describe('MyReportPage', () => {
 
   it('names the tab after the page and the app', () => {
     mountPage()
-    expect(document.title).toBe('Your report — Visual Whakamārama')
+    expect(document.title).toBe('My Report — Visual Whakamārama')
   })
 
   it('omits the colour-matching paragraph while there are no findings', () => {
@@ -242,7 +252,7 @@ describe('config and copy', () => {
     expect(colourSentence([{ label: 'X', color: '#94a3b8' }])).toBe('grey is X')
     expect(colourSentence([{ label: 'X', color: null }, { label: 'Y', color: 'red' }])).toBe('grey is X, grey is Y')
     expect(colourSentence([])).toBe('')
-    expect(MY_MRI_COPY.subline('sub-2')).toBe('Patient sub-2 · contrast phase 1')
+    expect(MY_MRI_COPY).not.toHaveProperty('subline')
   })
 })
 
@@ -267,7 +277,7 @@ describe('MyReportPage inside the real layout', () => {
     expect(stage.classes()).not.toContain('max-md:aspect-square')
     expect(stage.text()).toContain('MRI')
     expect(stage.text()).toContain('Report')
-    expect(wrapper.get('[data-stage-column] h1').text()).toBe('Your report')
+    expect(wrapper.get('[data-stage-column] h1').text()).toBe('My Report')
     expect(wrapper.get('#case-content-panel').text()).toContain("WHAT YOU'RE SEEING")
   })
 })

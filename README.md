@@ -241,13 +241,107 @@ gives a `measurements` bucket. Its API and console are published on 9000/9001;
 override with `MINIO_API_PORT`, `MINIO_CONSOLE_PORT` and `FRONTEND_PORT` when
 those are taken. Upload the dataset as in the My Images and My Report section above.
 
+### Server (on release)
+
+Publishing a release deploys it to a server running the standalone stack.
+`.github/workflows/deploy_to_server.yml` connects over SSH and runs
+`scripts/deploy/server-deploy.sh` in the deploy folder, which:
+
+1. Fetches the release's tag and checks it out. Only the files the repository
+   tracks change, and files the release dropped are removed. Untracked and
+   ignored files stay: `.env`, `resource-backend/minio_data/` (the dataset in
+   MinIO), `resource-backend/static/workdir/`. Edits made on the server to
+   tracked files are saved to `.deploy-backups/` first and listed as a warning
+   in the run, so keep server settings in `.env` (`FRONTEND_PORT`, `MINIO_*`,
+   `DEMO_READINGS`).
+2. Runs `docker compose up -d --build --remove-orphans` and waits up to five
+   minutes for `/` and `/api/health` to answer.
+3. Removes this stack's images that the rebuild left unused.
+
+The release's commit must be on `main`: merge first. A release made from another
+branch fails before it reaches the server. To put an earlier release back,
+re-run its workflow run. A release also runs the GitHub Pages workflow, as
+before.
+
+A first deploy into a folder set up by hand works. A git clone is updated in
+place, and a copied folder becomes a checkout. Compose names the stack after the
+folder, so if the old stack was started there, its containers are replaced, not
+duplicated.
+
+**One-time setup.** The server needs git, Docker with Compose v2, curl, and a
+deploy user in the `docker` group. GitHub's runners connect from the internet,
+so the server must accept SSH from outside its own network. If it does not, the
+run stops at "Reach the server" with a timeout.
+
+Each step says where it runs. On your machine, use bash (Git Bash on Windows:
+Windows PowerShell drops the empty `''` passphrase), in your home folder, not
+in this repository, so the private key cannot be committed by accident.
+
+1. **Your machine.** Make a key for the workflow alone:
+
+   ```bash
+   cd ~
+   ssh-keygen -t ed25519 -N '' -C 'github-actions deploy' -f deploy_key
+   ```
+
+2. **Your machine.** Let the key in on the server. This logs in the way you
+   do today (password or your own key) and appends the new public key to the
+   server's `~/.ssh/authorized_keys`:
+
+   ```bash
+   cat deploy_key.pub | ssh ubuntu@<host> 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys'
+   ```
+
+   If you reach the server some other way, append the single line of
+   `deploy_key.pub` to `~/.ssh/authorized_keys` on the server instead.
+
+3. **Your machine.** Record the server's host key, which the workflow pins,
+   and print its fingerprints:
+
+   ```bash
+   ssh-keyscan -t ed25519,ecdsa,rsa <host> > deploy_known_hosts
+   ssh-keygen -lf deploy_known_hosts
+   ```
+
+   **The server.** Print its own fingerprints. They must match the ones above;
+   if not, something between you and the server answered instead:
+
+   ```bash
+   for f in /etc/ssh/ssh_host_*_key.pub; do ssh-keygen -lf "$f"; done
+   ```
+
+4. **GitHub, in the browser.** In the repository's Settings > Secrets and
+   variables > Actions, add:
+
+   | Kind | Name | Value |
+   |---|---|---|
+   | Secret | `DEPLOY_SSH_KEY` | the contents of `deploy_key` (the private key) |
+   | Secret | `DEPLOY_KNOWN_HOSTS` | the contents of `deploy_known_hosts` |
+   | Variable | `DEPLOY_HOST` | the server's address |
+   | Variable | `DEPLOY_PATH` | the deploy folder, an absolute path |
+   | Variable | `DEPLOY_USER` | only if not `ubuntu` |
+   | Variable | `DEPLOY_PORT` | only if SSH is not on 22 |
+
+   Then, on your machine, delete `deploy_key`, `deploy_key.pub` and
+   `deploy_known_hosts`. The job runs in the `production` environment, so
+   these can be set there instead (Settings > Environments), which can also
+   require an approval per deploy.
+
+5. **The server.** Check the deploy user can use Docker without `sudo`:
+   `docker ps` must list containers, not fail with "permission denied". If it
+   fails: `sudo usermod -aG docker ubuntu`, then log out and in again.
+
+After a change to `scripts/deploy/` or the workflow, run
+`bash scripts/deploy/test-server-deploy.sh`. It needs only bash and git: it runs
+the script on scratch folders with docker and curl stubbed.
+
 ### GitHub Pages
 
 `.github/workflows/deploy_on_github_pages.yml` builds the standalone app under
 `/<repo>/`, copies the imaging catalogue beside it (`VITE_ASSET_BASE`), and
 publishes to the `gh-pages` branch. It runs on a new release, or on demand
 from the Actions tab. Pages has no backend, so that build leaves the patient pages out:
-setting `VITE_ASSET_BASE` hides YOUR RESULTS and makes `/my-images`,
+setting `VITE_ASSET_BASE` hides My results and makes `/my-images`,
 `/my-images/mri`, `/my-report` (and the old `/my-mri`) 404
 (`hasBackend()` in `src/runtime/env.ts`).
 

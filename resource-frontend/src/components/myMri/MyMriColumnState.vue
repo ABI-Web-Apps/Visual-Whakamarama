@@ -17,7 +17,7 @@ defineEmits<{ retry: [] }>()
 </script>
 
 <template>
-  <div class="tw:min-h-0 tw:flex-1">
+  <div class="tw:flex tw:min-h-0 tw:flex-1 tw:flex-col">
     <div
       v-if="status === 'loading'"
       data-state="loading"

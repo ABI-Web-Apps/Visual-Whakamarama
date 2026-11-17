@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import ImagePlaceholder from '@/components/myImages/ImagePlaceholder.vue'
+import { computed, onScopeDispose, ref, watch } from 'vue'
+import PaneGutter from '@/components/layout/PaneGutter.vue'
+import ExampleNote from '@/components/myImages/ExampleNote.vue'
 import ResultColumn from '@/components/myImages/ResultColumn.vue'
 import MyMriColumnState from '@/components/myMri/MyMriColumnState.vue'
 import MyMriViewer from '@/components/myMri/MyMriViewer.vue'
-import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import CopperStage from '@/components/stage/CopperStage.vue'
+import { PANE_CLASS, ROW_DRAGGING_CLASS, resizeLabel, usePaneSplit } from '@/composables/usePaneSplit'
+import { getCase, getPanel } from '@/content/cases'
 import { MY_IMAGES_COPY } from '@/content/myImages'
-import { MY_MRI_COPY, sessionProgressText } from '@/content/myMri'
+import { sessionProgressText } from '@/content/myMri'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import { APP_TITLE, useDocumentTitle } from '@/navigation/head'
 import { providePageRoute } from '@/navigation/router'
 import type { PageRoute } from '@/navigation/routes'
@@ -15,19 +19,42 @@ import { useViewerRetry } from '@/myMri/useViewerRetry'
 
 /**
  * My Images: the patient's own anatomy, mammogram and MRI in the three
- * columns the Overview (The Breast) page uses for the examples.
+ * columns the case pages use for the examples, each with the case stages'
+ * control bar, the widths draggable (usePaneSplit).
  *
- * Only the MRI exists in the data. The other two columns hold their place and
- * link to the example instead (ImagePlaceholder). The MRI column header opens
- * the MRI page (/my-images/mri): current slice, previous MRI and 3D.
+ * Only the MRI exists in the data. Until the other two do, their columns show
+ * the Density C example, marked Example in the heading and with a line across
+ * the top saying whose image it is not. The MRI column header opens the MRI
+ * page (/my-images/mri): current slice, previous MRI and 3D.
  */
 const props = defineProps<{ route: PageRoute }>()
 providePageRoute(computed(() => props.route))
 
 const session = useMyMriSession()
-const { cohort, status, error, progress, total, reload, urls, findings } = session
+const { status, error, progress, total, reload, urls, findings } = session
 const progressText = computed(() => sessionProgressText(progress.value, total.value))
 const { attempt, retry } = useViewerRetry(session)
+
+const split = usePaneSplit([
+  { id: 'anatomy', weight: 1 },
+  { id: 'mammogram', weight: 1 },
+  { id: 'mri', weight: 1 },
+])
+
+const example = getCase(MY_IMAGES_COPY.exampleCase)!
+const exampleAnatomy = getPanel(example, 'anatomy')!.modalities[0]!
+const exampleMammogram = getPanel(example, 'mammogram')!.modalities[0]!
+
+/**
+ * Staged loading: the patient's own MRI has the connection to itself until it
+ * is on screen (or has failed); the two examples (0.8MB and 15MB) follow.
+ * A session that never settles must not strand them, hence the timer.
+ */
+const examplesReleased = ref(false)
+function releaseExamples() { examplesReleased.value = true }
+watch(status, (now) => { if (now === 'error') releaseExamples() }, { immediate: true })
+const releaseTimer = setTimeout(releaseExamples, 15_000)
+onScopeDispose(() => clearTimeout(releaseTimer))
 
 useDocumentTitle(() => `${MY_IMAGES_COPY.title} — ${APP_TITLE}`)
 </script>
@@ -40,33 +67,87 @@ useDocumentTitle(() => `${MY_IMAGES_COPY.title} — ${APP_TITLE}`)
           {{ MY_IMAGES_COPY.eyebrow }}
         </p>
         <h1 class="tw:text-h1 tw:font-bold tw:text-text">{{ MY_IMAGES_COPY.title }}</h1>
-        <p class="tw:mt-1 tw:text-body-sm tw:text-text-muted">{{ MY_MRI_COPY.subline(cohort) }}</p>
       </div>
     </template>
 
     <template #stage>
-      <!-- Three-up above a 1000px column, as the case page's panels are
-           (CasePanels.vue); stacked and scrolling below it. -->
+      <!-- Side by side above a 1000px column, as the case page's panels are
+           (CasePanels.vue), with a gutter to drag between each two; stacked
+           and scrolling below it. -->
       <div class="tw:@container tw:flex tw:min-h-0 tw:flex-1 tw:flex-col tw:overflow-y-auto">
         <div
-          class="tw:grid tw:grid-cols-1 tw:gap-3 tw:p-3
-                 tw:@[1000px]:min-h-0 tw:@[1000px]:flex-1 tw:@[1000px]:grid-cols-3 tw:@[1000px]:grid-rows-1"
+          class="tw:flex tw:flex-col tw:gap-3 tw:p-3
+                 tw:@[1000px]:min-h-0 tw:@[1000px]:flex-1 tw:@[1000px]:flex-row tw:@[1000px]:gap-0"
+          :class="split.dragging.value ? ROW_DRAGGING_CLASS : ''"
         >
-          <ResultColumn :label="MY_IMAGES_COPY.anatomy">
-            <ImagePlaceholder
-              :message="MY_IMAGES_COPY.anatomyMissing"
-              example-to="/the-breast/anatomy"
-              :example-label="MY_IMAGES_COPY.seeExample"
+          <ResultColumn
+            v-bind="split.paneAttrs('anatomy')"
+            :class="PANE_CLASS"
+            :style="split.paneStyle('anatomy')"
+            :label="MY_IMAGES_COPY.anatomy"
+            :badge="MY_IMAGES_COPY.example"
+          >
+            <ExampleNote
+              :text="MY_IMAGES_COPY.anatomyExample"
+              :to="`/${example.slug}/${exampleAnatomy.id}`"
+              :link-label="MY_IMAGES_COPY.exampleLink"
+            />
+            <CopperStage
+              :slug="example.slug"
+              :group="example.group"
+              panel-id="anatomy"
+              :panel-label="MY_IMAGES_COPY.anatomyExampleLabel"
+              :lesion-slice-index="0"
+              :modality="exampleAnatomy"
+              :compact="true"
+              :load-enabled="examplesReleased"
+              :tour="false"
             />
           </ResultColumn>
-          <ResultColumn :label="MY_IMAGES_COPY.mammogram">
-            <ImagePlaceholder
-              :message="MY_IMAGES_COPY.mammogramMissing"
-              example-to="/the-breast/mammogram"
-              :example-label="MY_IMAGES_COPY.seeExample"
+          <PaneGutter
+            :split="split"
+            before="anatomy"
+            after="mammogram"
+            :label="resizeLabel(MY_IMAGES_COPY.anatomy, MY_IMAGES_COPY.mammogram)"
+          />
+          <ResultColumn
+            v-bind="split.paneAttrs('mammogram')"
+            :class="PANE_CLASS"
+            :style="split.paneStyle('mammogram')"
+            :label="MY_IMAGES_COPY.mammogram"
+            :badge="MY_IMAGES_COPY.example"
+          >
+            <ExampleNote
+              :text="MY_IMAGES_COPY.mammogramExample"
+              :to="`/${example.slug}/${exampleMammogram.id}`"
+              :link-label="MY_IMAGES_COPY.exampleLink"
+            />
+            <CopperStage
+              :slug="example.slug"
+              :group="example.group"
+              panel-id="mammogram"
+              :panel-label="MY_IMAGES_COPY.mammogramExampleLabel"
+              :lesion-slice-index="0"
+              :modality="exampleMammogram"
+              :compact="true"
+              :load-enabled="examplesReleased"
+              :tour="false"
             />
           </ResultColumn>
-          <ResultColumn :label="MY_IMAGES_COPY.mri" to="/my-images/mri" :open-label="MY_IMAGES_COPY.open">
+          <PaneGutter
+            :split="split"
+            before="mammogram"
+            after="mri"
+            :label="resizeLabel(MY_IMAGES_COPY.mammogram, MY_IMAGES_COPY.mri)"
+          />
+          <ResultColumn
+            v-bind="split.paneAttrs('mri')"
+            :class="PANE_CLASS"
+            :style="split.paneStyle('mri')"
+            :label="MY_IMAGES_COPY.mri"
+            to="/my-images/mri"
+            :open-label="MY_IMAGES_COPY.open"
+          >
             <MyMriColumnState :status="status" :summary="error?.summary" :progress-text="progressText" live @retry="reload()">
               <MyMriViewer
                 v-if="urls"
@@ -77,6 +158,7 @@ useDocumentTitle(() => `${MY_IMAGES_COPY.title} — ${APP_TITLE}`)
                 initial-view="3d"
                 :label="MY_IMAGES_COPY.mriLabel"
                 @retry="retry()"
+                @settled="releaseExamples()"
               />
             </MyMriColumnState>
           </ResultColumn>
@@ -92,6 +174,7 @@ useDocumentTitle(() => `${MY_IMAGES_COPY.title} — ${APP_TITLE}`)
         <p>{{ MY_IMAGES_COPY.intro }}</p>
         <p>{{ MY_IMAGES_COPY.missing }}</p>
         <p>{{ MY_IMAGES_COPY.mriNote }}</p>
+        <p>{{ MY_IMAGES_COPY.resizeNote }}</p>
       </div>
     </template>
   </DefaultLayout>

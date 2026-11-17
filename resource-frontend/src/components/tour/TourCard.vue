@@ -177,8 +177,8 @@ const btn = 'tw:flex tw:min-h-11 tw:items-center tw:rounded-full tw:px-4 tw:text
    flat grey box (design doc T2). */
 .hud-glass {
   background: var(--hud-glass);
-  backdrop-filter: blur(14px) saturate(1.15);
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  backdrop-filter: blur(14px) saturate(1.15);
   border: 1px solid var(--hud-line);
   box-shadow: 0 16px 40px rgb(0 0 0 / .45), inset 0 1px 0 rgb(255 255 255 / .07);
 }

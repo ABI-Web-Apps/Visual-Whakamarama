@@ -23,6 +23,26 @@ describe('ResultColumn', () => {
     expect(a.get('section').attributes('aria-labelledby')).not.toBe(b.get('section').attributes('aria-labelledby'))
   })
 
+  it('marks an example in the heading, so the region name says so too', () => {
+    const wrapper = mount(ResultColumn, { props: { label: 'Anatomy', badge: 'Example' } })
+    expect(wrapper.get('h2').text()).toBe('Anatomy Example')
+    expect(wrapper.get('h2 [data-badge]').text()).toBe('Example')
+    expect(mount(ResultColumn, { props: { label: 'Anatomy' } }).find('[data-badge]').exists()).toBe(false)
+  })
+
+  it('offers a minimise button only when collapsible, named, emitting collapse', async () => {
+    expect(mount(ResultColumn, { props: { label: 'Previous MRI' } }).find('button').exists()).toBe(false)
+    const wrapper = mount(ResultColumn, {
+      props: { label: 'Previous MRI', collapsible: true, collapseLabel: 'Minimise Previous MRI' },
+    })
+    const button = wrapper.get('button[data-collapse]')
+    expect(button.attributes('aria-label')).toBe('Minimise Previous MRI')
+    // Outside the heading: the region is still named by the label alone.
+    expect(wrapper.get('h2').find('button').exists()).toBe(false)
+    await button.trigger('click')
+    expect(wrapper.emitted('collapse')).toHaveLength(1)
+  })
+
   it('keeps the heading as the region name when it is a link', () => {
     const wrapper = mount(ResultColumn, {
       props: { label: 'MRI', to: '/my-images/mri' },

@@ -28,6 +28,26 @@ function enabledMap(wrapper: ReturnType<typeof mountPanels>) {
   )
 }
 
+describe('CasePanels three-up widths', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.stubGlobal('navigateTo', vi.fn())
+  })
+
+  it('puts a gutter between each two panels, in the row\'s order, the widths equal to start', () => {
+    const wrapper = mountPanels()
+    const row = wrapper.get('[data-tour="panels"]')
+    const children = row.element.children
+    const kinds = Array.from(children).map(el => el.getAttribute('role') ?? el.getAttribute('data-panel'))
+    expect(kinds).toEqual(['anatomy', 'separator', 'mammogram', 'separator', 'mri'])
+    expect(row.findAll('[role="separator"]').map(g => g.attributes('aria-label'))).toEqual([
+      'Resize Anatomy and Mammogram',
+      'Resize Mammogram and MRI',
+    ])
+    for (const panel of row.findAll('[data-panel]')) expect(panel.attributes('style')).toContain('--vw-pane-grow: 1')
+  })
+})
+
 describe('CasePanels staged loading', () => {
   beforeEach(() => {
     setActivePinia(createPinia())

@@ -52,7 +52,14 @@ const props = withDefaults(defineProps<{
    * true so any caller that does not stage still behaves as before.
    */
   loadEnabled?: boolean
-}>(), { loadEnabled: true })
+  /**
+   * Registers this stage with the guided tour, under its `panelId`. Off for a
+   * stage outside the case pages (My Images' examples): the tour looks stages
+   * up by panel id, so a second 'anatomy' stage would take the case page's
+   * place in that table, and its unmount would drop the case page's row.
+   */
+  tour?: boolean
+}>(), { loadEnabled: true, tour: true })
 
 const emit = defineEmits<{
   /** Fired once this stage's load has settled -- resolved OR rejected.
@@ -396,6 +403,7 @@ onScopeDispose(() => {
  * dropped on dispose, so a stale row can never outlive its renderer.
  */
 onMounted(() => {
+  if (!props.tour) return
   registerTourStage(props.panelId, {
     // isHealthy() alone goes true the instant an EMPTY scene is created
     // (activateScene, before the asset itself has loaded) -- the tour's
@@ -417,7 +425,9 @@ onMounted(() => {
     prefersReducedMotion: () => camera.prefersReducedMotion.value,
   })
 })
-onScopeDispose(() => unregisterTourStage(props.panelId))
+onScopeDispose(() => {
+  if (props.tour) unregisterTourStage(props.panelId)
+})
 
 defineExpose({ stage, modalityScene, host, camera, slice })
 </script>
@@ -527,6 +537,7 @@ defineExpose({ stage, modalityScene, host, camera, slice })
       :lesion-slice-index="props.lesionSliceIndex"
       :ready="isHealthy()"
       :compact="props.compact"
+      :tour="props.tour"
       @reset="onReset"
       @locate="onLocate"
     />
