@@ -297,20 +297,19 @@ accident.
    If you reach the server some other way, append the single line of
    `deploy_key.pub` to `~/.ssh/authorized_keys` on the server instead.
 
-3. **Your machine.** Record the server's host key, which the workflow pins,
-   and print its fingerprints:
+3. **The server.** Print the server's host key as the line the workflow pins,
+   read from the server's own key file rather than scanned over the network,
+   so nothing between you and the server can answer in its place. (Windows'
+   `ssh-keyscan` cannot scan recent servers anyway: `choose_kex: unsupported
+   KEX method`.) Put the server's address, as in `DEPLOY_HOST`, for `<host>`,
+   or `[<host>]:<port>` if SSH is not on 22:
 
    ```bash
-   ssh-keyscan -t ed25519,ecdsa,rsa <host> > deploy_known_hosts
-   ssh-keygen -lf deploy_known_hosts
+   echo "<host> $(cut -d' ' -f1,2 /etc/ssh/ssh_host_ed25519_key.pub)"
    ```
 
-   **The server.** Print its own fingerprints. They must match the ones above;
-   if not, something between you and the server answered instead:
-
-   ```bash
-   for f in /etc/ssh/ssh_host_*_key.pub; do ssh-keygen -lf "$f"; done
-   ```
+   It prints one line, `<host> ssh-ed25519 AAAA...`: the `DEPLOY_KNOWN_HOSTS`
+   secret.
 
 4. **GitHub, in the browser.** In the repository's Settings > Secrets and
    variables > Actions, add:
@@ -318,16 +317,15 @@ accident.
    | Kind | Name | Value |
    |---|---|---|
    | Secret | `DEPLOY_SSH_KEY` | the contents of `deploy_key` (the private key) |
-   | Secret | `DEPLOY_KNOWN_HOSTS` | the contents of `deploy_known_hosts` |
+   | Secret | `DEPLOY_KNOWN_HOSTS` | the line printed in step 3 |
    | Variable | `DEPLOY_HOST` | the server's address |
    | Variable | `DEPLOY_PATH` | the deploy folder, an absolute path |
    | Variable | `DEPLOY_USER` | only if not `ubuntu` |
    | Variable | `DEPLOY_PORT` | only if SSH is not on 22 |
 
-   Then, on your machine, delete `deploy_key`, `deploy_key.pub` and
-   `deploy_known_hosts`. The job runs in the `production` environment, so
-   these can be set there instead (Settings > Environments), which can also
-   require an approval per deploy.
+   Then, on your machine, delete `deploy_key` and `deploy_key.pub`. The job
+   runs in the `production` environment, so these can be set there instead
+   (Settings > Environments), which can also require an approval per deploy.
 
 5. **The server.** Check the deploy user can use Docker without `sudo`:
    `docker ps` must list containers, not fail with "permission denied". If it
