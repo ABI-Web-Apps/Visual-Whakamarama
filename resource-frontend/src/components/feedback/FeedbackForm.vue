@@ -16,7 +16,7 @@ import AppLink from '@/navigation/AppLink.vue'
 const rating = defineModel<Rating | null>('rating', { default: null })
 const comment = defineModel<string>('comment', { default: '' })
 const props = defineProps<{ page: string, titleId?: string }>()
-const emit = defineEmits<{ sent: [] }>()
+const emit = defineEmits<{ sent: [], stay: [] }>()
 
 const MAX = 1000
 const COUNT_FROM = 900
@@ -51,6 +51,15 @@ async function submit() {
     </svg>
     <h2 :id="titleId" class="tw:mt-5 tw:text-h2 tw:font-bold tw:text-text">{{ FEEDBACK_COPY.thanks }}</h2>
     <p class="tw:mt-1.5 tw:text-body-sm tw:text-text-muted">{{ FEEDBACK_COPY.thanksDetail }}</p>
+    <div class="tw:mt-6 tw:flex tw:w-full tw:flex-col tw:items-center tw:gap-2 tw:border-t tw:border-border tw:pt-5">
+      <p class="tw:text-body-sm tw:text-text-muted">{{ FEEDBACK_COPY.stayLead }}</p>
+      <button
+        type="button"
+        class="tw:min-h-11 tw:rounded-full tw:bg-group-results/10 tw:px-5 tw:text-body-sm tw:font-bold tw:text-group-results
+               tw:transition-colors tw:hover:bg-group-results/15"
+        @click="emit('stay')"
+      >{{ FEEDBACK_COPY.tabStay }}</button>
+    </div>
   </div>
 
   <form v-else class="tw:flex tw:flex-col" novalidate @submit.prevent="submit">

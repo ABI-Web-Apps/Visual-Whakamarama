@@ -55,7 +55,7 @@ const fullWidthOrgs = computed(() =>
   <!-- A `<main>`, not a `<div>`: this page does not use the case layout (it
        has no stage and no sidebar), so nothing else on it provides the one
        main landmark every page owes. -->
-  <main class="tw:mx-auto tw:max-w-5xl tw:px-6 tw:py-10 tw:sm:px-10 tw:sm:py-16">
+  <main class="tw:mx-auto tw:max-w-5xl tw:px-6 tw:py-10 tw:max-md:pb-28 tw:sm:px-10 tw:sm:py-16">
     <!-- The legacy About page was a dead end: it had no way back to the app
          at all, which is the second half of the human's #13. -->
     <AppLink

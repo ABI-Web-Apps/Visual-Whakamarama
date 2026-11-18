@@ -7,9 +7,13 @@ import type { InjectionKey, Ref } from 'vue'
  * it (About, Contact us). Provided, not module state: the plugin bundle
  * re-runs on every mount.
  */
+export type FeedbackDialogMode = 'feedback' | 'stay'
+
 export interface FeedbackDialog {
   isOpen: Ref<boolean>
-  open: () => void
+  /** Which half is showing: the feedback form, or Stay in touch. */
+  mode: Ref<FeedbackDialogMode>
+  open: (mode?: FeedbackDialogMode) => void
   close: () => void
 }
 
@@ -17,9 +21,14 @@ export const FEEDBACK_DIALOG_KEY: InjectionKey<FeedbackDialog> = Symbol('vw-feed
 
 export function provideFeedbackDialog(): FeedbackDialog {
   const isOpen = ref(false)
+  const mode = ref<FeedbackDialogMode>('feedback')
   const dialog: FeedbackDialog = {
     isOpen,
-    open: () => { isOpen.value = true },
+    mode,
+    open: (to = 'feedback') => {
+      mode.value = to
+      isOpen.value = true
+    },
     close: () => { isOpen.value = false },
   }
   provide(FEEDBACK_DIALOG_KEY, dialog)

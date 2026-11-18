@@ -87,7 +87,7 @@ describe('FeedbackWidget', () => {
     expect((w.get('textarea').element as HTMLTextAreaElement).value).toBe('half a thought')
   })
 
-  it('closes itself a moment after sending, and starts the next one blank', async () => {
+  it('closes itself a few seconds after sending, and starts the next one blank', async () => {
     vi.useFakeTimers()
     const w = mountWidget()
     await launcher(w).trigger('click')
@@ -95,11 +95,48 @@ describe('FeedbackWidget', () => {
     await w.get('form').trigger('submit')
     await flushPromises()
     expect(w.text()).toContain('Thank you — ngā mihi!')
-    vi.advanceTimersByTime(2600)
+    vi.advanceTimersByTime(5100)
     await flushPromises()
     expect(w.find('[role="dialog"]').exists()).toBe(false)
     await launcher(w).trigger('click')
     expect((w.get('textarea').element as HTMLTextAreaElement).value).toBe('')
+  })
+
+  it('stays open after sending while the reader is using it', async () => {
+    vi.useFakeTimers()
+    const w = mountWidget()
+    await launcher(w).trigger('click')
+    await w.get('textarea').setValue('All good')
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    await w.get('[role="dialog"]').trigger('pointerdown')
+    vi.advanceTimersByTime(8000)
+    await flushPromises()
+    expect(w.find('[role="dialog"]').exists()).toBe(true)
+  })
+
+  it('switches between Feedback and Stay in touch', async () => {
+    const w = mountWidget()
+    await launcher(w).trigger('click')
+    const tabs = w.findAll('[role="tab"]')
+    expect(tabs.map(t => t.text())).toEqual(['Feedback', 'Stay in touch'])
+    expect(tabs[0]!.attributes('aria-selected')).toBe('true')
+    await tabs[1]!.trigger('click')
+    expect(w.get('[role="tab"][aria-selected="true"]').text()).toBe('Stay in touch')
+    expect(w.get('[role="tabpanel"]').text()).toContain('Your email or mobile number')
+    // The dialog is named by what it now shows.
+    const d = w.get('[role="dialog"]')
+    expect(document.getElementById(d.attributes('aria-labelledby')!)!.textContent).toContain('Stay in touch')
+  })
+
+  it('offers Stay in touch from the thank-you', async () => {
+    const w = mountWidget()
+    await launcher(w).trigger('click')
+    await w.get('textarea').setValue('All good')
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    await w.get('[data-feedback-sent] button').trigger('click')
+    expect(w.get('[role="tab"][aria-selected="true"]').text()).toBe('Stay in touch')
   })
 
   it('can be opened from elsewhere in the app (About, Contact us)', async () => {

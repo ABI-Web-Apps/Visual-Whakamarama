@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import FeedbackForm from '@/components/feedback/FeedbackForm.vue'
+import KeepInTouchForm from '@/components/feedback/KeepInTouchForm.vue'
 import { FEEDBACK_COPY } from '@/content/feedback'
 import type { FeedbackDraft } from '@/feedback/types'
 import { useFeedbackDialog } from '@/feedback/useFeedbackDialog'
+import type { FeedbackDialogMode } from '@/feedback/useFeedbackDialog'
 import { useAppRouter } from '@/navigation/router'
 import { useTourStore } from '@/stores/tour'
 import { useViewerStore } from '@/stores/viewer'
@@ -32,12 +34,20 @@ import { useViewerStore } from '@/stores/viewer'
  */
 const dialog = useFeedbackDialog()
 const isOpen = dialog?.isOpen ?? ref(false)
+const mode = dialog?.mode ?? ref<FeedbackDialogMode>('feedback')
 const router = useAppRouter()
 const tour = useTourStore()
 const viewer = useViewerStore()
 
 const draft = reactive<FeedbackDraft>({ rating: null, comment: '' })
+/** Stay in touch's fields, kept here too so switching tabs loses nothing. */
+const stay = reactive({ firstName: '', contact: '' })
 const titleId = 'vw-feedback-title'
+const TABS: { mode: FeedbackDialogMode, label: string }[] = [
+  { mode: 'feedback', label: FEEDBACK_COPY.tabFeedback },
+  { mode: 'stay', label: FEEDBACK_COPY.tabStay },
+]
+const tabId = (m: FeedbackDialogMode) => `vw-feedback-tab-${m}`
 const launcher = ref<HTMLButtonElement | null>(null)
 const panel = ref<HTMLElement | null>(null)
 
@@ -49,7 +59,22 @@ let closeTimer: ReturnType<typeof setTimeout> | undefined
 let sent = false
 
 function open() {
-  dialog?.open() ?? (isOpen.value = true)
+  if (dialog) dialog.open('feedback')
+  else {
+    mode.value = 'feedback'
+    isOpen.value = true
+  }
+}
+
+function showTab(m: FeedbackDialogMode, focus = false) {
+  mode.value = m
+  if (focus) void nextTick(() => document.getElementById(tabId(m))?.focus())
+}
+
+function onTabKeydown(event: KeyboardEvent) {
+  if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return
+  event.preventDefault()
+  showTab(mode.value === 'feedback' ? 'stay' : 'feedback', true)
 }
 
 function close() {
@@ -58,9 +83,18 @@ function close() {
   else isOpen.value = false
 }
 
+/**
+ * After a send the dialog closes itself in a few seconds -- unless the
+ * reader is still using it (the thank-you offers Stay in touch).
+ */
 function onSent() {
   sent = true
-  closeTimer = setTimeout(close, 2500)
+  clearTimeout(closeTimer)
+  closeTimer = setTimeout(close, 5000)
+}
+
+function holdOpen() {
+  clearTimeout(closeTimer)
 }
 
 watch(isOpen, async (now) => {
@@ -73,6 +107,8 @@ watch(isOpen, async (now) => {
   if (sent) {
     draft.rating = null
     draft.comment = ''
+    stay.firstName = ''
+    stay.contact = ''
     sent = false
   }
   dragY.value = 0
@@ -90,6 +126,7 @@ function focusables(): HTMLElement[] {
 }
 
 function onKeydown(event: KeyboardEvent) {
+  holdOpen()
   if (event.key === 'Escape') {
     event.preventDefault()
     close()
@@ -210,6 +247,7 @@ onBeforeUnmount(() => {
                tw:md:bottom-6 tw:md:right-6 tw:md:w-[26rem] tw:md:rounded-card tw:md:ring-1 tw:md:ring-border"
         :style="dragY ? { transform: `translateY(${dragY}px)`, transition: 'none' } : undefined"
         @keydown="onKeydown"
+        @pointerdown="holdOpen"
       >
         <div class="vw-fb-masthead tw:shrink-0" aria-hidden="true" />
         <!-- The phone's handle: drag it down to close. -->
@@ -234,13 +272,50 @@ onBeforeUnmount(() => {
             <path d="M6 6l12 12M18 6 6 18" />
           </svg>
         </button>
-        <div class="vw-fb-body tw:min-h-0 tw:overflow-y-auto tw:overscroll-contain tw:px-5 tw:pt-1 tw:md:px-6 tw:md:pt-5">
+        <!-- Feedback | Stay in touch. Tabs: one tab stop, the arrow keys switch. -->
+        <div class="tw:shrink-0 tw:px-5 tw:pr-16 tw:md:px-6 tw:md:pr-16 tw:md:pt-4">
+          <div
+            role="tablist"
+            :aria-label="FEEDBACK_COPY.tabsLabel"
+            class="tw:inline-flex tw:rounded-full tw:bg-surface-sunken tw:p-1"
+          >
+            <button
+              v-for="t in TABS"
+              :id="tabId(t.mode)"
+              :key="t.mode"
+              type="button"
+              role="tab"
+              :aria-selected="mode === t.mode ? 'true' : 'false'"
+              aria-controls="vw-feedback-tabpanel"
+              :tabindex="mode === t.mode ? 0 : -1"
+              class="tw:min-h-9 tw:rounded-full tw:px-3.5 tw:text-body-sm tw:font-bold tw:transition-[background-color,color,box-shadow]"
+              :class="mode === t.mode ? 'tw:bg-surface tw:text-text tw:shadow-sm' : 'tw:text-text-muted tw:hover:text-text'"
+              @click="showTab(t.mode)"
+              @keydown="onTabKeydown"
+            >{{ t.label }}</button>
+          </div>
+        </div>
+        <div
+          id="vw-feedback-tabpanel"
+          role="tabpanel"
+          :aria-labelledby="tabId(mode)"
+          class="vw-fb-body tw:min-h-0 tw:overflow-y-auto tw:overscroll-contain tw:px-5 tw:pt-5 tw:md:px-6"
+        >
           <FeedbackForm
+            v-if="mode === 'feedback'"
             v-model:rating="draft.rating"
             v-model:comment="draft.comment"
             :page="router.route.value.path"
             :title-id="titleId"
             @sent="onSent"
+            @stay="showTab('stay')"
+          />
+          <KeepInTouchForm
+            v-else
+            v-model:first-name="stay.firstName"
+            v-model:contact="stay.contact"
+            :title-id="titleId"
+            @done="onSent"
           />
         </div>
       </div>

@@ -84,3 +84,13 @@ describe('ContactPage and feedback', () => {
     expect(mountPage().find('[data-feedback-open]').exists()).toBe(false)
   })
 })
+
+describe('ContactPage: stay in touch', () => {
+  it('has a Stay in touch section under the contact sheet, split wide', () => {
+    const w = mountPage()
+    const section = w.get('[data-keep-in-touch]')
+    expect(section.text()).toContain('Stay in touch')
+    expect(section.find('input[autocomplete="email"]').exists()).toBe(true)
+    expect(section.classes()).toContain('md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]')
+  })
+})

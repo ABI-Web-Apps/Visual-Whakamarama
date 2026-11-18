@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import EmailButton from '@/components/contact/EmailButton.vue'
+import KeepInTouchForm from '@/components/feedback/KeepInTouchForm.vue'
 import { CONTACT_ADDRESS, CONTACT_COPY, CONTACT_PEOPLE, initials } from '@/content/contact'
 import { FEEDBACK_COPY } from '@/content/feedback'
 import { useFeedbackDialog } from '@/feedback/useFeedbackDialog'
@@ -30,7 +31,7 @@ const feedback = useFeedbackDialog()
 
 <template>
   <!-- Its own `<main>`, like About: no stage, no sidebar. -->
-  <main class="tw:mx-auto tw:max-w-4xl tw:px-6 tw:py-10 tw:sm:px-10 tw:sm:py-16">
+  <main class="tw:mx-auto tw:max-w-4xl tw:px-4 tw:py-10 tw:max-md:pb-28 tw:sm:px-10 tw:sm:py-16">
     <AppLink
       to="/"
       class="tw:group tw:inline-flex tw:min-h-11 tw:items-center tw:gap-1.5 tw:text-caption
@@ -114,6 +115,11 @@ const feedback = useFeedbackDialog()
           </svg>
         </a>
       </div>
+    </section>
+
+    <!-- Stay in touch: under the people, split from tablet up. -->
+    <section class="tw:mt-8 tw:rounded-card tw:bg-surface tw:p-4 tw:shadow-sm tw:ring-1 tw:ring-border tw:sm:p-8">
+      <KeepInTouchForm layout="split" />
     </section>
 
     <p v-if="feedback" class="tw:mt-8 tw:flex tw:flex-wrap tw:items-center tw:gap-x-3 tw:gap-y-2 tw:text-body-sm tw:text-text-muted">

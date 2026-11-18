@@ -37,6 +37,15 @@ export interface FeedbackEntry extends FeedbackDraft {
   mode: 'plugin' | 'standalone'
 }
 
+/** One Stay in touch sign-up. Kept apart from feedback, in its own file. */
+export interface Subscriber {
+  id: string
+  created_at: string
+  first_name: string
+  contact: string
+  contact_type: 'email' | 'phone'
+}
+
 /** A failure the form or the review page can show as it is. `status` 0: the server was not reached. */
 export interface FeedbackError {
   status: number

@@ -1,5 +1,5 @@
 import { deviceClass } from '@/feedback/device'
-import type { FeedbackDraft, FeedbackEntry, FeedbackError } from '@/feedback/types'
+import type { FeedbackDraft, FeedbackEntry, FeedbackError, Subscriber } from '@/feedback/types'
 import { getApiBaseUrl } from '@/runtime/env'
 
 const UNREACHABLE = 'The server could not be reached. Check your connection and try again.'
@@ -53,4 +53,39 @@ export async function fetchFeedback(password: string): Promise<{ total: number, 
     cache: 'no-store',
   })
   return res.json()
+}
+
+// ── Stay in touch, and the review page's deletes ──────────────────────────
+
+/** Signs someone up. A repeat of a contact already on the list is a success too (200). */
+export async function postSubscriber(entry: { first_name: string, contact: string }): Promise<{ id: string, created_at: string }> {
+  const res = await send(`${getApiBaseUrl()}/subscribers`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ first_name: entry.first_name, contact: entry.contact }),
+  })
+  return res.json()
+}
+
+export async function fetchSubscribers(password: string): Promise<{ total: number, items: Subscriber[] }> {
+  const res = await send(`${getApiBaseUrl()}/subscribers`, {
+    headers: { 'X-Feedback-Password': password },
+    cache: 'no-store',
+  })
+  return res.json()
+}
+
+function remove(kind: 'feedback' | 'subscribers', password: string, id: string): Promise<Response> {
+  return send(`${getApiBaseUrl()}/${kind}/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'X-Feedback-Password': password },
+  })
+}
+
+export async function deleteFeedback(password: string, id: string): Promise<void> {
+  await remove('feedback', password, id)
+}
+
+export async function deleteSubscriber(password: string, id: string): Promise<void> {
+  await remove('subscribers', password, id)
 }

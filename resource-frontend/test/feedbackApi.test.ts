@@ -90,3 +90,54 @@ describe('fetchFeedback', () => {
     await expect(fetchFeedback('nope')).rejects.toEqual({ status: 401, summary: 'Wrong password.' })
   })
 })
+
+describe('stay in touch and deleting', () => {
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  it('posts a sign-up as exactly first name and contact', async () => {
+    const f = vi.fn(async () => jsonRes(201, { id: 's-1', created_at: 't' }))
+    vi.stubGlobal('fetch', f)
+    const { postSubscriber } = await import('../src/feedback/api')
+    expect(await postSubscriber({ first_name: 'Aroha', contact: 'aroha@example.nz' })).toEqual({ id: 's-1', created_at: 't' })
+    const [url, init] = f.mock.calls[0]! as unknown as [string, RequestInit]
+    expect(url).toBe('http://localhost:8082/api/subscribers')
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(init.body as string)).toEqual({ first_name: 'Aroha', contact: 'aroha@example.nz' })
+  })
+
+  it('treats a repeat sign-up (200) as success too', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonRes(200, { id: 's-1', created_at: 't' })))
+    const { postSubscriber } = await import('../src/feedback/api')
+    await expect(postSubscriber({ first_name: '', contact: '0211234567' })).resolves.toEqual({ id: 's-1', created_at: 't' })
+  })
+
+  it('lists sign-ups behind the password header', async () => {
+    const f = vi.fn(async () => jsonRes(200, { total: 0, items: [] }))
+    vi.stubGlobal('fetch', f)
+    const { fetchSubscribers } = await import('../src/feedback/api')
+    await fetchSubscribers('qwerty')
+    const [url, init] = f.mock.calls[0]! as unknown as [string, RequestInit]
+    expect(url).toBe('http://localhost:8082/api/subscribers')
+    expect((init.headers as Record<string, string>)['X-Feedback-Password']).toBe('qwerty')
+  })
+
+  it('deletes one entry of either kind, by id, with the password', async () => {
+    const f = vi.fn(async () => new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', f)
+    const { deleteFeedback, deleteSubscriber } = await import('../src/feedback/api')
+    await deleteFeedback('qwerty', 'a b')
+    await deleteSubscriber('qwerty', 's-1')
+    const calls = f.mock.calls as unknown as [string, RequestInit][]
+    expect(calls.map(([u, i]) => [u, i.method])).toEqual([
+      ['http://localhost:8082/api/feedback/a%20b', 'DELETE'],
+      ['http://localhost:8082/api/subscribers/s-1', 'DELETE'],
+    ])
+    expect((calls[0]![1].headers as Record<string, string>)['X-Feedback-Password']).toBe('qwerty')
+  })
+
+  it('passes on "no longer exists" for an entry already gone', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonRes(404, { detail: { code: 'not_found', summary: 'That entry no longer exists.' } })))
+    const { deleteFeedback } = await import('../src/feedback/api')
+    await expect(deleteFeedback('qwerty', 'x')).rejects.toEqual({ status: 404, summary: 'That entry no longer exists.' })
+  })
+})
