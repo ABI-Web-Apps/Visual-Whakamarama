@@ -43,7 +43,11 @@ describe('FeedbackReviewPage', () => {
     vi.mocked(deleteFeedback).mockReset().mockResolvedValue()
     vi.mocked(deleteSubscriber).mockReset().mockResolvedValue()
   })
-  afterEach(() => { document.body.innerHTML = '' })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+    document.body.innerHTML = ''
+  })
 
   it('asks for the password first, and shows nothing else', () => {
     const w = mountPage()
@@ -176,6 +180,26 @@ describe('FeedbackReviewPage', () => {
     await flushPromises()
     expect(w.find('[data-review]').exists()).toBe(false)
     expect(w.find('input[type="password"]').exists()).toBe(true)
+  })
+
+  it('exports every entry, whatever the filters, and gives Safari time to save it', async () => {
+    let blob: Blob | undefined
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((b) => { blob = b as Blob; return 'blob:csv' })
+    const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const w = mountPage()
+    await unlock(w)
+    vi.useFakeTimers()
+    await w.get('[data-filter-rating="2"]').trigger('click')
+    await w.findAll('button').find(b => b.text() === 'Export CSV')!.trigger('click')
+    const text = await blob!.text()
+    expect(text.split('\r\n')).toHaveLength(4) // the header and all three entries
+    vi.advanceTimersByTime(1000)
+    expect(revoke).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(60_000)
+    expect(revoke).toHaveBeenCalledWith('blob:csv')
+    vi.useRealTimers()
+    vi.restoreAllMocks()
   })
 
   it('exports the list on screen as a CSV file', async () => {

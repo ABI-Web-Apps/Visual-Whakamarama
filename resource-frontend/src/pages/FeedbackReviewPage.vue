@@ -170,14 +170,19 @@ async function remove(kind: 'feedback' | 'stay', id: string) {
 
 // ── Export ───────────────────────────────────────────────────────────────
 
+/**
+ * Always the whole list, whatever the filters: the export is the backup the
+ * README tells the team to take before the portal deletes the plugin.
+ */
 function exportCsv() {
-  const text = tab.value === 'feedback' ? feedbackCsv(shownFeedback.value) : subscribersCsv(subscribers.value)
+  const text = tab.value === 'feedback' ? feedbackCsv(feedback.value) : subscribersCsv(subscribers.value)
   const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }))
   const a = document.createElement('a')
   a.href = url
   a.download = csvFileName(tab.value === 'feedback' ? 'feedback' : 'stay-in-touch')
   a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 0)
+  // Safari cancels a download whose blob URL is revoked straight away.
+  setTimeout(() => URL.revokeObjectURL(url), 30_000)
 }
 
 const toolButton = 'tw:inline-flex tw:min-h-10 tw:items-center tw:gap-1.5 tw:rounded-full tw:bg-surface tw:px-4 tw:text-body-sm '
