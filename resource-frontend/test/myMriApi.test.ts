@@ -96,7 +96,9 @@ describe('patientUrls', () => {
     expect(u.mri).toBe('http://api.test/api/patients/a%20b/sub%2F1/mri')
     expect(u.findings).toBe('http://api.test/api/patients/a%20b/sub%2F1/findings')
     expect(u.mask).toBe('http://api.test/api/patients/a%20b/sub%2F1/mask.glb')
-    expect(u.report('Pacific/Auckland')).toBe('http://api.test/api/patients/a%20b/sub%2F1/report.pdf?tz=Pacific%2FAuckland')
+    expect(u.report).toBe('http://api.test/api/patients/a%20b/sub%2F1/report.pdf')
+    expect(u.reportPages).toBe('http://api.test/api/patients/a%20b/sub%2F1/report/pages')
+    expect(u.reportPage(2)).toBe('http://api.test/api/patients/a%20b/sub%2F1/report/pages/2.png')
   })
 })
 

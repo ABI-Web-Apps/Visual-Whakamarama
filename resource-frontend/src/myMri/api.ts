@@ -11,6 +11,9 @@ export interface MyMriError {
 
 export interface ProgressEvent { case: string, current: number, total_cases: number }
 
+/** One page of the report as the backend lists it: its size in points and its text. */
+export interface ReportPage { width: number, height: number, text: string }
+
 const UNREACHABLE = 'The server could not be reached.'
 /** What nginx answers, with its own page, when the backend behind it is down or too slow. */
 const GATEWAY_STATUSES = new Set([502, 503, 504])
@@ -128,7 +131,10 @@ export function patientUrls(assayUuid: string, cohort: string) {
     mri: `${base}/mri`,
     findings: `${base}/findings`,
     mask: `${base}/mask.glb`,
-    report: (tz: string) => `${base}/report.pdf?tz=${encodeURIComponent(tz)}`,
+    report: `${base}/report.pdf`,
+    /** The report's pages, for the touch reader: `{ version, pages: [{ width, height, text }] }`. */
+    reportPages: `${base}/report/pages`,
+    reportPage: (index: number) => `${base}/report/pages/${index}.png`,
   }
 }
 

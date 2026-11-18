@@ -134,7 +134,7 @@ with `MINIO_ENDPOINT` pointing at your MinIO (step 3 above) must already be
 running: a uvicorn that Playwright spawns itself does not have that variable.
 
 ```bash
-MY_MRI_E2E=1 MY_MRI_BASE_URL=http://localhost:3158 MY_MRI_BACKEND=local yarn playwright test my-report
+MY_MRI_E2E=1 MY_MRI_BASE_URL=http://localhost:3158 yarn playwright test my-report
 ```
 
 ### Data

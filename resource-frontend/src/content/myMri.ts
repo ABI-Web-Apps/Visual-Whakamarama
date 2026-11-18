@@ -12,7 +12,16 @@ const FALLBACK_COLOUR = 'this colour'
 export interface FindingColour { label: string, color: string | null }
 
 /**
- * "orange is Finding 1, blue is Finding 2", built from the findings' own
+ * The findings record calls each marked area "Finding N"; the patient's
+ * summary PDF calls it "Area N". Shown as the summary names it, so the colour
+ * key, the page and the report agree. Any other label is left as it is.
+ */
+export function areaLabel(label: string): string {
+  return label.replace(/^Finding(?=\s|$)/, 'Area')
+}
+
+/**
+ * "orange is Area 1, blue is Area 2", built from the findings' own
  * colours. Each is named as it is drawn, so a finding with no usable colour
  * is the neutral grey here as well as in the legend and the 3D view.
  */
@@ -57,17 +66,20 @@ export const MY_MRI_COPY = {
   },
   reportHeading: 'Report',
   reportLoading: 'Loading your report…',
-  reportTitle: 'Your MRI report',
-  reportNoFindings: 'No report is available for this scan.',
-  reportOpen: 'Open report',
+  reportTitle: 'Your MRI summary',
+  reportNone: 'No report is available for this scan.',
+  /** Hands the PDF to the device's own viewer: every page, pinch zoom. */
+  reportOpen: 'Open',
   reportDownload: 'Download',
+  reportPageLabel: (n: number, total: number) => `Page ${n} of ${total}`,
+  reportPageFailed: (n: number) => `Page ${n} could not be shown.`,
   panelHeading: 'WHAT YOU\'RE SEEING',
   intro: 'This is your breast MRI, opened on the slice through the area your clinician marked. Choose 3D in the bar under the scan to see three slices together, one in each direction.',
   markedAreas: 'The coloured shapes are the areas your clinician marked.',
-  colourMatch: (sentence: string) => `Each colour matches a finding in your report: ${sentence}.`,
+  colourMatch: (sentence: string) => `Each colour matches an area in your report: ${sentence}.`,
   controlsLead: 'Scroll to zoom in any view. In 3D, drag to turn the view and right-drag to move it.',
   controlsReset: 'Reset view',
   controlsTail: 'puts it back, and Fullscreen fills the screen with it.',
   views: 'Axial, Coronal and Sagittal show one slice at a time: across your body, from the front and from the side. Hold Ctrl while you scroll to move through the slices.',
-  reportNote: 'Your report is beside your scan. A dash (—) means that item has not been recorded. Drag the bar between them to give either more room. If anything is unclear, ask your clinician.',
+  reportNote: 'Your report summary is beside your scan. Drag the bar between them to give either more room. If anything is unclear, ask your care team.',
 } as const

@@ -9,13 +9,10 @@ import { centreDrawnFraction } from './helpers'
  *
  * Needs MinIO with the patient dataset uploaded to `measurements/workdir`, so
  * it runs only when MY_MRI_E2E=1. The base URL defaults to the Docker stack
- * (http://localhost:3159); point MY_MRI_BASE_URL at the dev server and set
- * MY_MRI_BACKEND=local to run against a local uvicorn, which cannot render
- * the report PDF (WeasyPrint needs the Docker image's system libraries).
+ * (http://localhost:3159); point MY_MRI_BASE_URL at the dev server to run
+ * against a local uvicorn.
  */
 test.skip(process.env.MY_MRI_E2E !== '1', 'needs MinIO with the dataset; set MY_MRI_E2E=1')
-
-const localBackend = process.env.MY_MRI_BACKEND === 'local'
 
 test.use({
   baseURL: process.env.MY_MRI_BASE_URL ?? 'http://localhost:3159',
@@ -44,20 +41,22 @@ test.describe('My Report', () => {
     }).toBeGreaterThan(0.05)
 
     const key = page.getByRole('list', { name: 'Colour key' })
-    await expect(key.getByText('Finding 1')).toBeVisible()
-    await expect(key.getByText('Finding 2')).toBeVisible()
+    // The summary PDF calls them Area 1 and Area 2; the key matches it.
+    await expect(key.getByText('Area 1')).toBeVisible()
+    await expect(key.getByText('Area 2')).toBeVisible()
 
     const res = await report
-    if (localBackend) {
-      expect(res.status()).toBe(503)
-      await expect(page.getByText('Report rendering needs the Docker backend.')).toBeVisible()
-    } else {
-      expect(res.status()).toBe(200)
-      // Headless Chromium has no PDF viewer, so the report shows as links
-      // rather than an iframe.
-      await expect(page.getByRole('link', { name: 'Open report' })).toBeVisible()
-      await expect(page.getByRole('link', { name: 'Download' })).toBeVisible()
-    }
+    expect(res.status()).toBe(200)
+    // Headless Chromium has no PDF viewer, so the report is read as page
+    // images, the way a phone reads it, with Open and Download in its bar.
+    const pages = page.locator('[data-report-pages] img')
+    await expect(pages).toHaveCount(1)
+    await expect.poll(() => pages.first().evaluate(img => (img as HTMLImageElement).naturalWidth), {
+      message: 'the first page image never loaded',
+      timeout: 30_000,
+    }).toBe(1600)
+    await expect(page.getByRole('link', { name: 'Open', exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Download' })).toBeVisible()
   })
 
   // The trackball's own wheel listener is on the canvas: only a real browser

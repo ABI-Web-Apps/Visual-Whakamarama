@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MY_MRI_COPY, colourSentence } from '../src/content/myMri'
+import { MY_MRI_COPY, areaLabel, colourSentence } from '../src/content/myMri'
 import { getToolConfig } from '../src/myMri/config'
 import MyReportPage from '../src/pages/MyReportPage.vue'
 import type { PageRoute } from '../src/navigation/routes'
@@ -26,7 +26,7 @@ const MyMriViewerStub = {
 }
 const MyMriReportStub = {
   name: 'MyMriReport',
-  props: ['urlFor', 'cohort', 'withReload'],
+  props: ['urls', 'cohort', 'withReload'],
   template: '<div data-slot="my-mri-report" />',
 }
 const enc = new TextEncoder()
@@ -88,7 +88,8 @@ describe('MyReportPage', () => {
   it('renders the right-panel copy', () => {
     const text = mountPage().get('.content-slot').text()
     expect(text).toContain("WHAT YOU'RE SEEING")
-    expect(text).toContain('A dash (—) means')
+    expect(text).toContain('Your report summary is beside your scan.')
+    expect(text).not.toContain('A dash')
     expect(text).toContain('Axial, Coronal and Sagittal show one slice at a time')
   })
 
@@ -152,7 +153,7 @@ describe('MyReportPage session states', () => {
     const viewer = wrapper.getComponent({ name: 'MyMriViewer' })
     expect(viewer.props('mri')).toMatch(/\/api\/patients\/a-1\/sub-1\/mri$/)
     expect(viewer.props('mask')).toMatch(/\/api\/patients\/a-1\/sub-1\/mask\.glb$/)
-    expect(viewer.props('findings')).toEqual([{ label: 'Finding 1', channel: 1, color: '#ff7043' }])
+    expect(viewer.props('findings')).toEqual([{ label: 'Area 1', channel: 1, color: '#ff7043' }])
     // The client asked for "the MRI slice with the lesion(s)": it opens on one.
     expect(viewer.props('initialView')).toBe('axial')
   })
@@ -220,7 +221,8 @@ describe('MyReportPage session states', () => {
     ] }))
     const wrapper = mountPage()
     await flushPromises()
-    expect(wrapper.get('.content-slot').text()).toContain('orange is Finding 1, blue is Finding 2')
+    // The summary PDF calls them Area 1 and Area 2; the page and the colour key match it.
+    expect(wrapper.get('.content-slot').text()).toContain('Each colour matches an area in your report: orange is Area 1, blue is Area 2.')
   })
 
   it('renders a finding with no colour, naming it grey as the legend and mesh draw it', async () => {
@@ -230,10 +232,10 @@ describe('MyReportPage session states', () => {
     ] }))
     const wrapper = mountPage()
     await flushPromises()
-    expect(wrapper.get('.content-slot').text()).toContain('orange is Finding 1, grey is Finding 2')
+    expect(wrapper.get('.content-slot').text()).toContain('orange is Area 1, grey is Area 2')
     expect(wrapper.getComponent({ name: 'MyMriViewer' }).props('findings')).toEqual([
-      { label: 'Finding 1', channel: 1, color: '#ff7043' },
-      { label: 'Finding 2', channel: 2, color: '#94a3b8' },
+      { label: 'Area 1', channel: 1, color: '#ff7043' },
+      { label: 'Area 2', channel: 2, color: '#94a3b8' },
     ])
   })
 })
@@ -243,6 +245,12 @@ describe('config and copy', () => {
     expect(getToolConfig().assay_info.cohorts[0]).toBe('sub-1')
     expect(getToolConfig().assay_info.datasets[0]!.sample_type).toEqual(
       ['registration_1_nrrd', 'researcher_manual_LPS_nii', 'findings_json'])
+  })
+  it('areaLabel turns the record Finding N into the summary Area N, and leaves anything else', () => {
+    expect(areaLabel('Finding 1')).toBe('Area 1')
+    expect(areaLabel('Finding')).toBe('Area')
+    expect(areaLabel('Findings note')).toBe('Findings note')
+    expect(areaLabel('Mass A')).toBe('Mass A')
   })
   it('colourSentence names colours from data', () => {
     expect(colourSentence([{ label: 'Finding 1', color: '#ff7043' }, { label: 'Finding 2', color: '#42a5f5' }]))
