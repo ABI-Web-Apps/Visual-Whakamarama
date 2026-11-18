@@ -115,26 +115,11 @@ export function shownLogos(): Organisation[] {
 }
 
 /**
- * People the resource thanks by name (no photo, no role), as the client asked,
- * written exactly as the client gave them. Shown as a thank-you, never as a
- * list of "past" anything: they are thanked, not filed away.
+ * The people the resource thanks by name, as the client asked: names only (no
+ * photo, no role), written exactly as the client gave them. About shows them
+ * as a list under a thank-you, so more names are simply added here.
  */
 export const WITH_THANKS: string[] = ['Talia', 'Iosefa']
-
-/**
- * "Thank you to Talia and Iosefa for helping bring this resource to life.",
- * in parts, so the names can be set in bold. One name, two, or a list ("A, B
- * and C") all read as a sentence.
- */
-export function thanksSentence(names: string[]): { text: string, name: boolean }[] {
-  const parts = [{ text: 'Thank you to ', name: false }]
-  names.forEach((n, i) => {
-    if (i > 0) parts.push({ text: i === names.length - 1 ? ' and ' : ', ', name: false })
-    parts.push({ text: n, name: true })
-  })
-  parts.push({ text: ' for helping bring this resource to life.', name: false })
-  return parts
-}
 
 export interface Citation {
   /** What this source provided, in this app's own words. */

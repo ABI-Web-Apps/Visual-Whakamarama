@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useAssetUrl } from '@/composables/useAssetUrl'
 import { FEEDBACK_COPY } from '@/content/feedback'
-import { citations, organisations, shownLogos, thanksSentence, WITH_THANKS } from '@/content/team'
+import { citations, organisations, shownLogos, WITH_THANKS } from '@/content/team'
 import { useFeedbackDialog } from '@/feedback/useFeedbackDialog'
 import ContactCta from '@/components/contact/ContactCta.vue'
 import AppLink from '@/navigation/AppLink.vue'
@@ -92,7 +92,7 @@ const teamOrgs = computed(() => organisations.filter(o => o.members.length > 0))
          One row per organisation: its name on the left, its people on the
          right, so a group of one and a group of twelve both sit well. An
          organisation with nobody listed has no row. A thank-you closes the
-         section, naming the people it thanks. -->
+         section, with the people it thanks listed by name. -->
     <section class="tw:mt-14" aria-labelledby="team-heading">
       <h2 id="team-heading" class="tw:text-caption tw:uppercase tw:tracking-[0.14em] tw:text-text-muted">
         Our Team
@@ -130,15 +130,22 @@ const teamOrgs = computed(() => organisations.filter(o => o.members.length > 0))
         <div
           v-if="WITH_THANKS.length"
           data-team-row="thanks"
-          class="tw:grid tw:gap-3 tw:py-8 tw:md:grid-cols-[13rem_minmax(0,1fr)] tw:md:gap-10"
+          class="tw:grid tw:gap-4 tw:py-8 tw:md:grid-cols-[13rem_minmax(0,1fr)] tw:md:gap-10"
         >
           <h3 class="tw:text-body tw:font-bold tw:leading-snug tw:text-text tw:md:pt-0.5">With thanks</h3>
-          <p class="tw:max-w-2xl tw:text-body tw:leading-relaxed tw:text-text-muted">
-            <template v-for="(part, i) in thanksSentence(WITH_THANKS)" :key="i">
-              <strong v-if="part.name" class="tw:font-semibold tw:text-text">{{ part.text }}</strong>
-              <template v-else>{{ part.text }}</template>
-            </template>
-          </p>
+          <div>
+            <p class="tw:text-body tw:leading-relaxed tw:text-text-muted">Thank you for helping bring this resource to life.</p>
+            <!-- A list, so names are simply added (content/team.ts WITH_THANKS). -->
+            <ul class="tw:mt-4 tw:grid tw:grid-cols-2 tw:gap-x-6 tw:gap-y-2.5 tw:sm:grid-cols-3 tw:lg:grid-cols-4">
+              <li
+                v-for="name in WITH_THANKS"
+                :key="name"
+                class="tw:flex tw:items-center tw:gap-2.5 tw:text-body tw:font-medium tw:text-text"
+              >
+                <span class="tw:size-1.5 tw:shrink-0 tw:rounded-full tw:bg-group-results/60" aria-hidden="true" />{{ name }}
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>

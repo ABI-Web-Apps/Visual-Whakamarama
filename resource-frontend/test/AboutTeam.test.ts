@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { organisations, thanksSentence, WITH_THANKS } from '../src/content/team'
+import { organisations, WITH_THANKS } from '../src/content/team'
 import AboutPage from '../src/pages/AboutPage.vue'
 
 const AppLinkStub = { props: ['to'], template: '<a :href="to"><slot /></a>' }
@@ -55,23 +55,16 @@ describe('the team (client request, 2026-11-18)', () => {
     expect(rows[1]!.findAll('img')).toHaveLength(12)
   })
 
-  it('thanks Talia and Iosefa by name, in a sentence that reads as thanks', () => {
+  it('thanks them warmly, then lists them by name only, ready for more names', () => {
     expect(WITH_THANKS).toEqual(['Talia', 'Iosefa'])
     const row = mountAbout().get('[data-team-row="thanks"]')
+    expect(row.get('h3').text()).toBe('With thanks')
+    expect(row.get('p').text()).toBe('Thank you for helping bring this resource to life.')
+    expect(row.findAll('ul > li').map(li => li.text())).toEqual(['Talia', 'Iosefa'])
     expect(row.findAll('img')).toHaveLength(0)
-    expect(row.get('p').text()).toBe('Thank you to Talia and Iosefa for helping bring this resource to life.')
-    expect(row.findAll('strong').map(n => n.text())).toEqual(['Talia', 'Iosefa'])
   })
 
   it('never calls anyone a "past" contributor', () => {
     expect(mountAbout().text().toLowerCase()).not.toContain('past contributor')
-  })
-
-  it('writes the names as a sentence would, however many there are', () => {
-    const parts = (names: string[]) => thanksSentence(names).map(p => p.text).join('')
-    expect(parts(['Talia'])).toBe('Thank you to Talia for helping bring this resource to life.')
-    expect(parts(['Talia', 'Iosefa'])).toBe('Thank you to Talia and Iosefa for helping bring this resource to life.')
-    expect(parts(['A', 'B', 'C'])).toBe('Thank you to A, B and C for helping bring this resource to life.')
-    expect(thanksSentence(['Talia', 'Iosefa']).filter(p => p.name).map(p => p.text)).toEqual(['Talia', 'Iosefa'])
   })
 })
