@@ -158,6 +158,18 @@ describe('FeedbackWidget', () => {
     expect(launcher(w).attributes('data-lifted')).toBe('true')
   })
 
+  it('is not offered on the team\'s own inbox', async () => {
+    const { useAppRouter } = await import('../src/navigation/router')
+    let router!: ReturnType<typeof useAppRouter>
+    const Nav = defineComponent({ setup() { router = useAppRouter(); return () => null } })
+    const w = mount(defineComponent({
+      setup() { provideFeedbackDialog(); return () => h('div', [h(FeedbackWidget), h(Nav)]) },
+    }), { global: { stubs: { AppLink: AppLinkStub } }, attachTo: document.body })
+    await router.navigateTo('/feedback-review')
+    await flushPromises()
+    expect(w.find('[data-feedback-launcher]').exists()).toBe(false)
+  })
+
   it('moves above the stage controls when the content column is collapsed on a desktop', async () => {
     const w = mountWidget()
     const viewer = useViewerStore()

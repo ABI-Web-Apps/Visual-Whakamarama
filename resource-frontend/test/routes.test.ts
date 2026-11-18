@@ -28,6 +28,12 @@ describe('/contact', () => {
   })
 })
 
+describe('/feedback-review', () => {
+  it('serves the hidden review page, linked from nowhere', () => {
+    expect(resolvePath('/feedback-review')).toEqual({ route: { path: '/feedback-review', name: 'feedback-review', params: {} } })
+  })
+})
+
 describe('/my-images', () => {
   it('serves /my-images, case-insensitively', () => {
     expect(resolvePath('/my-images')).toEqual({ route: { path: '/my-images', name: 'my-images', params: {} } })

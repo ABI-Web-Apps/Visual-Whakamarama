@@ -199,7 +199,7 @@ onBeforeUnmount(() => {
   <!-- Stable root that makes no box, like TourLauncher's. -->
   <div class="tw:contents">
     <button
-      v-if="!tour.active"
+      v-if="!tour.active && router.route.value.name !== 'feedback-review'"
       ref="launcher"
       type="button"
       data-feedback-launcher

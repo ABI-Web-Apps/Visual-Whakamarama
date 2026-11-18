@@ -15,6 +15,8 @@ import { LEGACY_ROUTES } from '@/content/legacyRoutes'
  *   LEGACY_ROUTES          -> redirect (nuxt.config.ts's routeRules)
  *   /about                 -> about (pages/about.vue)
  *   /contact               -> Contact us
+ *   /feedback-review       -> the team's feedback inbox (linked from nowhere;
+ *                             password-gated by the backend)
  *   /my-report             -> the patient's own scan and report
  *   /my-mri                -> redirect to /my-report (the page's old name)
  *   /my-images             -> the patient's own anatomy, mammogram and MRI
@@ -25,7 +27,7 @@ import { LEGACY_ROUTES } from '@/content/legacyRoutes'
  *   anything else          -> 404 (the page's `validate` guard)
  */
 
-export type PageName = 'case' | 'about' | 'contact' | 'my-report' | 'my-images' | 'my-images-mri' | 'not-found'
+export type PageName = 'case' | 'about' | 'contact' | 'feedback-review' | 'my-report' | 'my-images' | 'my-images-mri' | 'not-found'
 
 export interface PageRoute {
   /** Normalised: no query, no hash, no trailing slash (except `/`). */
@@ -64,6 +66,9 @@ export function resolvePath(raw: string): Resolution {
   }
   if (segments.length === 1 && segments[0]!.toLowerCase() === 'contact') {
     return { route: { path, name: 'contact', params: {} } }
+  }
+  if (segments.length === 1 && segments[0]!.toLowerCase() === 'feedback-review') {
+    return { route: { path, name: 'feedback-review', params: {} } }
   }
 
   if (segments.length === 1) {

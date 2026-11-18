@@ -4,11 +4,13 @@ import AppToast from '@/components/common/AppToast.vue'
 import FeedbackWidget from '@/components/feedback/FeedbackWidget.vue'
 import { provideToast } from '@/composables/useToast'
 import { provideFeedbackDialog } from '@/feedback/useFeedbackDialog'
+import { useAdminShortcut } from '@/utils/adminShortcut'
 import { createAppRouter, provideAppRouter } from '@/navigation/router'
 import { pageKeyFor } from '@/utils/pageKey'
 import AboutPage from '@/pages/AboutPage.vue'
 import CasePage from '@/pages/CasePage.vue'
 import ContactPage from '@/pages/ContactPage.vue'
+import FeedbackReviewPage from '@/pages/FeedbackReviewPage.vue'
 import MyImagesMriPage from '@/pages/MyImagesMriPage.vue'
 import MyImagesPage from '@/pages/MyImagesPage.vue'
 import MyReportPage from '@/pages/MyReportPage.vue'
@@ -30,6 +32,8 @@ provideAppRouter(router)
 provideToast()
 // The feedback dialog: drawn by FeedbackWidget below, opened from About and Contact us too.
 provideFeedbackDialog()
+// The team's inbox: Ctrl + Shift + F from anywhere (it still asks for the password).
+useAdminShortcut(() => { void router.navigateTo('/feedback-review') })
 
 onMounted(() => router.start())
 onBeforeUnmount(() => router.stop())
@@ -50,6 +54,7 @@ const page = computed(() => {
   switch (route.value.name) {
     case 'case': return CasePage
     case 'contact': return ContactPage
+    case 'feedback-review': return FeedbackReviewPage
     case 'my-report': return MyReportPage
     case 'my-images': return MyImagesPage
     case 'my-images-mri': return MyImagesMriPage

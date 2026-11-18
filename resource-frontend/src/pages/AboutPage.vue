@@ -6,6 +6,8 @@ import { citations, organisations, shownLogos } from '@/content/team'
 import { useFeedbackDialog } from '@/feedback/useFeedbackDialog'
 import ContactCta from '@/components/contact/ContactCta.vue'
 import AppLink from '@/navigation/AppLink.vue'
+import { useAppRouter } from '@/navigation/router'
+import { createTapCounter } from '@/utils/adminShortcut'
 import { APP_TITLE, useDocumentTitle } from '@/navigation/head'
 import type { PageRoute } from '@/navigation/routes'
 
@@ -28,6 +30,15 @@ useDocumentTitle(() => `About — ${APP_TITLE}`)
 
 const { publicUrl } = useAssetUrl()
 const feedback = useFeedbackDialog()
+
+// A phone has no Ctrl + Shift + F: five quick taps on the version line open
+// the team's inbox instead (which still asks for the password).
+const router = useAppRouter()
+const versionTaps = createTapCounter({
+  taps: 5,
+  windowMs: 2000,
+  onTrigger: () => { void router.navigateTo('/feedback-review') },
+})
 const appVersion = __APP_VERSION__
 
 /**
@@ -209,7 +220,13 @@ const fullWidthOrgs = computed(() =>
           @click="feedback.open()"
         >{{ FEEDBACK_COPY.open }}</button>
       </p>
-      <p class="tw:mt-4 tw:text-caption tw:tabular-nums tw:text-text-muted" data-app-version>
+      <!-- touch-action: manipulation turns off double-tap zoom on this line
+           only (pinch zoom stays); select-none keeps fast taps from selecting it. -->
+      <p
+        class="vw-version tw:mt-4 tw:inline-block tw:touch-manipulation tw:select-none tw:text-caption tw:tabular-nums tw:text-text-muted"
+        data-app-version
+        @click="versionTaps.tap()"
+      >
         {{ APP_TITLE }} v{{ appVersion }}
       </p>
     </section>

@@ -31,6 +31,18 @@ describe('AboutPage', () => {
     expect(open).toHaveBeenCalledTimes(1)
   })
 
+  it('opens the review page after five quick taps on the version, without zooming a phone', async () => {
+    const navigateTo = vi.fn()
+    vi.stubGlobal('navigateTo', navigateTo)
+    const w = mountAbout()
+    const version = w.get('[data-app-version]')
+    expect(version.classes()).toContain('touch-manipulation')
+    expect(version.classes()).toContain('select-none')
+    for (let i = 0; i < 5; i++) await version.trigger('click')
+    expect(navigateTo).toHaveBeenCalledWith('/feedback-review', undefined)
+    vi.unstubAllGlobals()
+  })
+
   it('points to Contact us near the top', () => {
     expect(mountAbout().find('a[href="/contact"]').exists()).toBe(true)
   })
