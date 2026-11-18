@@ -26,6 +26,12 @@ function mountWidget() {
 }
 
 const launcher = (w: ReturnType<typeof mountWidget>) => w.get('[data-feedback-launcher]')
+const tabNamed = (w: ReturnType<typeof mountWidget>, name: string) => w.findAll('[role="tab"]').find(t => t.text() === name)!
+/** The floating button opens on Stay in touch; these tests are about the feedback note. */
+async function openFeedback(w: ReturnType<typeof mountWidget>) {
+  await launcher(w).trigger('click')
+  await tabNamed(w, 'Feedback').trigger('click')
+}
 
 describe('FeedbackWidget', () => {
   beforeEach(() => {
@@ -47,7 +53,7 @@ describe('FeedbackWidget', () => {
     const d = w.get('[role="dialog"]')
     expect(d.attributes('aria-modal')).toBe('true')
     expect(d.attributes('aria-labelledby')).toBeTruthy()
-    expect(document.getElementById(d.attributes('aria-labelledby')!)!.textContent).toContain('Quick feedback')
+    expect(document.getElementById(d.attributes('aria-labelledby')!)!.textContent).toContain('Stay in touch')
     expect(launcher(w).attributes('aria-expanded')).toBe('true')
   })
 
@@ -83,17 +89,17 @@ describe('FeedbackWidget', () => {
 
   it('keeps an unsent draft when it is closed and opened again', async () => {
     const w = mountWidget()
-    await launcher(w).trigger('click')
+    await openFeedback(w)
     await w.get('textarea').setValue('half a thought')
     await w.get('[role="dialog"]').trigger('keydown', { key: 'Escape' })
-    await launcher(w).trigger('click')
+    await openFeedback(w)
     expect((w.get('textarea').element as HTMLTextAreaElement).value).toBe('half a thought')
   })
 
   it('closes itself a few seconds after sending, and starts the next one blank', async () => {
     vi.useFakeTimers()
     const w = mountWidget()
-    await launcher(w).trigger('click')
+    await openFeedback(w)
     await w.get('textarea').setValue('All good')
     await w.get('form').trigger('submit')
     await flushPromises()
@@ -101,14 +107,14 @@ describe('FeedbackWidget', () => {
     vi.advanceTimersByTime(5100)
     await flushPromises()
     expect(w.find('[role="dialog"]').exists()).toBe(false)
-    await launcher(w).trigger('click')
+    await openFeedback(w)
     expect((w.get('textarea').element as HTMLTextAreaElement).value).toBe('')
   })
 
   it('stays open after sending while the reader is using it', async () => {
     vi.useFakeTimers()
     const w = mountWidget()
-    await launcher(w).trigger('click')
+    await openFeedback(w)
     await w.get('textarea').setValue('All good')
     await w.get('form').trigger('submit')
     await flushPromises()
@@ -121,9 +127,9 @@ describe('FeedbackWidget', () => {
   it('signing up keeps the dialog open, resets the form, and leaves an unsent note where it was', async () => {
     vi.useFakeTimers()
     const w = mountWidget()
-    await launcher(w).trigger('click')
+    await openFeedback(w)
     await w.get('textarea').setValue('half a thought')
-    await w.findAll('[role="tab"]')[1]!.trigger('click')
+    await tabNamed(w, 'Stay in touch').trigger('click')
     await w.get('input[autocomplete="email"]').setValue('aroha@example.nz')
     await w.get('form').trigger('submit')
     await flushPromises()
@@ -131,38 +137,50 @@ describe('FeedbackWidget', () => {
     await flushPromises()
     expect(w.find('[role="dialog"]').exists()).toBe(true)
     expect((w.get('input[autocomplete="email"]').element as HTMLInputElement).value).toBe('')
-    await w.findAll('[role="tab"]')[0]!.trigger('click')
+    await tabNamed(w, 'Feedback').trigger('click')
     expect((w.get('textarea').element as HTMLTextAreaElement).value).toBe('half a thought')
   })
 
   it('after sending, the Feedback tab starts blank, so a note cannot be sent twice', async () => {
     const w = mountWidget()
-    await launcher(w).trigger('click')
+    await openFeedback(w)
     await w.get('textarea').setValue('Sent once')
     await w.get('form').trigger('submit')
     await flushPromises()
     await w.get('[data-feedback-sent] button').trigger('click')
-    await w.findAll('[role="tab"]')[0]!.trigger('click')
+    await tabNamed(w, 'Feedback').trigger('click')
     expect((w.get('textarea').element as HTMLTextAreaElement).value).toBe('')
   })
 
-  it('switches between Feedback and Stay in touch', async () => {
+  it('puts Stay in touch first and opens on it, with Feedback beside it', async () => {
     const w = mountWidget()
     await launcher(w).trigger('click')
+    await flushPromises()
     const tabs = w.findAll('[role="tab"]')
-    expect(tabs.map(t => t.text())).toEqual(['Feedback', 'Stay in touch'])
+    expect(tabs.map(t => t.text())).toEqual(['Stay in touch', 'Feedback'])
     expect(tabs[0]!.attributes('aria-selected')).toBe('true')
-    await tabs[1]!.trigger('click')
-    expect(w.get('[role="tab"][aria-selected="true"]').text()).toBe('Stay in touch')
     expect(w.get('[role="tabpanel"]').text()).toContain('Your email or mobile number')
+    // Focus goes to the chosen tab, not a field: no phone keyboard pops up.
+    expect(document.activeElement).toBe(tabs[0]!.element)
+
+    await tabs[1]!.trigger('click')
+    expect(w.get('[role="tab"][aria-selected="true"]').text()).toBe('Feedback')
     // The dialog is named by what it now shows.
     const d = w.get('[role="dialog"]')
-    expect(document.getElementById(d.attributes('aria-labelledby')!)!.textContent).toContain('Stay in touch')
+    expect(document.getElementById(d.attributes('aria-labelledby')!)!.textContent).toContain('Quick feedback')
+  })
+
+  it('opens on Feedback, a face focused, when a Send feedback button asks for it', async () => {
+    const w = mountWidget()
+    dialog.open('feedback')
+    await flushPromises()
+    expect(w.get('[role="tab"][aria-selected="true"]').text()).toBe('Feedback')
+    expect(document.activeElement?.getAttribute('role')).toBe('radio')
   })
 
   it('offers Stay in touch from the thank-you', async () => {
     const w = mountWidget()
-    await launcher(w).trigger('click')
+    await openFeedback(w)
     await w.get('textarea').setValue('All good')
     await w.get('form').trigger('submit')
     await flushPromises()

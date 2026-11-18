@@ -43,9 +43,10 @@ const draft = reactive<FeedbackDraft>({ rating: null, comment: '' })
 /** Stay in touch's fields, kept here too so switching tabs loses nothing. */
 const stay = reactive({ firstName: '', contact: '' })
 const titleId = 'vw-feedback-title'
+/** Stay in touch first, as the client asked; the floating button opens on it. */
 const TABS: { mode: FeedbackDialogMode, label: string }[] = [
-  { mode: 'feedback', label: FEEDBACK_COPY.tabFeedback },
   { mode: 'stay', label: FEEDBACK_COPY.tabStay },
+  { mode: 'feedback', label: FEEDBACK_COPY.tabFeedback },
 ]
 const tabId = (m: FeedbackDialogMode) => `vw-feedback-tab-${m}`
 const launcher = ref<HTMLButtonElement | null>(null)
@@ -59,10 +60,11 @@ const overStage = computed(() => !viewer.contentOpen && STAGE_PAGES.has(router.r
 
 let closeTimer: ReturnType<typeof setTimeout> | undefined
 
+/** The floating button opens on the first tab. A page's own Send feedback button opens on Feedback. */
 function open() {
-  if (dialog) dialog.open('feedback')
+  if (dialog) dialog.open(TABS[0]!.mode)
   else {
-    mode.value = 'feedback'
+    mode.value = TABS[0]!.mode
     isOpen.value = true
   }
 }
@@ -117,8 +119,11 @@ watch(isOpen, async (now) => {
   if (now) {
     opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
     await nextTick()
-    // The chosen face, or the first: the question, not the keyboard-raising textarea.
-    panel.value?.querySelector<HTMLElement>('[role="radio"][tabindex="0"]')?.focus()
+    // Feedback: the chosen face, or the first -- the question, not the
+    // keyboard-raising textarea. Stay in touch: its tab, for the same reason.
+    const start = panel.value?.querySelector<HTMLElement>('[role="radio"][tabindex="0"]')
+      ?? panel.value?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+    start?.focus()
     return
   }
   dragY.value = 0
@@ -286,7 +291,7 @@ onBeforeUnmount(() => {
             <path d="M6 6l12 12M18 6 6 18" />
           </svg>
         </button>
-        <!-- Feedback | Stay in touch. Tabs: one tab stop, the arrow keys switch. -->
+        <!-- Stay in touch | Feedback. Tabs: one tab stop, the arrow keys switch. -->
         <div class="tw:shrink-0 tw:px-5 tw:pr-16 tw:md:px-6 tw:md:pr-16 tw:md:pt-4">
           <div
             role="tablist"
