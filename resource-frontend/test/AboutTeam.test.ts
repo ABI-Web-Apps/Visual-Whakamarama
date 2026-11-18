@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { organisations, PAST_CONTRIBUTORS } from '../src/content/team'
+import { organisations, WITH_THANKS } from '../src/content/team'
 import AboutPage from '../src/pages/AboutPage.vue'
 
 const AppLinkStub = { props: ['to'], template: '<a :href="to"><slot /></a>' }
@@ -20,7 +20,7 @@ describe('the team (client request, 2026-11-18)', () => {
   it('no longer lists Suzanne Bull, Natalie James or Kika Faagatu, anywhere', () => {
     const everyone = organisations.flatMap(o => o.members.map(m => m.name))
     for (const name of REMOVED) expect(everyone).not.toContain(name)
-    for (const name of REMOVED) expect(PAST_CONTRIBUTORS).not.toContain(name)
+    for (const name of REMOVED) expect(WITH_THANKS).not.toContain(name)
     const text = mountAbout().text()
     for (const name of REMOVED) expect(text).not.toContain(name)
   })
@@ -49,16 +49,22 @@ describe('the team (client request, 2026-11-18)', () => {
     expect(rows.map(r => r.get('h3').text())).toEqual([
       'Iwi United Engaged',
       'Auckland Bioengineering Institute — Breast Biomechanics Research Group',
-      'Past contributors',
+      'With thanks',
     ])
     expect(rows[0]!.findAll('img')).toHaveLength(1)
     expect(rows[1]!.findAll('img')).toHaveLength(12)
   })
 
-  it('thanks past contributors by name only, as the client asked', () => {
-    expect(PAST_CONTRIBUTORS).toEqual(['Talia', 'Iosefa'])
-    const row = mountAbout().get('[data-team-row="past"]')
+  it('thanks them warmly, then lists them by name only, ready for more names', () => {
+    expect(WITH_THANKS).toEqual(['Talia', 'Iosefa'])
+    const row = mountAbout().get('[data-team-row="thanks"]')
+    expect(row.get('h3').text()).toBe('With thanks')
+    expect(row.get('p').text()).toBe('Thank you for helping bring this resource to life.')
+    expect(row.findAll('ul > li').map(li => li.text())).toEqual(['Talia', 'Iosefa'])
     expect(row.findAll('img')).toHaveLength(0)
-    expect(row.findAll('li').map(li => li.text())).toEqual(['Talia', 'Iosefa'])
+  })
+
+  it('never calls anyone a "past" contributor', () => {
+    expect(mountAbout().text().toLowerCase()).not.toContain('past contributor')
   })
 })

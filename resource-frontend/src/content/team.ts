@@ -115,10 +115,11 @@ export function shownLogos(): Organisation[] {
 }
 
 /**
- * People who worked on this resource before, thanked by name only (no photo,
- * no role), as the client asked. Written exactly as the client gave them.
+ * The people the resource thanks by name, as the client asked: names only (no
+ * photo, no role), written exactly as the client gave them. About shows them
+ * as a list under a thank-you, so more names are simply added here.
  */
-export const PAST_CONTRIBUTORS: string[] = ['Talia', 'Iosefa']
+export const WITH_THANKS: string[] = ['Talia', 'Iosefa']
 
 export interface Citation {
   /** What this source provided, in this app's own words. */
