@@ -6,7 +6,7 @@ Fixtures `feedback_dir`, `sleeps` and `api` are in conftest.py.
 import json
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -17,7 +17,8 @@ pytestmark = pytest.mark.usefixtures("feedback_dir")
 URL = "/api/subscribers"
 PASSWORD = {"X-Feedback-Password": "qwerty"}
 ENTRY_KEYS = {"id", "created_at", "first_name", "contact", "contact_type"}
-CREATED_AT = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$")
+#: To the day only: a sign-up must not be matchable to a feedback note by its time.
+CREATED_AT = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 INVALID = {"detail": {"code": "invalid_contact", "summary": "Enter an email address or a mobile number."}}
 #: The whole answer to every accepted sign-up, new or repeat.
 OK = {"ok": True}
@@ -76,15 +77,15 @@ def test_invalid_contact_is_422(api, feedback_dir, raw):
     assert not (feedback_dir / "subscribers.jsonl").exists()
 
 
-def test_a_new_contact_is_201_ok_and_stored_with_uuid_and_utc_time(api, feedback_dir):
+def test_a_new_contact_is_201_ok_and_stored_with_uuid_and_its_utc_day(api, feedback_dir):
     response = api.post(URL, json={"first_name": "Mere", "contact": "kia@ora.nz"})
     assert response.status_code == 201
     assert response.json() == OK
     [entry] = _entries(feedback_dir)
     assert uuid.UUID(entry["id"]).version == 4
     assert CREATED_AT.match(entry["created_at"])
-    created = datetime.strptime(entry["created_at"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
-    assert abs((datetime.now(timezone.utc) - created).total_seconds()) < 5
+    today = datetime.now(timezone.utc).date()
+    assert entry["created_at"] in {today.isoformat(), (today - timedelta(days=1)).isoformat()}
     assert entry["first_name"] == "Mere"
 
 

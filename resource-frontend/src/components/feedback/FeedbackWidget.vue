@@ -49,6 +49,8 @@ const TABS: { mode: FeedbackDialogMode, label: string }[] = [
 ]
 const tabId = (m: FeedbackDialogMode) => `vw-feedback-tab-${m}`
 const launcher = ref<HTMLButtonElement | null>(null)
+/** What had focus when the dialog opened (the floating button, or About's own); it gets it back. */
+let opener: HTMLElement | null = null
 const panel = ref<HTMLElement | null>(null)
 
 /** Pages built on DefaultLayout: the ones with a stage and its control bars. */
@@ -98,11 +100,13 @@ function onFeedbackSent() {
   closeSoon()
 }
 
-/** A sign-up went: its fields are spent. An unsent feedback note is left alone. */
+/**
+ * A sign-up went. The dialog stays open: the form shows its confirmation and
+ * comes back blank by itself (KeepInTouchForm), and an unsent feedback note
+ * is left alone.
+ */
 function onStayDone() {
-  stay.firstName = ''
-  stay.contact = ''
-  closeSoon()
+  holdOpen()
 }
 
 function holdOpen() {
@@ -111,6 +115,7 @@ function holdOpen() {
 
 watch(isOpen, async (now) => {
   if (now) {
+    opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
     await nextTick()
     // The chosen face, or the first: the question, not the keyboard-raising textarea.
     panel.value?.querySelector<HTMLElement>('[role="radio"][tabindex="0"]')?.focus()
@@ -118,7 +123,9 @@ watch(isOpen, async (now) => {
   }
   dragY.value = 0
   await nextTick()
-  launcher.value?.focus()
+  const back = opener && opener.isConnected && opener !== document.body ? opener : launcher.value
+  opener = null
+  back?.focus()
 })
 
 // A link inside the dialog (Contact the team) moves the page; the dialog goes with it.
@@ -364,6 +371,8 @@ onBeforeUnmount(() => {
   .vw-fb-launcher[data-lifted="true"] { bottom: 9rem; }
   /* The text column is collapsed: the stage's control bars reach the corner. */
   .vw-fb-launcher[data-over-stage="true"] { bottom: 5.5rem; }
+  /* Both: the invitation card is the taller thing to clear. */
+  .vw-fb-launcher[data-lifted="true"][data-over-stage="true"] { bottom: 9rem; }
 }
 @keyframes vw-fb-arrive {
   from { opacity: 0; transform: translateY(12px) scale(.96); }

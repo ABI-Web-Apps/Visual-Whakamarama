@@ -157,7 +157,9 @@ mobile number). Contact us has the Stay in touch form too.
 | `GET /api/feedback`, `GET /api/subscribers` | header `X-Feedback-Password` |
 | `DELETE /api/feedback/<id>`, `DELETE /api/subscribers/<id>` | header `X-Feedback-Password` |
 
-Nothing that identifies a browser is stored: no IP address, no user agent. The
+Nothing that identifies a browser is stored: no IP address, no user agent. A
+sign-up keeps only the day it was made (UTC), so it cannot be matched to a
+feedback note by its time. The
 client address is used only, in memory, to rate-limit posts (20 notes and 10
 sign-ups per 10 minutes) and wrong passwords (10 per 10 minutes, then that
 address is refused even the right one until the window passes). The address is

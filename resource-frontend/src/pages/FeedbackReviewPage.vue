@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onDeactivated, ref } from 'vue'
+import { copyText } from '@/utils/clipboard'
+import { FACES } from '@/feedback/faces'
 import { useToast } from '@/composables/useToast'
 import { REVIEW_COPY } from '@/content/feedback'
 import { deleteFeedback, deleteSubscriber, fetchFeedback, fetchSubscribers } from '@/feedback/api'
@@ -38,22 +40,33 @@ const tab = ref<'feedback' | 'stay'>('feedback')
 
 // ── Getting in, and out ───────────────────────────────────────────────────
 
-async function load(pw: string): Promise<void> {
+/**
+ * Bumped by every Lock (and by leaving the page): an answer to a request made
+ * before it is from a session that no longer exists, and is dropped.
+ */
+let generation = 0
+const loadError = ref('')
+
+/** True when the lists were filled; false when the answer came too late. */
+async function load(pw: string): Promise<boolean> {
+  const mine = generation
   const [f, s] = await Promise.all([fetchFeedback(pw), fetchSubscribers(pw)])
+  if (mine !== generation) return false
   feedback.value = f.items
   subscribers.value = s.items
+  return true
 }
 
 async function unlock() {
   if (!password.value || busy.value) return
   busy.value = true
   gateError.value = ''
+  const mine = generation
   try {
-    await load(password.value)
-    unlocked.value = true
+    if (await load(password.value)) unlocked.value = true
   }
   catch (e) {
-    refused(e as FeedbackError)
+    if (mine === generation) refused(e as FeedbackError)
   }
   finally {
     busy.value = false
@@ -61,6 +74,8 @@ async function unlock() {
 }
 
 function lock(message = '') {
+  generation++
+  loadError.value = ''
   unlocked.value = false
   password.value = ''
   feedback.value = []
@@ -81,11 +96,16 @@ function refused(e: FeedbackError) {
 
 async function refresh() {
   busy.value = true
+  const mine = generation
   try {
-    await load(password.value)
+    if (await load(password.value)) loadError.value = ''
   }
   catch (e) {
-    refused(e as FeedbackError)
+    const err = e as FeedbackError
+    if (mine !== generation) return
+    // Refused (401), or locked out after wrong guesses (429): back to the gate.
+    if (err.status === 401 || err.status === 429) refused(err)
+    else loadError.value = err.summary
   }
   finally {
     busy.value = false
@@ -125,8 +145,11 @@ function inkOf(rating: Rating | null) {
 // ── Times ────────────────────────────────────────────────────────────────
 
 const when = new Intl.DateTimeFormat('en-NZ', { dateStyle: 'medium', timeStyle: 'short' })
+/** A sign-up is stored to the day (so it cannot be matched to a note by time): show the day. */
+const day = new Intl.DateTimeFormat('en-NZ', { dateStyle: 'medium', timeZone: 'UTC' })
 const relative = new Intl.RelativeTimeFormat('en-NZ', { numeric: 'auto' })
 function localTime(iso: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return day.format(new Date(`${iso}T00:00:00Z`))
   const d = new Date(iso)
   return Number.isNaN(d.getTime()) ? iso : when.format(d)
 }
@@ -145,7 +168,27 @@ function ago(iso: string): string {
 const confirming = ref<string | null>(null)
 const deleting = ref<string | null>(null)
 
+function focusIn(selector: string) {
+  void nextTick(() => document.querySelector<HTMLElement>(selector)?.focus())
+}
+
+/** Asked to delete: the confirm button takes focus. */
+function askDelete(id: string) {
+  confirming.value = id
+  focusIn(`[data-id="${CSS.escape(id)}"] [data-confirm-delete]`)
+}
+
+/** Not after all: focus goes back to that entry's Delete. */
+function cancelDelete(id: string) {
+  confirming.value = null
+  focusIn(`[data-id="${CSS.escape(id)}"] [data-delete]`)
+}
+
 async function remove(kind: 'feedback' | 'stay', id: string) {
+  // Where focus goes once this entry is gone: the next entry's Delete, else the tab.
+  const rows = Array.from(document.querySelectorAll<HTMLElement>(kind === 'feedback' ? '[data-feedback-entry]' : '[data-subscriber]'))
+  const at = rows.findIndex(r => r.dataset.id === id)
+  const nextId = rows[at + 1]?.dataset.id ?? rows[at - 1]?.dataset.id
   deleting.value = id
   try {
     await (kind === 'feedback' ? deleteFeedback : deleteSubscriber)(password.value, id)
@@ -166,6 +209,29 @@ async function remove(kind: 'feedback' | 'stay', id: string) {
   }
   if (kind === 'feedback') feedback.value = feedback.value.filter(e => e.id !== id)
   else subscribers.value = subscribers.value.filter(s => s.id !== id)
+  focusIn(nextId ? `[data-id="${CSS.escape(nextId)}"] [data-delete]` : `#${tabId(tab.value)}`)
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────
+
+const TABS = ['feedback', 'stay'] as const
+const tabId = (t: 'feedback' | 'stay') => `vw-review-tab-${t}`
+
+function showTab(t: 'feedback' | 'stay', focus = false) {
+  tab.value = t
+  confirming.value = null
+  if (focus) focusIn(`#${tabId(t)}`)
+}
+
+function onTabKeydown(event: KeyboardEvent) {
+  if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return
+  event.preventDefault()
+  showTab(tab.value === 'feedback' ? 'stay' : 'feedback', true)
+}
+
+async function copyId(id: string) {
+  const copied = await copyText(id)
+  toast.show(copied ? REVIEW_COPY.idCopied : id)
 }
 
 // ── Export ───────────────────────────────────────────────────────────────
@@ -268,19 +334,29 @@ const toolButton = 'tw:inline-flex tw:min-h-10 tw:items-center tw:gap-1.5 tw:rou
 
       <div role="tablist" :aria-label="REVIEW_COPY.listsLabel" class="tw:mt-6 tw:inline-flex tw:rounded-full tw:bg-surface-sunken tw:p-1">
         <button
-          v-for="t in [{ key: 'feedback', label: REVIEW_COPY.tabFeedback(feedback.length) }, { key: 'stay', label: REVIEW_COPY.tabStay(subscribers.length) }]"
-          :key="t.key"
+          v-for="t in TABS"
+          :id="tabId(t)"
+          :key="t"
           type="button"
           role="tab"
-          :aria-selected="tab === t.key ? 'true' : 'false'"
+          :aria-selected="tab === t ? 'true' : 'false'"
+          aria-controls="vw-review-panel"
+          :tabindex="tab === t ? 0 : -1"
           class="tw:min-h-10 tw:rounded-full tw:px-4 tw:text-body-sm tw:font-bold tw:tabular-nums tw:transition-[background-color,color,box-shadow]"
-          :class="tab === t.key ? 'tw:bg-surface tw:text-text tw:shadow-sm' : 'tw:text-text-muted tw:hover:text-text'"
-          @click="tab = t.key as 'feedback' | 'stay'; confirming = null"
-        >{{ t.label }}</button>
+          :class="tab === t ? 'tw:bg-surface tw:text-text tw:shadow-sm' : 'tw:text-text-muted tw:hover:text-text'"
+          @click="showTab(t)"
+          @keydown="onTabKeydown"
+        >{{ t === 'feedback' ? REVIEW_COPY.tabFeedback(feedback.length) : REVIEW_COPY.tabStay(subscribers.length) }}</button>
       </div>
 
+      <p
+        v-if="loadError"
+        role="alert"
+        class="tw:mt-4 tw:rounded-ctl tw:bg-brand-subtle tw:px-4 tw:py-2.5 tw:text-body-sm tw:text-brand-hover"
+      >{{ loadError }}</p>
+
       <!-- Feedback -->
-      <section v-if="tab === 'feedback'" role="tabpanel" class="tw:mt-6">
+      <section v-if="tab === 'feedback'" id="vw-review-panel" role="tabpanel" :aria-labelledby="tabId('feedback')" class="tw:mt-6">
         <div class="tw:grid tw:gap-3 tw:sm:grid-cols-[auto_auto_minmax(0,1fr)]">
           <div data-stat="total" class="tw:rounded-card tw:bg-surface tw:px-5 tw:py-4 tw:ring-1 tw:ring-border">
             <p class="tw:text-caption tw:text-text-muted">{{ REVIEW_COPY.total }}</p>
@@ -350,9 +426,35 @@ const toolButton = 'tw:inline-flex tw:min-h-10 tw:items-center tw:gap-1.5 tw:rou
           >
             <div class="tw:flex tw:items-start tw:gap-3">
               <span
-                class="tw:shrink-0 tw:rounded-full tw:px-2.5 tw:py-1 tw:text-caption tw:font-bold"
+                data-face
+                class="tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1.5 tw:rounded-full tw:py-1 tw:pl-1.5 tw:pr-2.5 tw:text-caption tw:font-bold"
                 :style="{ background: inkOf(e.rating).fill, color: inkOf(e.rating).ink }"
-              >{{ e.rating === null ? REVIEW_COPY.noRating : ratingLabel(e.rating) }}</span>
+              >
+                <svg
+                  v-if="e.rating !== null"
+                  viewBox="0 0 32 32"
+                  class="tw:size-5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="16" cy="16" r="13" fill="#fff" />
+                  <template v-if="FACES[e.rating].eyes === 'dots'">
+                    <circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none" />
+                    <circle cx="20" cy="14" r="1.5" fill="currentColor" stroke="none" />
+                  </template>
+                  <template v-else>
+                    <path d="M10.3 14.2c.9-1.3 2.5-1.3 3.4 0" />
+                    <path d="M18.3 14.2c.9-1.3 2.5-1.3 3.4 0" />
+                  </template>
+                  <path v-for="d in FACES[e.rating].extra ?? []" :key="d" :d="d" />
+                  <path :d="FACES[e.rating].mouth" :fill="FACES[e.rating].fillMouth ? 'currentColor' : 'none'" />
+                </svg>
+                {{ e.rating === null ? REVIEW_COPY.noRating : ratingLabel(e.rating) }}
+              </span>
               <p
                 class="tw:min-w-0 tw:flex-1 tw:whitespace-pre-wrap tw:break-words tw:text-body"
                 :class="e.comment ? 'tw:text-text' : 'tw:italic tw:text-text-subtle'"
@@ -360,10 +462,11 @@ const toolButton = 'tw:inline-flex tw:min-h-10 tw:items-center tw:gap-1.5 tw:rou
               <button
                 v-if="confirming !== e.id"
                 type="button"
-                aria-label="Delete"
+                data-delete
+                :aria-label="REVIEW_COPY.deleteFeedbackLabel(localTime(e.created_at))"
                 class="tw:-mr-1 tw:-mt-1 tw:flex tw:size-10 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full
                        tw:text-text-subtle tw:transition-colors tw:hover:bg-brand-subtle tw:hover:text-brand-hover"
-                @click="confirming = e.id"
+                @click="askDelete(e.id)"
               >
                 <svg viewBox="0 0 24 24" class="tw:size-[1.125rem]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M4.5 7h15M9.5 7V5h5v2M6.5 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4l.8-12M10 11v6M14 11v6" />
@@ -386,7 +489,7 @@ const toolButton = 'tw:inline-flex tw:min-h-10 tw:items-center tw:gap-1.5 tw:rou
                 type="button"
                 data-cancel-delete
                 class="tw:min-h-9 tw:rounded-full tw:px-3 tw:text-body-sm tw:font-bold tw:text-text"
-                @click="confirming = null"
+                @click="cancelDelete(e.id)"
               >{{ REVIEW_COPY.cancel }}</button>
             </div>
             <p class="tw:mt-3 tw:flex tw:flex-wrap tw:gap-x-4 tw:gap-y-1 tw:text-caption tw:text-text-muted">
@@ -394,14 +497,29 @@ const toolButton = 'tw:inline-flex tw:min-h-10 tw:items-center tw:gap-1.5 tw:rou
               <span>{{ e.page }}</span>
               <span>{{ e.device }}</span>
               <span>v{{ e.app_version }} {{ e.mode }}</span>
-              <span class="tw:font-mono tw:text-text-subtle">{{ e.id }}</span>
+              <span class="tw:inline-flex tw:items-center tw:gap-1">
+                <span class="tw:font-mono tw:text-text-subtle">{{ e.id }}</span>
+                <button
+                  type="button"
+                  data-copy-id
+                  :aria-label="REVIEW_COPY.copyId(e.id)"
+                  class="tw:-my-2 tw:flex tw:size-8 tw:items-center tw:justify-center tw:rounded-full tw:text-text-subtle
+                         tw:hover:bg-surface-sunken tw:hover:text-text"
+                  @click="copyId(e.id)"
+                >
+                  <svg viewBox="0 0 24 24" class="tw:size-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="8.5" y="8.5" width="11" height="11" rx="2" />
+                    <path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5" />
+                  </svg>
+                </button>
+              </span>
             </p>
           </li>
         </ul>
       </section>
 
       <!-- Stay in touch -->
-      <section v-else role="tabpanel" class="tw:mt-6">
+      <section v-else id="vw-review-panel" role="tabpanel" :aria-labelledby="tabId('stay')" class="tw:mt-6">
         <div class="tw:flex tw:flex-wrap tw:items-center tw:gap-3">
           <p class="tw:mr-auto tw:max-w-xl tw:text-body-sm tw:text-text-muted">{{ REVIEW_COPY.stayLead }}</p>
           <button type="button" :class="toolButton" @click="exportCsv">{{ REVIEW_COPY.exportCsv }}</button>
@@ -429,10 +547,11 @@ const toolButton = 'tw:inline-flex tw:min-h-10 tw:items-center tw:gap-1.5 tw:rou
               <button
                 v-if="confirming !== s.id"
                 type="button"
-                aria-label="Delete"
+                data-delete
+                :aria-label="REVIEW_COPY.removeLabel(s.first_name || s.contact)"
                 class="tw:flex tw:size-10 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:text-text-subtle
                        tw:transition-colors tw:hover:bg-brand-subtle tw:hover:text-brand-hover"
-                @click="confirming = s.id"
+                @click="askDelete(s.id)"
               >
                 <svg viewBox="0 0 24 24" class="tw:size-[1.125rem]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M4.5 7h15M9.5 7V5h5v2M6.5 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4l.8-12M10 11v6M14 11v6" />
@@ -455,7 +574,7 @@ const toolButton = 'tw:inline-flex tw:min-h-10 tw:items-center tw:gap-1.5 tw:rou
                 type="button"
                 data-cancel-delete
                 class="tw:min-h-9 tw:rounded-full tw:px-3 tw:text-body-sm tw:font-bold tw:text-text"
-                @click="confirming = null"
+                @click="cancelDelete(s.id)"
               >{{ REVIEW_COPY.cancel }}</button>
             </div>
           </li>

@@ -7,17 +7,17 @@ import type { FeedbackEntry, Subscriber } from '@/feedback/types'
  * - RFC 4180: cells with a comma, a quote or a line break are quoted, quotes
  *   doubled; rows end in CRLF;
  * - a byte-order mark first, or Excel reads "ngā" as "ngÄ";
- * - a cell that starts with = + - or @ gets a leading apostrophe, so a
+ * - a cell that starts with = + - @, a tab or a carriage return gets a leading apostrophe, so a
  *   reader's comment can never run as a formula in whoever opens the file.
  */
 function cell(value: unknown): string {
   let s = value === null || value === undefined ? '' : String(value)
-  if (/^[=+\-@]/.test(s)) s = `'${s}`
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
 function csv(header: string[], rows: unknown[][]): string {
-  return `﻿${[header, ...rows].map(r => r.map(cell).join(',')).join('\r\n')}`
+  return `\uFEFF${[header, ...rows].map(r => r.map(cell).join(',')).join('\r\n')}`
 }
 
 export function feedbackCsv(items: FeedbackEntry[]): string {

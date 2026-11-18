@@ -6,9 +6,12 @@ const UNREACHABLE = 'The server could not be reached. Check your connection and 
 /** The backend's own limit on the page path. */
 const PAGE_MAX = 200
 
-/** The backend's `{detail: {summary}}`, else a sentence naming the status (FastAPI's own 422 has a list there). */
-async function errorFrom(res: Response): Promise<FeedbackError> {
-  let summary = `The message could not be sent (HTTP ${res.status}).`
+/**
+ * The backend's `{detail: {summary}}`, else `failed` and the status (FastAPI's
+ * own 422 has a list there, and a proxy sends its own page).
+ */
+async function errorFrom(res: Response, failed: string): Promise<FeedbackError> {
+  let summary = `${failed} (HTTP ${res.status}).`
   try {
     const body = await res.json()
     if (typeof body?.detail?.summary === 'string') summary = body.detail.summary
@@ -17,11 +20,15 @@ async function errorFrom(res: Response): Promise<FeedbackError> {
   return { status: res.status, summary }
 }
 
-async function send(url: string, init: RequestInit): Promise<Response> {
+const SEND_FAILED = 'The message could not be sent'
+const LOAD_FAILED = 'The inbox could not be loaded'
+const DELETE_FAILED = 'The entry could not be deleted'
+
+async function send(url: string, init: RequestInit, failed = SEND_FAILED): Promise<Response> {
   let res: Response
   try { res = await fetch(url, init) }
   catch { throw { status: 0, summary: UNREACHABLE } satisfies FeedbackError }
-  if (!res.ok) throw await errorFrom(res)
+  if (!res.ok) throw await errorFrom(res, failed)
   return res
 }
 
@@ -51,7 +58,7 @@ export async function fetchFeedback(password: string): Promise<{ total: number, 
   const res = await send(`${getApiBaseUrl()}/feedback`, {
     headers: { 'X-Feedback-Password': password },
     cache: 'no-store',
-  })
+  }, LOAD_FAILED)
   return res.json()
 }
 
@@ -74,7 +81,7 @@ export async function fetchSubscribers(password: string): Promise<{ total: numbe
   const res = await send(`${getApiBaseUrl()}/subscribers`, {
     headers: { 'X-Feedback-Password': password },
     cache: 'no-store',
-  })
+  }, LOAD_FAILED)
   return res.json()
 }
 
@@ -82,7 +89,7 @@ function remove(kind: 'feedback' | 'subscribers', password: string, id: string):
   return send(`${getApiBaseUrl()}/${kind}/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: { 'X-Feedback-Password': password },
-  })
+  }, DELETE_FAILED)
 }
 
 export async function deleteFeedback(password: string, id: string): Promise<void> {

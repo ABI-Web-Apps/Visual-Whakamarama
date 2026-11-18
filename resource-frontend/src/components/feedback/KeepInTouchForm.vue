@@ -4,7 +4,7 @@ let formCount = 0
 </script>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { KEEP_IN_TOUCH_COPY } from '@/content/feedback'
 import { postSubscriber } from '@/feedback/api'
 import { classifyContact } from '@/feedback/contactKind'
@@ -22,6 +22,9 @@ import type { FeedbackError } from '@/feedback/types'
  * before anything is sent; a refusal from the backend shows the same way.
  * The fields are `v-model`s with local defaults, so the dialog can keep what
  * was typed while the reader looks at the other tab.
+ *
+ * "You're on the list" shows for three seconds, then the form comes back
+ * blank, ready for the next person (a clinic tablet passed round a room).
  */
 const firstName = defineModel<string>('firstName', { default: '' })
 const contact = defineModel<string>('contact', { default: '' })
@@ -43,6 +46,20 @@ const done = ref<HTMLElement | null>(null)
 const invalid = ref(false)
 const error = ref('')
 const split = computed(() => props.layout === 'split')
+const nameInput = ref<HTMLInputElement | null>(null)
+
+const RESET_AFTER_MS = 3000
+let resetTimer: ReturnType<typeof setTimeout> | undefined
+onBeforeUnmount(() => clearTimeout(resetTimer))
+
+async function reset() {
+  firstName.value = ''
+  contact.value = ''
+  status.value = 'idle'
+  // The focused confirmation is gone: focus stays in the form, without scrolling to it.
+  await nextTick()
+  nameInput.value?.focus({ preventScroll: true })
+}
 
 async function submit() {
   if (status.value !== 'idle') return
@@ -57,12 +74,13 @@ async function submit() {
     await postSubscriber({ first_name: firstName.value.trim(), contact: contact.value.trim() })
     status.value = 'done'
     emit('done')
+    resetTimer = setTimeout(() => { void reset() }, RESET_AFTER_MS)
     // The focused button is gone: the confirmation takes focus, and is announced.
     await nextTick()
     done.value?.focus()
   }
   catch (e) {
-    error.value = (e as FeedbackError).summary
+    error.value = (e as FeedbackError).summary || KEEP_IN_TOUCH_COPY.failed
     status.value = 'idle'
   }
 }
@@ -114,6 +132,7 @@ const inputClass = 'tw:mt-2 tw:min-h-12 tw:w-full tw:rounded-ctl tw:border tw:bg
         <p :id="ids.nameHelp" class="tw:text-caption tw:text-text-muted">{{ KEEP_IN_TOUCH_COPY.nameHelp }}</p>
         <input
           :id="ids.name"
+          ref="nameInput"
           v-model="firstName"
           type="text"
           autocomplete="given-name"

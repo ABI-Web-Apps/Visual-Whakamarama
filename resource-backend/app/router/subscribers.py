@@ -3,7 +3,7 @@ name) to hear how the project is going; the team lists and deletes them behind t
 password.
 
 Stored in `<FEEDBACK_DIR>/subscribers.jsonl`, apart from feedback, so nothing ties a comment to
-a contact. One line per contact: `{id, created_at, first_name, contact, contact_type}`, the
+a contact. One line per contact: `{id, created_at (the UTC day), first_name, contact, contact_type}`, the
 contact normalised (see `classify_contact`). As with feedback, the client address is used only
 by the in-memory rate limit, never stored.
 
@@ -14,13 +14,14 @@ address is on the list, and an update would let anyone rename someone else's ent
 
 import re
 import uuid
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
-from app.router.common import NO_STORE, api_error, client_key, require_review_password, utc_now
+from app.router.common import NO_STORE, api_error, client_key, require_review_password
 from app.services.feedback_store import FeedbackStore, RateLimiter
 from app.utils.setup import Config
 
@@ -38,6 +39,12 @@ _EMAIL = re.compile(r"[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+")
 _PHONE_SEPARATORS = re.compile(r"[\s().-]")
 #: An optional leading + and 7 to 15 ASCII digits (E.164 allows at most 15).
 _PHONE = re.compile(r"\+?[0-9]{7,15}")
+
+
+def utc_today() -> str:
+    """Today in UTC, to the day: 2026-11-18. A sign-up keeps no finer time, so it cannot be
+    matched to a feedback note (stored to the millisecond) sent a moment before it."""
+    return datetime.now(timezone.utc).date().isoformat()
 
 
 def classify_contact(raw: str) -> tuple[str, str] | None:
@@ -81,7 +88,7 @@ def post_subscriber(body: SubscriberIn, request: Request) -> dict:
     contact, contact_type = classified
     entry = {
         "id": str(uuid.uuid4()),
-        "created_at": utc_now(),
+        "created_at": utc_today(),
         "first_name": body.first_name,
         "contact": contact,
         "contact_type": contact_type,
