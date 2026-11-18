@@ -149,19 +149,36 @@ class RateLimiter:
         self._last_sweep = clock()
 
     def allow(self, key: str) -> bool:
+        """Record a call for `key` and say yes, or say no (recording nothing) when it is full."""
         with self._lock:
-            now = self._clock()
-            cutoff = now - self.window_s
-            if now - self._last_sweep >= self.window_s:
-                self._hits = {k: hits for k, hits in self._hits.items() if hits and hits[-1] > cutoff}
-                self._last_sweep = now
-            hits = self._hits.setdefault(key, deque())
-            while hits and hits[0] <= cutoff:
-                hits.popleft()
+            now, hits = self._current(key)
             if len(hits) >= self.limit:
                 return False
             hits.append(now)
             return True
+
+    def blocked(self, key: str) -> bool:
+        """Whether `key` has used up the window, without recording anything."""
+        with self._lock:
+            return len(self._current(key)[1]) >= self.limit
+
+    def record(self, key: str) -> None:
+        """Count one event for `key`, full or not (a failure to be counted, say)."""
+        with self._lock:
+            now, hits = self._current(key)
+            hits.append(now)
+
+    def _current(self, key: str) -> tuple[float, deque]:
+        """Now, and `key`'s calls still inside the window. Called with the lock held."""
+        now = self._clock()
+        cutoff = now - self.window_s
+        if now - self._last_sweep >= self.window_s:
+            self._hits = {k: hits for k, hits in self._hits.items() if hits and hits[-1] > cutoff}
+            self._last_sweep = now
+        hits = self._hits.setdefault(key, deque())
+        while hits and hits[0] <= cutoff:
+            hits.popleft()
+        return now, hits
 
     def tracked(self) -> int:
         """How many keys are held in memory."""

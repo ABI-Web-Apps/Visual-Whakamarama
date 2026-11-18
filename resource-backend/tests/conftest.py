@@ -267,27 +267,33 @@ def loaded_client_with_empty_mask(sparc_dataset, client, tool_config, cache_dir)
 @pytest.fixture()
 def feedback_dir(tmp_path, monkeypatch) -> Path:
     """FEEDBACK_DIR (feedback and Stay in touch) redirected to a fresh temp folder, the review
-    password at its default, and both rate limits empty."""
-    from app.router import feedback, subscribers
+    password at its default, and every rate limit (posts and wrong passwords) empty."""
+    from app.router import common, feedback, subscribers
     from app.utils.setup import Config
 
+    limiters = (feedback.rate_limiter, subscribers.rate_limiter, common.password_failures)
     folder = tmp_path / "feedback"
     monkeypatch.setattr(Config, "FEEDBACK_DIR", folder)
     monkeypatch.setattr(Config, "FEEDBACK_ADMIN_PASSWORD", "qwerty")
-    feedback.rate_limiter.clear()
-    subscribers.rate_limiter.clear()
+    for limiter in limiters:
+        limiter.clear()
     yield folder
-    feedback.rate_limiter.clear()
-    subscribers.rate_limiter.clear()
+    for limiter in limiters:
+        limiter.clear()
 
 
 @pytest.fixture()
 def sleeps(monkeypatch) -> list:
-    """Records the delay a wrong review password costs instead of waiting it out."""
+    """Records the delay a wrong review password costs instead of waiting it out. The delay is
+    awaited (`common._sleep`, asyncio's), so it holds no threadpool worker."""
     from app.router import common
 
     calls = []
-    monkeypatch.setattr(common.time, "sleep", calls.append)
+
+    async def record(seconds: float) -> None:
+        calls.append(seconds)
+
+    monkeypatch.setattr(common, "_sleep", record)
     return calls
 
 

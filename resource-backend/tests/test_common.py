@@ -1,5 +1,6 @@
-"""app.router.common: the client key the rate limits use."""
+"""app.router.common: the client key the rate limits use, and the review password check."""
 
+import inspect
 import ipaddress
 
 import pytest
@@ -61,3 +62,67 @@ def test_no_usable_header_is_the_peer_address(forwarded):
 
 def test_no_header_and_no_peer_is_unknown():
     assert client_key(_request(None, peer=None)) == "unknown"
+
+
+# --- the review password ---------------------------------------------------------------------
+
+LOCKED = {"detail": {"code": "too_many_attempts", "summary": "Too many wrong passwords — try again later."}}
+REVIEW_URLS = [("get", "/api/feedback"), ("get", "/api/subscribers"), ("delete", "/api/feedback/x"), ("delete", "/api/subscribers/x")]
+
+
+def _as(address: str, password: str | None = None) -> dict:
+    headers = {"X-Forwarded-For": f"{address}, {PROXY}"}
+    if password is not None:
+        headers["X-Feedback-Password"] = password
+    return headers
+
+
+def test_the_delay_is_awaited_not_slept_on_a_thread(api, feedback_dir, sleeps):
+    from app.router import common
+
+    assert inspect.iscoroutinefunction(common.require_review_password)
+    assert api.get("/api/feedback", headers=_as(REAL, "nope")).status_code == 401
+    assert sleeps == [0.4]
+
+
+def test_ten_wrong_passwords_lock_the_address_out(api, feedback_dir, sleeps):
+    for attempt in range(10):
+        response = api.get("/api/feedback", headers=_as(REAL, "nope" if attempt % 2 else None))
+        assert response.status_code == 401, attempt
+    assert sleeps == [0.4] * 10
+
+    # Refused before the password is compared: the right one is refused too, without a delay.
+    for method, url in REVIEW_URLS:
+        response = api.request(method, url, headers=_as(REAL, "qwerty"))
+        assert response.status_code == 429, url
+        assert response.json() == LOCKED
+    assert len(sleeps) == 10
+
+    # A made-up address on the left does not get around it.
+    assert api.get("/api/feedback", headers={"X-Forwarded-For": f"{SPOOFED}, {REAL}, {PROXY}", "X-Feedback-Password": "qwerty"}).status_code == 429
+    # Another address is unaffected, and so is posting feedback from this one.
+    assert api.get("/api/feedback", headers=_as(SPOOFED, "qwerty")).status_code == 200
+    assert api.post("/api/subscribers", json={"contact": "kia@ora.nz"}, headers=_as(REAL)).status_code == 201
+
+
+def test_right_passwords_do_not_count(api, feedback_dir, sleeps):
+    for _ in range(15):
+        assert api.get("/api/feedback", headers=_as(REAL, "qwerty")).status_code == 200
+    for _ in range(9):
+        assert api.get("/api/feedback", headers=_as(REAL, "nope")).status_code == 401
+    assert api.get("/api/feedback", headers=_as(REAL, "qwerty")).status_code == 200
+    assert api.get("/api/feedback", headers=_as(REAL, "nope")).status_code == 401
+    assert api.get("/api/feedback", headers=_as(REAL, "qwerty")).status_code == 429
+
+
+def test_the_lock_out_lifts_after_the_window(api, feedback_dir, sleeps, monkeypatch):
+    from app.router import common
+    from app.services.feedback_store import RateLimiter
+
+    now = [0.0]
+    monkeypatch.setattr(common, "password_failures", RateLimiter(limit=10, window_s=600, clock=lambda: now[0]))
+    for _ in range(10):
+        api.get("/api/feedback", headers=_as(REAL, "nope"))
+    assert api.get("/api/feedback", headers=_as(REAL, "qwerty")).status_code == 429
+    now[0] += 601
+    assert api.get("/api/feedback", headers=_as(REAL, "qwerty")).status_code == 200
