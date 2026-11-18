@@ -14,7 +14,11 @@ import { describe, expect, it } from 'vitest'
 const SRC = resolve(__dirname, '../src')
 
 /** Classes that are not Tailwind utilities, and files whose classes aren't. */
-const NOT_UTILITIES = new Set(['hud-glass', 'vw-root'])
+const NOT_UTILITIES = new Set([
+  'hud-glass', 'vw-root',
+  // Hand-written CSS in the component's own <style scoped>.
+  'vw-toast', 'vw-toast-slot', 'vw-contact-masthead', 'vw-contact-avatar',
+])
 const OWN_CSS_FILES = new Set(['pages/NotFoundPage.vue'])
 
 function vueFiles(dir: string): string[] {

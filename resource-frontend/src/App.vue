@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue'
+import AppToast from '@/components/common/AppToast.vue'
+import { provideToast } from '@/composables/useToast'
 import { createAppRouter, provideAppRouter } from '@/navigation/router'
 import { pageKeyFor } from '@/utils/pageKey'
 import AboutPage from '@/pages/AboutPage.vue'
 import CasePage from '@/pages/CasePage.vue'
+import ContactPage from '@/pages/ContactPage.vue'
 import MyImagesMriPage from '@/pages/MyImagesMriPage.vue'
 import MyImagesPage from '@/pages/MyImagesPage.vue'
 import MyReportPage from '@/pages/MyReportPage.vue'
@@ -21,6 +24,8 @@ const router = createAppRouter({
   base: import.meta.env.BASE_URL,
 })
 provideAppRouter(router)
+// One toast for every page (the email buttons' "copied").
+provideToast()
 
 onMounted(() => router.start())
 onBeforeUnmount(() => router.stop())
@@ -40,6 +45,7 @@ const pageKey = computed(() => pageKeyFor(route.value))
 const page = computed(() => {
   switch (route.value.name) {
     case 'case': return CasePage
+    case 'contact': return ContactPage
     case 'my-report': return MyReportPage
     case 'my-images': return MyImagesPage
     case 'my-images-mri': return MyImagesMriPage
@@ -58,4 +64,5 @@ const page = computed(() => {
   <KeepAlive v-else>
     <component :is="page" :key="pageKey" :route="route" />
   </KeepAlive>
+  <AppToast />
 </template>

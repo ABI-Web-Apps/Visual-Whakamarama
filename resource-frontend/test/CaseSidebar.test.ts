@@ -250,6 +250,21 @@ describe('CaseSidebar', () => {
   })
 })
 
+describe('CaseSidebar: contact', () => {
+  beforeEach(() => { setActivePinia(createPinia()) })
+
+  it('ends with a way to contact the team, above the partner logos', () => {
+    const wrapper = mountSidebar()
+    const links = wrapper.findAll('a')
+    const contact = links.findIndex(a => a.attributes('href') === '/contact')
+    expect(contact).toBeGreaterThan(-1)
+    expect(links[contact]!.text()).toContain('Contact the team')
+    // The logos (to /about) stay the very last link.
+    expect(links[links.length - 1]!.attributes('href')).toBe('/about')
+    expect(contact).toBe(links.length - 2)
+  })
+})
+
 describe('CaseSidebar: MY RESULTS group', () => {
   beforeEach(() => { setActivePinia(createPinia()) })
   afterEach(() => { document.body.innerHTML = '' })

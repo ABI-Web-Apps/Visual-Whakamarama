@@ -149,6 +149,26 @@ const emit = defineEmits<{ startTour: [] }>()
       </button>
 
       <!--
+        Contact us (client request: easy to find). Tablet and up only: at a
+        360px phone the header has no room for another 44px control -- the
+        wordmark already fights for every pixel -- so there it is the card
+        at the foot of the menu drawer (CaseSidebar). Violet, the colour of
+        the patient's own pages, not rose (the focus semantic) and not
+        About's neutral fill, so it reads as its own destination.
+      -->
+      <AppLink
+        to="/contact"
+        class="tw:hidden tw:min-h-11 tw:shrink-0 tw:items-center tw:gap-1.5 tw:rounded-full tw:bg-group-results/10 tw:px-4
+               tw:text-body-sm tw:font-bold tw:text-group-results tw:transition-colors tw:hover:bg-group-results/15 tw:md:flex"
+      >
+        <svg viewBox="0 0 24 24" class="tw:size-4 tw:shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+          <path d="m4 7.5 8 5.5 8-5.5" />
+        </svg>
+        <span>Contact us</span>
+      </AppLink>
+
+      <!--
         A filled control, not a text link -- a touch device never hovers, so
         bare text with only a hover background read as a grey word, not a
         control.

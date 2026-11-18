@@ -21,6 +21,13 @@ describe('/my-report', () => {
   })
 })
 
+describe('/contact', () => {
+  it('serves the Contact us page, case-insensitively', () => {
+    expect(resolvePath('/contact')).toEqual({ route: { path: '/contact', name: 'contact', params: {} } })
+    expect(resolvePath('/Contact')).toMatchObject({ route: { name: 'contact' } })
+  })
+})
+
 describe('/my-images', () => {
   it('serves /my-images, case-insensitively', () => {
     expect(resolvePath('/my-images')).toEqual({ route: { path: '/my-images', name: 'my-images', params: {} } })

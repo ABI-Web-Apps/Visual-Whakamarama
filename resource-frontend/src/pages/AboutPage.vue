@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useAssetUrl } from '@/composables/useAssetUrl'
 import { citations, FEEDBACK_FORM_URL, organisations } from '@/content/team'
+import ContactCta from '@/components/contact/ContactCta.vue'
 import AppLink from '@/navigation/AppLink.vue'
 import { APP_TITLE, useDocumentTitle } from '@/navigation/head'
 import type { PageRoute } from '@/navigation/routes'
@@ -70,6 +71,7 @@ const fullWidthOrgs = computed(() =>
       Te Uma is an educational resource from the Auckland Bioengineering
       Institute, built with Breast Cancer Foundation NZ and Iwi United Engaged.
     </p>
+    <ContactCta variant="banner" class="tw:mt-8 tw:max-w-xl" />
 
     <!-- ── Partners ─────────────────────────────────────────────────────── -->
     <section class="tw:mt-14" aria-labelledby="partners-heading">

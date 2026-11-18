@@ -6,6 +6,7 @@ import { CASE_GROUP_LABEL, enabledCases } from '@/content/cases'
 import { organisations } from '@/content/team'
 import type { CaseGroup } from '@/content/types'
 import { GROUP_INK, RESULTS_INK } from '@/utils/groupInk'
+import ContactCta from '@/components/contact/ContactCta.vue'
 import AppLink from '@/navigation/AppLink.vue'
 import { useOptionalPageRoute } from '@/navigation/router'
 
@@ -306,9 +307,14 @@ function onKeydown(event: KeyboardEvent) {
       placed against anything further out, it sat below the window and
       stretched the page.
     -->
+    <!-- Contact us, above the logos and pinned to the foot with them
+         (`mt-auto` moved here from the logos' link). On a phone this is the
+         way to it: the header has no room there (AppHeader). -->
+    <ContactCta class="tw:mt-auto" />
+
     <AppLink
       to="/about"
-      class="tw:relative tw:mt-auto tw:flex tw:flex-col tw:items-start tw:gap-3 tw:rounded-card tw:border-t tw:border-border
+      class="tw:relative tw:-mt-2 tw:flex tw:flex-col tw:items-start tw:gap-3 tw:rounded-card tw:border-t tw:border-border
              tw:px-2 tw:pb-1 tw:pt-5 tw:opacity-70 tw:transition-opacity tw:hover:opacity-100"
     >
       <span class="tw:sr-only">About this resource and the team behind it</span>

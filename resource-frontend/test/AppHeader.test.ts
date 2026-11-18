@@ -219,6 +219,22 @@ describe('AppHeader', () => {
       expect(label.classes().some(c => c.endsWith(':hidden') || c === 'hidden')).toBe(false)
     })
 
+    it('Contact us sits beside About on a tablet or desktop, and is left out of the phone header', () => {
+      // At 360px the header has no room for another 44px control (the
+      // wordmark already fights for every pixel); there it lives in the
+      // menu drawer's foot instead (CaseSidebar).
+      const wrapper = mountHeader()
+      const contact = wrapper.get('[data-header-actions] a[href="/contact"]')
+      expect(contact.text()).toBe('Contact us')
+      expect(contact.classes()).toContain('hidden')
+      expect(contact.classes()).toContain('md:flex')
+      expect(contact.classes()).toContain('min-h-11')
+      const children = Array.from(wrapper.get('[data-header-actions]').element.children) as HTMLElement[]
+      const contactIndex = children.findIndex(c => c.getAttribute('href') === '/contact')
+      const aboutIndex = children.findIndex(c => c.getAttribute('href') === '/about')
+      expect(contactIndex).toBe(aboutIndex - 1)
+    })
+
     it('About is the last control in the cluster (the end position)', () => {
       const wrapper = mountHeader()
       const group = wrapper.get('[data-header-actions]')
