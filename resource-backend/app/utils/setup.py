@@ -6,6 +6,15 @@ from pathlib import Path
 BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
+def default_feedback_dir() -> Path:
+    """Where feedback and Stay in touch sign-ups go when FEEDBACK_DIR is not set: a local run.
+
+    Never inside BACKEND_ROOT. A portal local-folder upload copies resource-backend/ into the
+    public tools bucket, and readers' comments and contacts must not travel with it.
+    """
+    return Path.home() / ".visual-whakamarama" / "feedback"
+
+
 class Config:
     METADATA_PATH = "manifest.xlsx"
     SAMPLES_METADATA_PATH = "samples.xlsx"
@@ -33,7 +42,8 @@ class Config:
     # Derived artefacts (meshes, report page images); never decompressed patient images.
     CACHE_DIR = Path(os.environ.get("DERIVED_CACHE_DIR", BACKEND_ROOT / "cache"))
 
-    # Anonymous feedback, one JSON line per entry (app/router/feedback.py). Docker: the
-    # feedback_data volume. The password opens the list; only the backend ever checks it.
-    FEEDBACK_DIR = Path(os.environ.get("FEEDBACK_DIR", BACKEND_ROOT / "feedback"))
+    # Anonymous feedback and Stay in touch sign-ups, one JSON line per entry
+    # (app/router/feedback.py, subscribers.py). Docker: the feedback_data volume; a local run:
+    # default_feedback_dir(). The password opens the lists; only the backend ever checks it.
+    FEEDBACK_DIR = Path(os.environ.get("FEEDBACK_DIR") or default_feedback_dir())
     FEEDBACK_ADMIN_PASSWORD = os.environ.get("FEEDBACK_ADMIN_PASSWORD", "qwerty")

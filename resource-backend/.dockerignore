@@ -26,3 +26,6 @@ Thumbs.db
 static/workdir/
 minio_data/
 cache/
+
+# Readers' feedback and contacts, should a local run ever write them here
+feedback/
