@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import RatingFaces from '@/components/feedback/RatingFaces.vue'
 import { FEEDBACK_COPY } from '@/content/feedback'
 import { postFeedback } from '@/feedback/api'
@@ -23,17 +23,22 @@ const COUNT_FROM = 900
 
 const status = ref<'idle' | 'sending' | 'sent'>('idle')
 const error = ref('')
-const canSend = computed(() => status.value === 'idle' && (rating.value !== null || comment.value.trim() !== ''))
+const thanks = ref<HTMLElement | null>(null)
+const hasContent = computed(() => rating.value !== null || comment.value.trim() !== '')
 const left = computed(() => MAX - comment.value.length)
 
 async function submit() {
-  if (!canSend.value) return
+  if (status.value !== 'idle' || !hasContent.value) return
   status.value = 'sending'
   error.value = ''
   try {
     await postFeedback({ rating: rating.value, comment: comment.value }, props.page)
     status.value = 'sent'
     emit('sent')
+    // The focused Send button is gone: hand focus to the thank-you, so a screen
+    // reader says it and the dialog's keys (Escape, Tab) still work.
+    await nextTick()
+    thanks.value?.focus()
   }
   catch (e) {
     error.value = (e as FeedbackError).summary ?? FEEDBACK_COPY.unreachable
@@ -49,7 +54,7 @@ async function submit() {
       <circle cx="32" cy="32" r="29" stroke="#2B6E45" stroke-width="3" class="vw-fb-check-ring" />
       <path d="m20 33 8.5 8.5L45 24" stroke="#2B6E45" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="vw-fb-check-mark" />
     </svg>
-    <h2 :id="titleId" class="tw:mt-5 tw:text-h2 tw:font-bold tw:text-text">{{ FEEDBACK_COPY.thanks }}</h2>
+    <h2 :id="titleId" ref="thanks" tabindex="-1" class="tw:mt-5 tw:text-h2 tw:font-bold tw:text-text tw:focus:outline-none">{{ FEEDBACK_COPY.thanks }}</h2>
     <p class="tw:mt-1.5 tw:text-body-sm tw:text-text-muted">{{ FEEDBACK_COPY.thanksDetail }}</p>
     <div class="tw:mt-6 tw:flex tw:w-full tw:flex-col tw:items-center tw:gap-2 tw:border-t tw:border-border tw:pt-5">
       <p class="tw:text-body-sm tw:text-text-muted">{{ FEEDBACK_COPY.stayLead }}</p>
@@ -98,7 +103,8 @@ async function submit() {
 
     <button
       type="submit"
-      :disabled="!canSend"
+      :disabled="!hasContent"
+      :aria-disabled="status === 'sending' ? 'true' : undefined"
       class="tw:mt-5 tw:flex tw:min-h-12 tw:w-full tw:items-center tw:justify-center tw:gap-2 tw:rounded-ctl tw:bg-text
              tw:text-body tw:font-bold tw:text-white tw:shadow-sm tw:transition-[opacity,transform,background-color]
              tw:hover:bg-[#2A2F3D] tw:active:scale-[.99] tw:disabled:cursor-not-allowed tw:disabled:opacity-35

@@ -40,6 +40,31 @@ test.describe('feedback on a phone', () => {
   })
 })
 
+test.describe('feedback button on a phone, while reading', () => {
+  test.use({ ...iPhone, viewport: { width: 390, height: 844 } })
+
+  test('fades and slides away while the reader scrolls down', async ({ page }) => {
+    await skipTourInvite(page)
+    await page.goto('/the-breast')
+    const launcher = page.locator('[data-feedback-launcher]')
+    await expect(launcher).toBeVisible()
+    await page.waitForTimeout(1300) // its entrance has played
+    // Scroll down the way a finger does: a run of small steps.
+    await page.locator('#main-content').evaluate(async (el) => {
+      for (let i = 0; i < 6; i++) {
+        el.scrollTop += 50
+        await new Promise(r => setTimeout(r, 40))
+      }
+    })
+    await page.waitForTimeout(350) // the fade (300ms), well inside the 700ms before it returns
+    expect(await launcher.evaluate(el => Number(getComputedStyle(el).opacity))).toBeLessThan(0.05)
+    // And back once the reader stops.
+    await expect.poll(() => launcher.evaluate(el => Number(getComputedStyle(el).opacity))).toBeGreaterThan(0.95)
+    // Slid, not jumped: the move is part of the transition.
+    expect(await launcher.evaluate(el => getComputedStyle(el).transitionProperty)).toContain('translate')
+  })
+})
+
 test.describe('feedback on a desktop', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
@@ -62,6 +87,16 @@ test.describe('feedback on a desktop', () => {
     }
   })
 
+  test('lifts under the pointer once it has arrived', async ({ page }) => {
+    await skipTourInvite(page)
+    await page.goto('/the-breast')
+    const launcher = page.locator('[data-feedback-launcher]')
+    await page.waitForTimeout(1300) // its entrance has played
+    await launcher.hover()
+    await page.waitForTimeout(400) // the lift's own transition
+    expect(await launcher.evaluate(el => getComputedStyle(el).transform)).toBe('matrix(1, 0, 0, 1, 0, -2)')
+  })
+
   test('sends a note and thanks the reader', async ({ page }) => {
     await skipTourInvite(page)
     let posted: unknown = null
@@ -77,7 +112,7 @@ test.describe('feedback on a desktop', () => {
     await dialog.getByRole('button', { name: 'Send' }).click()
     await expect(page.getByText('Thank you — ngā mihi!')).toBeVisible()
     expect(posted).toMatchObject({ rating: 4, comment: 'Clear, thank you', page: '/density-a', device: 'desktop' })
-    // It closes itself.
-    await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 5000 })
+    // It closes itself, a few seconds later.
+    await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 8000 })
   })
 })

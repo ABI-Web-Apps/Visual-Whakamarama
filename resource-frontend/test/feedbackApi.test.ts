@@ -95,20 +95,20 @@ describe('stay in touch and deleting', () => {
   afterEach(() => { vi.unstubAllGlobals() })
 
   it('posts a sign-up as exactly first name and contact', async () => {
-    const f = vi.fn(async () => jsonRes(201, { id: 's-1', created_at: 't' }))
+    const f = vi.fn(async () => jsonRes(201, { ok: true }))
     vi.stubGlobal('fetch', f)
     const { postSubscriber } = await import('../src/feedback/api')
-    expect(await postSubscriber({ first_name: 'Aroha', contact: 'aroha@example.nz' })).toEqual({ id: 's-1', created_at: 't' })
+    await expect(postSubscriber({ first_name: 'Aroha', contact: 'aroha@example.nz' })).resolves.toBeUndefined()
     const [url, init] = f.mock.calls[0]! as unknown as [string, RequestInit]
     expect(url).toBe('http://localhost:8082/api/subscribers')
     expect(init.method).toBe('POST')
     expect(JSON.parse(init.body as string)).toEqual({ first_name: 'Aroha', contact: 'aroha@example.nz' })
   })
 
-  it('treats a repeat sign-up (200) as success too', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonRes(200, { id: 's-1', created_at: 't' })))
+  it('learns nothing from the answer: a repeat sign-up looks exactly like a new one', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonRes(201, { ok: true })))
     const { postSubscriber } = await import('../src/feedback/api')
-    await expect(postSubscriber({ first_name: '', contact: '0211234567' })).resolves.toEqual({ id: 's-1', created_at: 't' })
+    await expect(postSubscriber({ first_name: '', contact: '0211234567' })).resolves.toBeUndefined()
   })
 
   it('lists sign-ups behind the password header', async () => {

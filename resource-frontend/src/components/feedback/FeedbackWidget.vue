@@ -56,7 +56,6 @@ const STAGE_PAGES = new Set(['case', 'my-report', 'my-images', 'my-images-mri'])
 const overStage = computed(() => !viewer.contentOpen && STAGE_PAGES.has(router.route.value.name))
 
 let closeTimer: ReturnType<typeof setTimeout> | undefined
-let sent = false
 
 function open() {
   if (dialog) dialog.open('feedback')
@@ -87,10 +86,23 @@ function close() {
  * After a send the dialog closes itself in a few seconds -- unless the
  * reader is still using it (the thank-you offers Stay in touch).
  */
-function onSent() {
-  sent = true
+function closeSoon() {
   clearTimeout(closeTimer)
   closeTimer = setTimeout(close, 5000)
+}
+
+/** A note went: its draft is spent (coming back to the tab starts afresh). Stay in touch's is left alone. */
+function onFeedbackSent() {
+  draft.rating = null
+  draft.comment = ''
+  closeSoon()
+}
+
+/** A sign-up went: its fields are spent. An unsent feedback note is left alone. */
+function onStayDone() {
+  stay.firstName = ''
+  stay.contact = ''
+  closeSoon()
 }
 
 function holdOpen() {
@@ -103,13 +115,6 @@ watch(isOpen, async (now) => {
     // The chosen face, or the first: the question, not the keyboard-raising textarea.
     panel.value?.querySelector<HTMLElement>('[role="radio"][tabindex="0"]')?.focus()
     return
-  }
-  if (sent) {
-    draft.rating = null
-    draft.comment = ''
-    stay.firstName = ''
-    stay.contact = ''
-    sent = false
   }
   dragY.value = 0
   await nextTick()
@@ -179,7 +184,9 @@ function onScroll(event: Event) {
   const target = event.target
   if (!target || (target instanceof Node && panel.value?.contains(target))) return
   const top = topOf(target)
-  const before = lastTop.get(target) ?? top
+  // A scroller seen for the first time is taken to have started at the top,
+  // so the first scroll down already counts.
+  const before = lastTop.get(target) ?? 0
   lastTop.set(target, top)
   if (top - before > 6) scrollHidden.value = true
   else if (before - top > 6) scrollHidden.value = false
@@ -209,7 +216,7 @@ onBeforeUnmount(() => {
       :data-lifted="tour.launcherShown ? 'true' : 'false'"
       :data-over-stage="overStage ? 'true' : 'false'"
       class="vw-fb-launcher tw:fixed tw:right-4 tw:z-40 tw:flex tw:items-center tw:justify-center tw:gap-2 tw:rounded-full
-             tw:text-white tw:transition-[transform,opacity,box-shadow,bottom] tw:duration-300
+             tw:text-white tw:transition-[transform,translate,opacity,box-shadow,bottom] tw:duration-300
              tw:max-md:size-13 tw:md:right-6 tw:md:min-h-11 tw:md:px-4"
       :class="[
         viewer.sidebarOpen ? 'tw:max-xl:hidden' : '',
@@ -307,7 +314,7 @@ onBeforeUnmount(() => {
             v-model:comment="draft.comment"
             :page="router.route.value.path"
             :title-id="titleId"
-            @sent="onSent"
+            @sent="onFeedbackSent"
             @stay="showTab('stay')"
           />
           <KeepInTouchForm
@@ -315,7 +322,7 @@ onBeforeUnmount(() => {
             v-model:first-name="stay.firstName"
             v-model:contact="stay.contact"
             :title-id="titleId"
-            @done="onSent"
+            @done="onStayDone"
           />
         </div>
       </div>
@@ -336,7 +343,10 @@ onBeforeUnmount(() => {
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
   backdrop-filter: blur(14px) saturate(1.15);
   box-shadow: 0 10px 28px -8px rgb(23 26 35 / .55), inset 0 1px 0 rgb(255 255 255 / .08);
-  animation: vw-fb-arrive .5s .6s cubic-bezier(.2, .8, .2, 1) both;
+  /* `backwards`, not `both`: a fill that outlives the animation would pin
+     transform and opacity, and the hover lift and the scroll-hide fade
+     would never show. */
+  animation: vw-fb-arrive .5s .6s cubic-bezier(.2, .8, .2, 1) backwards;
 }
 .vw-fb-launcher:hover,
 .vw-fb-launcher:focus-visible {

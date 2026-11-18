@@ -4,7 +4,7 @@ import KeepInTouchForm from '../src/components/feedback/KeepInTouchForm.vue'
 import { postSubscriber } from '../src/feedback/api'
 import { classifyContact } from '../src/feedback/contactKind'
 
-vi.mock('../src/feedback/api', () => ({ postSubscriber: vi.fn(async () => ({ id: 's-1', created_at: 't' })) }))
+vi.mock('../src/feedback/api', () => ({ postSubscriber: vi.fn(async () => {}) }))
 
 describe('classifyContact (the backend\'s own rule)', () => {
   it('knows an email address', () => {
@@ -24,7 +24,7 @@ describe('classifyContact (the backend\'s own rule)', () => {
 })
 
 describe('KeepInTouchForm', () => {
-  beforeEach(() => { vi.mocked(postSubscriber).mockReset().mockResolvedValue({ id: 's-1', created_at: 't' }) })
+  beforeEach(() => { vi.mocked(postSubscriber).mockReset().mockResolvedValue() })
   afterEach(() => { document.body.innerHTML = '' })
 
   it('has the client\'s wording', () => {
@@ -70,6 +70,16 @@ describe('KeepInTouchForm', () => {
     expect(postSubscriber).toHaveBeenCalledWith({ first_name: 'Aroha', contact: 'aroha@example.nz' })
     expect(w.text()).toContain('You\'re on the list')
     expect(w.emitted('done')).toHaveLength(1)
+  })
+
+  it('moves focus to the confirmation once signed up', async () => {
+    const w = mount(KeepInTouchForm, { attachTo: document.body })
+    await w.get('input[autocomplete="email"]').setValue('aroha@example.nz')
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    const done = w.get('[data-keep-in-touch-done]')
+    expect(done.attributes('tabindex')).toBe('-1')
+    expect(document.activeElement).toBe(done.element)
   })
 
   it('works without a name', async () => {

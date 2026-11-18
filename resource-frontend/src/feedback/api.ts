@@ -57,14 +57,17 @@ export async function fetchFeedback(password: string): Promise<{ total: number, 
 
 // ── Stay in touch, and the review page's deletes ──────────────────────────
 
-/** Signs someone up. A repeat of a contact already on the list is a success too (200). */
-export async function postSubscriber(entry: { first_name: string, contact: string }): Promise<{ id: string, created_at: string }> {
-  const res = await send(`${getApiBaseUrl()}/subscribers`, {
+/**
+ * Signs someone up. The backend answers the same (201) whether or not the
+ * contact was already on the list, so nobody can use this form to find out who
+ * is; there is nothing in the answer to read.
+ */
+export async function postSubscriber(entry: { first_name: string, contact: string }): Promise<void> {
+  await send(`${getApiBaseUrl()}/subscribers`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ first_name: entry.first_name, contact: entry.contact }),
   })
-  return res.json()
 }
 
 export async function fetchSubscribers(password: string): Promise<{ total: number, items: Subscriber[] }> {

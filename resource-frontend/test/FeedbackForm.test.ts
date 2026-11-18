@@ -93,6 +93,32 @@ describe('FeedbackForm', () => {
     expect(sent).toHaveBeenCalledTimes(1)
   })
 
+  it('moves focus to the thank-you, so a screen reader hears it and keys stay in the dialog', async () => {
+    const { w } = mountForm()
+    await w.get('textarea').setValue('Clear')
+    ;(w.get('button[type="submit"]').element as HTMLElement).focus()
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    const heading = w.get('[data-feedback-sent] h2')
+    expect(heading.attributes('tabindex')).toBe('-1')
+    expect(document.activeElement).toBe(heading.element)
+  })
+
+  it('keeps focus on Send while it sends (a disabled button would drop it)', async () => {
+    let finish!: () => void
+    vi.mocked(postFeedback).mockReturnValueOnce(new Promise((r) => { finish = () => r({ id: 'u', created_at: 't' }) }))
+    const { w } = mountForm()
+    await w.get('textarea').setValue('Clear')
+    const send = w.get('button[type="submit"]')
+    ;(send.element as HTMLElement).focus()
+    await w.get('form').trigger('submit')
+    expect(send.attributes('disabled')).toBeUndefined()
+    expect(send.attributes('aria-disabled')).toBe('true')
+    expect(document.activeElement).toBe(send.element)
+    finish()
+    await flushPromises()
+  })
+
   it('keeps what was typed and says why when sending fails, and Send tries again', async () => {
     vi.mocked(postFeedback).mockRejectedValueOnce({ status: 0, summary: 'The server could not be reached. Check your connection and try again.' })
     const { w, draft, sent } = mountForm()

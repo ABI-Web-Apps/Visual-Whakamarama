@@ -9,7 +9,10 @@ import type { FeedbackDialog } from '../src/feedback/useFeedbackDialog'
 import { useTourStore } from '../src/stores/tour'
 import { useViewerStore } from '../src/stores/viewer'
 
-vi.mock('../src/feedback/api', () => ({ postFeedback: vi.fn(async () => ({ id: 'u-1', created_at: 't' })) }))
+vi.mock('../src/feedback/api', () => ({
+  postFeedback: vi.fn(async () => ({ id: 'u-1', created_at: 't' })),
+  postSubscriber: vi.fn(async () => {}),
+}))
 
 const AppLinkStub = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 let dialog!: FeedbackDialog
@@ -113,6 +116,33 @@ describe('FeedbackWidget', () => {
     vi.advanceTimersByTime(8000)
     await flushPromises()
     expect(w.find('[role="dialog"]').exists()).toBe(true)
+  })
+
+  it('signing up leaves an unsent feedback note where it was', async () => {
+    vi.useFakeTimers()
+    const w = mountWidget()
+    await launcher(w).trigger('click')
+    await w.get('textarea').setValue('half a thought')
+    await w.findAll('[role="tab"]')[1]!.trigger('click')
+    await w.get('input[autocomplete="email"]').setValue('aroha@example.nz')
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    vi.advanceTimersByTime(5100)
+    await flushPromises()
+    expect(w.find('[role="dialog"]').exists()).toBe(false)
+    await launcher(w).trigger('click')
+    expect((w.get('textarea').element as HTMLTextAreaElement).value).toBe('half a thought')
+  })
+
+  it('after sending, the Feedback tab starts blank, so a note cannot be sent twice', async () => {
+    const w = mountWidget()
+    await launcher(w).trigger('click')
+    await w.get('textarea').setValue('Sent once')
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    await w.get('[data-feedback-sent] button').trigger('click')
+    await w.findAll('[role="tab"]')[0]!.trigger('click')
+    expect((w.get('textarea').element as HTMLTextAreaElement).value).toBe('')
   })
 
   it('switches between Feedback and Stay in touch', async () => {

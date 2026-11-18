@@ -4,7 +4,7 @@ let formCount = 0
 </script>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { KEEP_IN_TOUCH_COPY } from '@/content/feedback'
 import { postSubscriber } from '@/feedback/api'
 import { classifyContact } from '@/feedback/contactKind'
@@ -39,6 +39,7 @@ const ids = {
 }
 
 const status = ref<'idle' | 'sending' | 'done'>('idle')
+const done = ref<HTMLElement | null>(null)
 const invalid = ref(false)
 const error = ref('')
 const split = computed(() => props.layout === 'split')
@@ -56,6 +57,9 @@ async function submit() {
     await postSubscriber({ first_name: firstName.value.trim(), contact: contact.value.trim() })
     status.value = 'done'
     emit('done')
+    // The focused button is gone: the confirmation takes focus, and is announced.
+    await nextTick()
+    done.value?.focus()
   }
   catch (e) {
     error.value = (e as FeedbackError).summary
@@ -87,7 +91,10 @@ const inputClass = 'tw:mt-2 tw:min-h-12 tw:w-full tw:rounded-ctl tw:border tw:bg
 
     <div
       v-if="status === 'done'"
-      class="tw:flex tw:items-center tw:gap-4 tw:rounded-card tw:bg-[#E3F2E8] tw:p-5"
+      ref="done"
+      data-keep-in-touch-done
+      tabindex="-1"
+      class="tw:flex tw:items-center tw:gap-4 tw:rounded-card tw:bg-[#E3F2E8] tw:p-5 tw:focus:outline-none"
       :class="split ? '' : 'tw:mt-6'"
       role="status"
     >
@@ -144,7 +151,7 @@ const inputClass = 'tw:mt-2 tw:min-h-12 tw:w-full tw:rounded-ctl tw:border tw:bg
 
       <button
         type="submit"
-        :disabled="status === 'sending'"
+        :aria-disabled="status === 'sending' ? 'true' : undefined"
         class="tw:mt-5 tw:flex tw:min-h-12 tw:w-full tw:items-center tw:justify-center tw:gap-2 tw:rounded-ctl tw:bg-text
                tw:text-body tw:font-bold tw:text-white tw:shadow-sm tw:transition-[opacity,background-color]
                tw:hover:bg-[#2A2F3D] tw:disabled:opacity-60"
