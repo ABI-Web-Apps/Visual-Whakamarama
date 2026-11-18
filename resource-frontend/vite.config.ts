@@ -84,10 +84,9 @@ export default defineConfig(({ command }) => {
   const isPluginBuild = process.env.BUILD_AS_PLUGIN === 'true'
 
   return {
-    // A subpath deploy (GitHub Pages serves a project site under
-    // /<repo>/) sets APP_BASE_URL. The plugin resolves its own files at
-    // runtime from the bundle's URL, so it needs no base at all.
-    base: isPluginBuild ? '' : (process.env.APP_BASE_URL ?? '/'),
+    // The standalone site is served from the root. The plugin resolves its
+    // own files at runtime from the bundle's URL, so it needs no base at all.
+    base: isPluginBuild ? '' : '/',
 
     plugins: [
       vue(),

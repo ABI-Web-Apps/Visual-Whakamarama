@@ -149,11 +149,9 @@ export function useModalityScene(stage: StageApi, injectedBudget?: SceneBudget) 
   const { url } = useAssetUrl()
   /**
    * Where the self-hosted DRACO decoder lives (`public/draco/`), resolved
-   * against the deployment base: a GitHub Pages subpath deploy asks for
-   * `/te-uma/draco/` rather than `/draco/`, and the plugin build asks the
-   * folder its own bundle was served from. three appends the file names to
-   * this verbatim, applying no base of its own -- the same trap
-   * `resolveAssetBase` exists for on the model URLs.
+   * against the app's public base: the plugin build asks the folder its own
+   * bundle was served from. three appends the file names to this verbatim,
+   * applying no base of its own.
    */
   setDracoDecoderPath(`${publicBase().replace(/\/$/, '')}/draco/`)
 

@@ -9,13 +9,12 @@ place), and **My Report** shows their scan, one slice at a time or in 3D, with
 the marked areas, beside a findings report (PDF) built from a dataset held in
 MinIO.
 
-It runs three ways from one source tree:
+It runs two ways from one source tree:
 
 | Mode | What runs | Entry |
 |---|---|---|
 | **Plugin** | The clinical dashboard portal mounts the UMD bundle and deploys the backend | `yarn build:plugin`, `config.portal.json` |
 | **Standalone** | nginx + the Vue app + the FastAPI backend, via Docker | `docker compose up --build` |
-| **GitHub Pages** | The static app with the imaging catalogue copied beside it | `.github/workflows/deploy_on_github_pages.yml` |
 
 ```
 Visual-Whakamarama/
@@ -183,7 +182,7 @@ node scripts/optimize-assets.mjs   # -> resource-backend/static/modelView/
 The pipeline re-encodes NRRD volumes as gzip, compresses GLB geometry with
 Draco, and skips the 12 files an md5 audit identified as placeholder copies.
 The generated `resource-backend/static/modelView/` **is** committed: the
-backend image and the GitHub Pages build both copy it.
+backend image copies it.
 
 The four `density*.glb` anatomy models are derived from `density-3` by adding
 and removing whole mammary lobes:
@@ -260,8 +259,7 @@ Publishing a release deploys it to a server running the standalone stack.
 
 The release's commit must be on `main`: merge first. A release made from another
 branch fails before it reaches the server. To put an earlier release back,
-re-run its workflow run. A release also runs the GitHub Pages workflow, as
-before.
+re-run its workflow run.
 
 A first deploy into a folder set up by hand works. A git clone is updated in
 place, and a copied folder becomes a checkout. Compose names the stack after the
@@ -334,16 +332,6 @@ accident.
 After a change to `scripts/deploy/` or the workflow, run
 `bash scripts/deploy/test-server-deploy.sh`. It needs only bash and git: it runs
 the script on scratch folders with docker and curl stubbed.
-
-### GitHub Pages
-
-`.github/workflows/deploy_on_github_pages.yml` builds the standalone app under
-`/<repo>/`, copies the imaging catalogue beside it (`VITE_ASSET_BASE`), and
-publishes to the `gh-pages` branch. It runs on a new release, or on demand
-from the Actions tab. Pages has no backend, so that build leaves the patient pages out:
-setting `VITE_ASSET_BASE` hides My results and makes `/my-images`,
-`/my-images/mri`, `/my-report` (and the old `/my-mri`) 404
-(`hasBackend()` in `src/runtime/env.ts`).
 
 ## Important documentation
 

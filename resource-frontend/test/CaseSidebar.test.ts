@@ -19,14 +19,6 @@ function mountSidebar() {
   })
 }
 
-/**
- * The sidebar as it ships with a backend (standalone, plugin). The suite's
- * own `VITE_ASSET_BASE` (vitest.config.ts) is the GitHub Pages build's, which
- * has no backend and so no MY RESULTS group; that build has its own block.
- */
-beforeEach(() => { vi.stubEnv('VITE_ASSET_BASE', '') })
-afterEach(() => { vi.unstubAllEnvs() })
-
 /** Focus assertions need real DOM attachment (`document.activeElement`
  *  otherwise never updates) and a way to simulate "below xl" without a
  *  real browser evaluating the `max-xl:fixed` rule, since Tailwind's
@@ -320,19 +312,5 @@ describe('CaseSidebar: MY RESULTS group', () => {
   it('does not mark My Report active on a case page', () => {
     const wrapper = mountOn({ path: '/the-breast', name: 'case', params: { slug: 'the-breast' } })
     expect(reportLink(wrapper).attributes('aria-current')).toBeUndefined()
-  })
-})
-
-describe('CaseSidebar in a build without a backend (GitHub Pages)', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-    vi.stubEnv('VITE_ASSET_BASE', '/modelView/')
-  })
-
-  it('leaves out MY RESULTS, whose page needs the backend', () => {
-    const wrapper = mountSidebar()
-    expect(wrapper.findAll('h2').map(h => h.text()))
-      .toEqual(['Breast Density', 'Benign Conditions', 'Breast Cancer'])
-    expect(wrapper.findAll('a').some(a => a.attributes('href')!.startsWith('/my-'))).toBe(false)
   })
 })

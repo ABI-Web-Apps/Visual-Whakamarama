@@ -1,6 +1,5 @@
 import { getCase } from '@/content/cases'
 import { LEGACY_ROUTES } from '@/content/legacyRoutes'
-import { hasBackend } from '@/runtime/env'
 
 /**
  * The app's page table, without a router library.
@@ -15,14 +14,10 @@ import { hasBackend } from '@/runtime/env'
  *   /                      -> redirect to /the-breast (pages/index.vue)
  *   LEGACY_ROUTES          -> redirect (nuxt.config.ts's routeRules)
  *   /about                 -> about (pages/about.vue)
- *   /my-report             -> the patient's own scan and report (404 in a
- *                             build without a backend, see `hasBackend`)
- *   /my-mri                -> redirect to /my-report (the page's old name;
- *                             404 without a backend too)
+ *   /my-report             -> the patient's own scan and report
+ *   /my-mri                -> redirect to /my-report (the page's old name)
  *   /my-images             -> the patient's own anatomy, mammogram and MRI
- *                             (404 without a backend)
  *   /my-images/mri         -> that MRI: current slice, previous MRI, 3D
- *                             (404 without a backend)
  *   /:slug                 -> case, when the slug names an enabled case
  *   /:slug/:modality       -> case; an unknown modality falls back inside
  *                             the page, exactly as `[[modality]].vue` did
@@ -67,9 +62,7 @@ export function resolvePath(raw: string): Resolution {
     return { route: { path, name: 'about', params: {} } }
   }
 
-  // The patient pages need the backend. A build without one (GitHub Pages)
-  // cannot serve them, so their paths 404 there.
-  if (hasBackend() && segments.length === 1) {
+  if (segments.length === 1) {
     const page = segments[0]!.toLowerCase()
     if (page === 'my-report') return { route: { path, name: 'my-report', params: {} } }
     if (page === 'my-images') return { route: { path, name: 'my-images', params: {} } }
@@ -77,7 +70,7 @@ export function resolvePath(raw: string): Resolution {
     // the old Nuxt site's case paths, and its tests hold every target to a case.
     if (page === 'my-mri') return { redirect: '/my-report' }
   }
-  if (hasBackend() && segments.length === 2
+  if (segments.length === 2
     && segments[0]!.toLowerCase() === 'my-images' && segments[1]!.toLowerCase() === 'mri') {
     return { route: { path, name: 'my-images-mri', params: {} } }
   }
