@@ -3,7 +3,7 @@ import { useViewerStore } from '@/stores/viewer'
 import { useAssetUrl } from '@/composables/useAssetUrl'
 import { computed, nextTick, ref, watch } from 'vue'
 import { CASE_GROUP_LABEL, enabledCases } from '@/content/cases'
-import { organisations } from '@/content/team'
+import { shownLogos } from '@/content/team'
 import type { CaseGroup } from '@/content/types'
 import { GROUP_INK, RESULTS_INK } from '@/utils/groupInk'
 import ContactCta from '@/components/contact/ContactCta.vue'
@@ -299,7 +299,7 @@ function onKeydown(event: KeyboardEvent) {
       copy. `mt-auto` pins them to the bottom on tall viewports and lets them
       simply follow the list on short ones.
 
-      One link wrapping all three, to About, where the same organisations are
+      One link wrapping the shown logos (`shownLogos`), to About, where the same organisations are
       named in text: three separate outbound links here would be three tab
       stops on every page for something nobody navigates by.
 
@@ -319,7 +319,7 @@ function onKeydown(event: KeyboardEvent) {
     >
       <span class="tw:sr-only">About this resource and the team behind it</span>
       <img
-        v-for="org in organisations.filter(o => o.logo)"
+        v-for="org in shownLogos()"
         :key="org.name"
         :src="publicUrl(`logos/${org.logo}`)"
         :alt="org.name"

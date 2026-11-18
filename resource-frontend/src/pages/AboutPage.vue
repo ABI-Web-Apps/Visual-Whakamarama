@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useAssetUrl } from '@/composables/useAssetUrl'
 import { FEEDBACK_COPY } from '@/content/feedback'
-import { citations, organisations } from '@/content/team'
+import { citations, organisations, shownLogos } from '@/content/team'
 import { useFeedbackDialog } from '@/feedback/useFeedbackDialog'
 import ContactCta from '@/components/contact/ContactCta.vue'
 import AppLink from '@/navigation/AppLink.vue'
@@ -82,7 +82,7 @@ const fullWidthOrgs = computed(() =>
         Partners
       </h2>
       <ul class="tw:mt-5 tw:flex tw:flex-wrap tw:items-center tw:gap-x-12 tw:gap-y-8">
-        <li v-for="org in organisations.filter(o => o.logo)" :key="org.name">
+        <li v-for="org in shownLogos()" :key="org.name">
           <img
             :src="publicUrl(`logos/${org.logo}`)"
             :alt="org.name"

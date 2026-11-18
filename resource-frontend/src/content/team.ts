@@ -45,6 +45,12 @@ export interface Organisation {
    * artwork, and the artwork is what lives here.
    */
   logoWidth?: number
+  /**
+   * Keep the logo file but do not show it, anywhere. The organisation, its
+   * people and its name in the text are unaffected. Set back to false (or
+   * delete the line) to show the logo again.
+   */
+  logoHidden?: boolean
   members: TeamMember[]
 }
 
@@ -57,6 +63,8 @@ export const organisations: Organisation[] = [
   {
     name: 'Breast Cancer Foundation NZ',
     logo: 'breast-cancer-foundation-nz.webp',
+    // Hidden for now at the client's request (2026-11-18); to come back later.
+    logoHidden: true,
     // The legacy app's own ratios (Logo.vue: w-20 / w-32 / w-48).
     logoWidth: 5,
     members: ['Suzanne Bull', 'Natalie James'].map(member),
@@ -98,6 +106,11 @@ export const organisations: Organisation[] = [
     ].map(member),
   },
 ]
+
+/** The partner logos to show: every organisation with one, unless it is hidden. */
+export function shownLogos(): Organisation[] {
+  return organisations.filter(o => o.logo && !o.logoHidden)
+}
 
 export interface Citation {
   /** What this source provided, in this app's own words. */
