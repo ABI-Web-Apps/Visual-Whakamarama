@@ -24,8 +24,12 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
       - DERIVED_CACHE_DIR=/resource_backend/cache
+      # Anonymous feedback (JSON Lines) and the password that lists it.
+      - FEEDBACK_DIR=/resource_backend/feedback
+      - FEEDBACK_ADMIN_PASSWORD=${FEEDBACK_ADMIN_PASSWORD:-qwerty}
     volumes:
       - backend_cache:/resource_backend/cache
+      - feedback_data:/resource_backend/feedback
     depends_on:
       minio:
         condition: service_healthy
@@ -66,3 +70,4 @@ services:
 
 volumes:
   backend_cache:
+  feedback_data:

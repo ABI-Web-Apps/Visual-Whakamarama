@@ -18,6 +18,8 @@ and behind the portal's /plugin/<expose>/ location, which strips its prefix):
     GET /api/patients/<assay>/<cohort>/report.pdf              the report PDF (sub-1 only, for now)
     GET /api/patients/<assay>/<cohort>/report/pages            its pages: size in pt, text, version
     GET /api/patients/<assay>/<cohort>/report/pages/<n>.png    page n (0-based), 1600 px wide
+    POST /api/feedback              store one anonymous feedback entry
+    GET /api/feedback               every entry, newest first (X-Feedback-Password header)
 """
 
 import mimetypes
@@ -30,6 +32,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 from starlette.types import Scope
 
+from app.router.feedback import router as feedback_router
 from app.router.patients import router as patients_router
 from app.router.tool_config import router as tool_config_router
 
@@ -84,6 +87,7 @@ app.add_middleware(
 
 app.include_router(tool_config_router)
 app.include_router(patients_router)
+app.include_router(feedback_router)
 
 
 @app.get("/api/health")

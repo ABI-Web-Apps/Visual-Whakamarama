@@ -32,3 +32,8 @@ class Config:
 
     # Derived artefacts (meshes, report page images); never decompressed patient images.
     CACHE_DIR = Path(os.environ.get("DERIVED_CACHE_DIR", BACKEND_ROOT / "cache"))
+
+    # Anonymous feedback, one JSON line per entry (app/router/feedback.py). Docker: the
+    # feedback_data volume. The password opens the list; only the backend ever checks it.
+    FEEDBACK_DIR = Path(os.environ.get("FEEDBACK_DIR", BACKEND_ROOT / "feedback"))
+    FEEDBACK_ADMIN_PASSWORD = os.environ.get("FEEDBACK_ADMIN_PASSWORD", "qwerty")

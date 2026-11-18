@@ -9,3 +9,6 @@ venv/
 static/workdir/
 minio_data/
 cache/
+
+# Feedback readers posted to a local run (FEEDBACK_DIR's default)
+/feedback/
