@@ -1,4 +1,7 @@
-"""POST /api/feedback and GET /api/feedback: anonymous feedback, listed behind a password."""
+"""/api/feedback: anonymous feedback, listed and deleted behind a password.
+
+Fixtures `feedback_dir`, `sleeps` and `api` are in conftest.py (Stay in touch shares them).
+"""
 
 import json
 import logging
@@ -7,14 +10,14 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
-from fastapi.testclient import TestClient
 
-from app.main import app
-from app.router import feedback
 from app.services.feedback_store import FeedbackStore, RateLimiter
 from app.utils.setup import Config
 
+pytestmark = pytest.mark.usefixtures("feedback_dir")
+
 URL = "/api/feedback"
+PASSWORD = {"X-Feedback-Password": "qwerty"}
 CREATED_AT = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$")
 ENTRY_KEYS = {"id", "created_at", "rating", "comment", "page", "device", "app_version", "mode"}
 
@@ -30,30 +33,6 @@ def _body(**changes) -> dict:
     }
     body.update(changes)
     return body
-
-
-@pytest.fixture(autouse=True)
-def feedback_dir(tmp_path, monkeypatch):
-    """Feedback written to a fresh temp folder; the rate limiter starts empty; no real delay."""
-    folder = tmp_path / "feedback"
-    monkeypatch.setattr(Config, "FEEDBACK_DIR", folder)
-    monkeypatch.setattr(Config, "FEEDBACK_ADMIN_PASSWORD", "qwerty")
-    feedback.rate_limiter.clear()
-    yield folder
-    feedback.rate_limiter.clear()
-
-
-@pytest.fixture()
-def sleeps(monkeypatch) -> list:
-    """Records the delay a wrong password costs instead of waiting it out."""
-    calls = []
-    monkeypatch.setattr(feedback.time, "sleep", calls.append)
-    return calls
-
-
-@pytest.fixture()
-def api():
-    return TestClient(app)
 
 
 def _lines(folder) -> list[str]:
@@ -263,3 +242,87 @@ def test_rate_limiter_forgets_idle_addresses():
     now[0] += 11
     limiter.allow("10.0.1.1")
     assert limiter.tracked() <= 1
+
+
+# --- DELETE /api/feedback/{id} ---------------------------------------------------------------
+
+
+def test_delete_removes_exactly_one_line_and_leaves_the_others_byte_identical(api, feedback_dir):
+    ids = [api.post(URL, json=_body(comment=f"note {n} ā")).json()["id"] for n in range(3)]
+    path = feedback_dir / "feedback.jsonl"
+    # A line this app did not write (a hand edit) survives a rewrite untouched as well.
+    with path.open("ab") as handle:
+        handle.write(b'{"id": "hand", "comment": "spaced out"}\n{broken\n')
+    before = path.read_bytes().split(b"\n")
+
+    response = api.delete(f"{URL}/{ids[1]}", headers=PASSWORD)
+    assert response.status_code == 204
+    assert response.content == b""
+    after = path.read_bytes().split(b"\n")
+    assert after == before[:1] + before[2:]
+    assert [item["id"] for item in api.get(URL, headers=PASSWORD).json()["items"]] == ["hand", ids[2], ids[0]]
+    assert sorted(p.name for p in feedback_dir.iterdir()) == ["feedback.jsonl"]
+
+
+def test_delete_unknown_is_404(api, feedback_dir):
+    response = api.delete(f"{URL}/no-such-id", headers=PASSWORD)
+    assert response.status_code == 404
+    assert response.json() == {"detail": {"code": "not_found", "summary": "That entry no longer exists."}}
+
+    entry = api.post(URL, json=_body()).json()["id"]
+    raw = (feedback_dir / "feedback.jsonl").read_bytes()
+    assert api.delete(f"{URL}/no-such-id", headers=PASSWORD).status_code == 404
+    assert (feedback_dir / "feedback.jsonl").read_bytes() == raw
+    assert api.delete(f"{URL}/{entry}", headers=PASSWORD).status_code == 204
+    assert api.delete(f"{URL}/{entry}", headers=PASSWORD).json()["detail"]["code"] == "not_found"
+
+
+def test_delete_with_a_wrong_password_is_401_and_removes_nothing(api, feedback_dir, sleeps):
+    entry = api.post(URL, json=_body()).json()["id"]
+    raw = (feedback_dir / "feedback.jsonl").read_bytes()
+    for headers in ({}, {"X-Feedback-Password": "nope"}):
+        response = api.delete(f"{URL}/{entry}", headers=headers)
+        assert response.status_code == 401
+        assert response.json() == {"detail": {"code": "bad_password", "summary": "Wrong password."}}
+    # An unknown id with a wrong password says nothing about the id either.
+    assert api.delete(f"{URL}/no-such-id", headers={"X-Feedback-Password": "nope"}).status_code == 401
+    assert sleeps == [0.4] * 3
+    assert (feedback_dir / "feedback.jsonl").read_bytes() == raw
+
+
+def test_delete_the_last_entry_leaves_an_empty_file(api, feedback_dir):
+    entry = api.post(URL, json=_body()).json()["id"]
+    assert api.delete(f"{URL}/{entry}", headers=PASSWORD).status_code == 204
+    assert (feedback_dir / "feedback.jsonl").read_bytes() == b""
+    assert api.get(URL, headers=PASSWORD).json() == {"total": 0, "items": []}
+    assert api.post(URL, json=_body()).status_code == 201
+    assert len(_lines(feedback_dir)) == 1
+
+
+def test_an_append_after_a_line_missing_its_newline_starts_a_new_line(tmp_path):
+    path = tmp_path / "feedback.jsonl"
+    path.write_bytes(b'{"id":"1"}')
+    store = FeedbackStore(path)
+    store.append({"id": "2"})
+    assert path.read_bytes() == b'{"id":"1"}\n{"id":"2"}\n'
+    assert store.delete("2")
+    assert path.read_bytes() == b'{"id":"1"}\n'
+
+
+def test_upsert_updates_in_place_or_appends(tmp_path):
+    path = tmp_path / "subscribers.jsonl"
+    store = FeedbackStore(path)
+    first, created = store.upsert(lambda e: e["k"] == "a", {"id": "1", "k": "a", "n": ""}, {})
+    assert created and first == {"id": "1", "k": "a", "n": ""}
+    store.append({"id": "2", "k": "b", "n": "x"})
+    raw = path.read_bytes()
+
+    same, created = store.upsert(lambda e: e["k"] == "a", {"id": "3", "k": "a", "n": ""}, {})
+    assert not created and same["id"] == "1"
+    assert path.read_bytes() == raw  # nothing changed, nothing written
+
+    renamed, created = store.upsert(lambda e: e["k"] == "a", {"id": "4", "k": "a", "n": ""}, {"n": "Mere"})
+    assert not created and renamed == {"id": "1", "k": "a", "n": "Mere"}
+    lines = path.read_bytes().split(b"\n")
+    assert json.loads(lines[0]) == renamed and lines[1] == raw.split(b"\n")[1]
+    assert [e["id"] for e in store.read_all()] == ["2", "1"]

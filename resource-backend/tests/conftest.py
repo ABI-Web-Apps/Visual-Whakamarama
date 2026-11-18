@@ -262,3 +262,40 @@ def loaded_client_with_empty_mask(sparc_dataset, client, tool_config, cache_dir)
     assert client.post("/api/tool-config", json=tool_config).status_code == 200
     yield client
     patients.clear_mri_cache()
+
+
+@pytest.fixture()
+def feedback_dir(tmp_path, monkeypatch) -> Path:
+    """FEEDBACK_DIR (feedback and Stay in touch) redirected to a fresh temp folder, the review
+    password at its default, and both rate limits empty."""
+    from app.router import feedback, subscribers
+    from app.utils.setup import Config
+
+    folder = tmp_path / "feedback"
+    monkeypatch.setattr(Config, "FEEDBACK_DIR", folder)
+    monkeypatch.setattr(Config, "FEEDBACK_ADMIN_PASSWORD", "qwerty")
+    feedback.rate_limiter.clear()
+    subscribers.rate_limiter.clear()
+    yield folder
+    feedback.rate_limiter.clear()
+    subscribers.rate_limiter.clear()
+
+
+@pytest.fixture()
+def sleeps(monkeypatch) -> list:
+    """Records the delay a wrong review password costs instead of waiting it out."""
+    from app.router import common
+
+    calls = []
+    monkeypatch.setattr(common.time, "sleep", calls.append)
+    return calls
+
+
+@pytest.fixture()
+def api():
+    """A TestClient on the app, for the routes that need no MinIO."""
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    return TestClient(app)

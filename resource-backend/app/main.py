@@ -19,7 +19,14 @@ and behind the portal's /plugin/<expose>/ location, which strips its prefix):
     GET /api/patients/<assay>/<cohort>/report/pages            its pages: size in pt, text, version
     GET /api/patients/<assay>/<cohort>/report/pages/<n>.png    page n (0-based), 1600 px wide
     POST /api/feedback              store one anonymous feedback entry
-    GET /api/feedback               every entry, newest first (X-Feedback-Password header)
+    POST /api/subscribers           sign up to Stay in touch (an email or a mobile number)
+
+The review routes, all behind the X-Feedback-Password header:
+
+    GET /api/feedback               every feedback entry, newest first
+    DELETE /api/feedback/<id>       remove one
+    GET /api/subscribers            every Stay in touch sign-up, newest first
+    DELETE /api/subscribers/<id>    remove one
 """
 
 import mimetypes
@@ -34,6 +41,7 @@ from starlette.types import Scope
 
 from app.router.feedback import router as feedback_router
 from app.router.patients import router as patients_router
+from app.router.subscribers import router as subscribers_router
 from app.router.tool_config import router as tool_config_router
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -79,7 +87,8 @@ app = FastAPI(title="Visual Whakamārama", docs_url=None, redoc_url=None)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_methods=["GET", "HEAD", "POST", "OPTIONS"],
+    # DELETE: the feedback review page removes entries.
+    allow_methods=["GET", "HEAD", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["Content-Length", "ETag"],
 )
@@ -88,6 +97,7 @@ app.add_middleware(
 app.include_router(tool_config_router)
 app.include_router(patients_router)
 app.include_router(feedback_router)
+app.include_router(subscribers_router)
 
 
 @app.get("/api/health")
