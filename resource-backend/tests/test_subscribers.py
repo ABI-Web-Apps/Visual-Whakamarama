@@ -6,6 +6,7 @@ Fixtures `feedback_dir`, `sleeps` and `api` are in conftest.py.
 import json
 import re
 import uuid
+from datetime import datetime, timezone
 
 import pytest
 
@@ -18,6 +19,8 @@ PASSWORD = {"X-Feedback-Password": "qwerty"}
 ENTRY_KEYS = {"id", "created_at", "first_name", "contact", "contact_type"}
 CREATED_AT = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$")
 INVALID = {"detail": {"code": "invalid_contact", "summary": "Enter an email address or a mobile number."}}
+#: The whole answer to every accepted sign-up, new or repeat.
+OK = {"ok": True}
 
 
 def _entries(folder) -> list[dict]:
@@ -73,13 +76,16 @@ def test_invalid_contact_is_422(api, feedback_dir, raw):
     assert not (feedback_dir / "subscribers.jsonl").exists()
 
 
-def test_post_returns_201_with_uuid_and_utc_time(api):
-    response = api.post(URL, json={"contact": "kia@ora.nz"})
+def test_a_new_contact_is_201_ok_and_stored_with_uuid_and_utc_time(api, feedback_dir):
+    response = api.post(URL, json={"first_name": "Mere", "contact": "kia@ora.nz"})
     assert response.status_code == 201
-    body = response.json()
-    assert set(body) == {"id", "created_at"}
-    assert uuid.UUID(body["id"]).version == 4
-    assert CREATED_AT.match(body["created_at"])
+    assert response.json() == OK
+    [entry] = _entries(feedback_dir)
+    assert uuid.UUID(entry["id"]).version == 4
+    assert CREATED_AT.match(entry["created_at"])
+    created = datetime.strptime(entry["created_at"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+    assert abs((datetime.now(timezone.utc) - created).total_seconds()) < 5
+    assert entry["first_name"] == "Mere"
 
 
 def test_first_name_is_optional_trimmed_and_at_most_60(api, feedback_dir):
@@ -98,36 +104,27 @@ def test_unknown_or_missing_fields_are_422(api, feedback_dir):
     assert not (feedback_dir / "subscribers.jsonl").exists()
 
 
-def test_repeat_contact_is_200_with_the_same_entry(api, feedback_dir):
-    first = api.post(URL, json={"first_name": "Mere", "contact": "Kia@Ora.nz"})
-    assert first.status_code == 201
+def test_a_repeat_contact_answers_the_same_and_changes_nothing(api, feedback_dir):
+    """The answer must not tell anyone whether a contact is already on the list, and a repeat
+    must not let anyone rename someone else's entry."""
+    for contact in ("a@b.nz", "Kia@Ora.nz", "e@f.nz"):
+        assert api.post(URL, json={"first_name": "Mere", "contact": contact}).json() == OK
+    raw = (feedback_dir / "subscribers.jsonl").read_bytes()
 
-    again = api.post(URL, json={"first_name": "", "contact": " KIA@ora.NZ"})
-    assert again.status_code == 200
-    assert again.json() == first.json()
-    assert [e["first_name"] for e in _entries(feedback_dir)] == ["Mere"]
-
-    renamed = api.post(URL, json={"first_name": "Mereana", "contact": "kia@ora.nz"})
-    assert renamed.status_code == 200 and renamed.json() == first.json()
-    [entry] = _entries(feedback_dir)
-    assert entry == {**first.json(), "first_name": "Mereana", "contact": "kia@ora.nz", "contact_type": "email"}
+    for first_name in ("", "Mereana", "Someone else"):
+        response = api.post(URL, json={"first_name": first_name, "contact": " KIA@ora.NZ"})
+        assert response.status_code == 201
+        assert response.json() == OK
+    assert (feedback_dir / "subscribers.jsonl").read_bytes() == raw
+    assert [e["first_name"] for e in _entries(feedback_dir)] == ["Mere", "Mere", "Mere"]
 
 
 def test_repeat_phone_matches_however_it_is_spaced(api, feedback_dir):
-    first = api.post(URL, json={"contact": "021 123 4567"}).json()
-    again = api.post(URL, json={"contact": "021-123-4567"})
-    assert again.status_code == 200 and again.json() == first
-    assert len(_entries(feedback_dir)) == 1
-
-
-def test_a_rename_leaves_other_lines_byte_identical(api, feedback_dir):
-    for contact in ("a@b.nz", "c@d.nz", "e@f.nz"):
-        api.post(URL, json={"first_name": "Old", "contact": contact})
-    before = (feedback_dir / "subscribers.jsonl").read_bytes().split(b"\n")
-    api.post(URL, json={"first_name": "New", "contact": "c@d.nz"})
-    after = (feedback_dir / "subscribers.jsonl").read_bytes().split(b"\n")
-    assert after[0] == before[0] and after[2:] == before[2:]
-    assert json.loads(after[1])["first_name"] == "New"
+    assert api.post(URL, json={"contact": "021 123 4567"}).status_code == 201
+    raw = (feedback_dir / "subscribers.jsonl").read_bytes()
+    again = api.post(URL, json={"first_name": "Hēmi", "contact": "021-123-4567"})
+    assert again.status_code == 201 and again.json() == OK
+    assert (feedback_dir / "subscribers.jsonl").read_bytes() == raw
 
 
 def test_subscribers_are_kept_apart_from_feedback(api, feedback_dir):
@@ -155,28 +152,33 @@ def test_list_needs_the_password(api, sleeps):
     assert response.headers["cache-control"] == "no-store"
 
 
-def test_list_is_newest_first(api):
+def test_list_is_newest_first(api, feedback_dir):
     assert api.get(URL, headers=PASSWORD).json() == {"total": 0, "items": []}
-    ids = [api.post(URL, json={"first_name": f"P{n}", "contact": f"p{n}@x.nz"}).json()["id"] for n in range(3)]
-    # A repeat sign-up does not move an entry: it is listed by when it first signed up.
+    for n in range(3):
+        api.post(URL, json={"first_name": f"P{n}", "contact": f"p{n}@x.nz"})
+    ids = [e["id"] for e in _entries(feedback_dir)]
+    # A repeat sign-up does not move an entry, or rename it.
     api.post(URL, json={"first_name": "Again", "contact": "p0@x.nz"})
     body = api.get(URL, headers=PASSWORD).json()
     assert body["total"] == 3
     assert [item["id"] for item in body["items"]] == ids[::-1]
-    assert body["items"][2]["first_name"] == "Again"
+    assert body["items"][2]["first_name"] == "P0"
     assert all(set(item) == ENTRY_KEYS for item in body["items"])
 
 
 def test_delete_removes_exactly_one_line_and_leaves_the_others_byte_identical(api, feedback_dir):
-    ids = [api.post(URL, json={"contact": f"p{n}@x.nz"}).json()["id"] for n in range(3)]
+    for n in range(3):
+        api.post(URL, json={"contact": f"p{n}@x.nz"})
+    ids = [e["id"] for e in _entries(feedback_dir)]
     before = (feedback_dir / "subscribers.jsonl").read_bytes().split(b"\n")
     response = api.delete(f"{URL}/{ids[0]}", headers=PASSWORD)
     assert response.status_code == 204 and response.content == b""
     assert (feedback_dir / "subscribers.jsonl").read_bytes().split(b"\n") == before[1:]
     assert [item["id"] for item in api.get(URL, headers=PASSWORD).json()["items"]] == [ids[2], ids[1]]
     # Gone means gone: the same contact signs up afresh.
-    again = api.post(URL, json={"contact": "p0@x.nz"})
-    assert again.status_code == 201 and again.json()["id"] != ids[0]
+    assert api.post(URL, json={"contact": "p0@x.nz"}).status_code == 201
+    assert [e["contact"] for e in _entries(feedback_dir)] == ["p1@x.nz", "p2@x.nz", "p0@x.nz"]
+    assert ids[0] not in {e["id"] for e in _entries(feedback_dir)}
 
 
 def test_delete_unknown_is_404(api, feedback_dir):
@@ -195,7 +197,8 @@ def test_delete_a_feedback_id_here_is_404(api, feedback_dir):
 
 
 def test_delete_with_a_wrong_password_is_401_and_removes_nothing(api, feedback_dir, sleeps):
-    entry = api.post(URL, json={"contact": "kia@ora.nz"}).json()["id"]
+    api.post(URL, json={"contact": "kia@ora.nz"})
+    [entry] = [e["id"] for e in _entries(feedback_dir)]
     raw = (feedback_dir / "subscribers.jsonl").read_bytes()
     response = api.delete(f"{URL}/{entry}", headers={"X-Feedback-Password": "nope"})
     assert response.status_code == 401

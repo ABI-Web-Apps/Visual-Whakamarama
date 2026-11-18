@@ -4,9 +4,12 @@ password.
 
 Stored in `<FEEDBACK_DIR>/subscribers.jsonl`, apart from feedback, so nothing ties a comment to
 a contact. One line per contact: `{id, created_at, first_name, contact, contact_type}`, the
-contact normalised (see `classify_contact`). Signing up again with the same contact keeps that
-line, its `id` and its `created_at`, and updates the first name when a new one is given. As with
-feedback, the client address is used only by the in-memory rate limit, never stored.
+contact normalised (see `classify_contact`). As with feedback, the client address is used only
+by the in-memory rate limit, never stored.
+
+Every accepted sign-up gets the same answer, 201 `{"ok": true}`, and signing up again with a
+contact already on the list changes nothing. A different answer would tell anyone whether an
+address is on the list, and an update would let anyone rename someone else's entry.
 """
 
 import re
@@ -68,8 +71,8 @@ def _store() -> FeedbackStore:
 
 
 @router.post("/api/subscribers", status_code=201)
-def post_subscriber(body: SubscriberIn, request: Request):
-    """201 `{id, created_at}` for a new contact; 200 with the existing entry's for a repeat."""
+def post_subscriber(body: SubscriberIn, request: Request) -> dict:
+    """201 `{"ok": true}`: stored when the contact is new, nothing changed when it is not."""
     classified = classify_contact(body.contact)
     if classified is None:
         raise api_error(422, "invalid_contact", "Enter an email address or a mobile number.")
@@ -83,12 +86,8 @@ def post_subscriber(body: SubscriberIn, request: Request):
         "contact": contact,
         "contact_type": contact_type,
     }
-    changes = {"first_name": body.first_name} if body.first_name else {}
-    stored, created = _store().upsert(lambda e: e.get("contact") == contact, entry, changes)
-    return JSONResponse(
-        content={"id": stored.get("id"), "created_at": stored.get("created_at")},
-        status_code=201 if created else 200,
-    )
+    _store().upsert(lambda e: e.get("contact") == contact, entry, changes={})
+    return {"ok": True}
 
 
 @router.get("/api/subscribers", dependencies=[Depends(require_review_password)])
