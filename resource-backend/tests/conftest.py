@@ -3,7 +3,6 @@
 import copy
 import json
 from pathlib import Path
-from typing import NamedTuple
 
 import nibabel as nib
 import numpy as np
@@ -177,13 +176,6 @@ class FakeMinio:
         return _FakeStat(self._path(bucket, key))
 
 
-@pytest.fixture(autouse=True)
-def _no_demo_readings(monkeypatch):
-    """The fixtures' cohort is called sub-1 and has the demo's two findings, so the bundled demo
-    reading would fill it. Off for every test; tests/test_demo_reading.py turns it on."""
-    monkeypatch.setenv("DEMO_READINGS", "0")
-
-
 @pytest.fixture()
 def fake_minio(sparc_dataset) -> FakeMinio:
     return FakeMinio(sparc_dataset)
@@ -270,28 +262,3 @@ def loaded_client_with_empty_mask(sparc_dataset, client, tool_config, cache_dir)
     assert client.post("/api/tool-config", json=tool_config).status_code == 200
     yield client
     patients.clear_mri_cache()
-
-
-class ReportInputs(NamedTuple):
-    """What the report builders take after the cohort: findings, volume bytes, mask bytes."""
-
-    findings: object
-    volume: bytes
-    mask: bytes
-
-
-@pytest.fixture()
-def loaded_service(fake_minio) -> ReportInputs:
-    """sub-1's parsed findings plus its registration-1 volume and mask bytes, read through
-    `fake_minio` the way the report route reads them. Unpacks straight into
-    `build_report_html("sub-1", *loaded_service, zone)`."""
-    from app.reports import schema
-    from app.services.minio_service import MinIOService
-
-    service = MinIOService(client=fake_minio)
-    base = "http://localhost:9000/measurements/workdir/primary/sub-1"
-    return ReportInputs(
-        findings=schema.loads(service.read_object_bytes(f"{base}/sam-3/f.json")),
-        volume=service.read_object_bytes(f"{base}/sam-1/c1.nrrd"),
-        mask=service.read_object_bytes(f"{base}/sam-2/m.nii.gz"),
-    )

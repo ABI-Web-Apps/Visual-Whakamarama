@@ -26,6 +26,3 @@ Thumbs.db
 static/workdir/
 minio_data/
 cache/
-
-# The demo reading and its measuring script are uploaded to MinIO, not served
-demo/

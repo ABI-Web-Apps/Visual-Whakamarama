@@ -30,5 +30,5 @@ class Config:
     MINIO_SECRET_KEY = os.environ.get("MINIO_SECRET_KEY", "minioadmin")
     MINIO_SECURE = os.environ.get("MINIO_SECURE", "false").lower() in ("true", "1")
 
-    # Derived artefacts (meshes, report assets); never decompressed patient images.
+    # Derived artefacts (meshes, report page images); never decompressed patient images.
     CACHE_DIR = Path(os.environ.get("DERIVED_CACHE_DIR", BACKEND_ROOT / "cache"))

@@ -1,5 +1,5 @@
 """Per-patient reads: the MRI volume (contrast phase 1, registered), the findings record, the
-mask mesh and the report PDF."""
+mask mesh, and the report PDF with its pages as images."""
 
 import gzip
 import logging
@@ -8,15 +8,14 @@ import threading
 import zlib
 from collections import OrderedDict
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse, Response
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse, JSONResponse, Response
 from minio.error import S3Error
 from pydantic import ValidationError
 
-from app.reports import schema
-from app.reports.template import resolve_zone
+from app.reports import schema, summary
 from app.router.tool_config import get_minio_service
-from app.services import mesh, report
+from app.services import mesh
 from app.services.assay_registry import registry
 from app.services.derived_cache import DerivedCache
 from app.services.minio_service import MinIOService
@@ -41,6 +40,9 @@ _mri_cache_lock = threading.Lock()
 _GZIP_MAGIC = b"\x1f\x8b"
 _ENCODING_LINE = re.compile(rb"^encoding:[ \t]*.*$", re.IGNORECASE | re.MULTILINE)
 _UNSAFE_FILENAME = re.compile(r"[^A-Za-z0-9._-]")
+
+#: Width of a report page image: sharp on a phone held upright at 3x and on a tablet at 2x.
+_PAGE_WIDTH_PX = 1600
 
 #: Every patient response: a browser must not keep patient data, not even heuristically.
 _NO_STORE = {"Cache-Control": "no-store"}
@@ -194,73 +196,23 @@ def get_mask_glb(assay_uuid: str, cohort: str, service: MinIOService = Depends(g
     return FileResponse(path, media_type="model/gltf-binary", headers=_NO_STORE)
 
 
-def _zone_key(zone) -> str:
-    return getattr(zone, "key", None) or "UTC"
+def _summary_or_404(assay_uuid: str, cohort: str) -> bytes:
+    """The cohort's report PDF: 409/404 for an unknown assay or cohort, as every patient read;
+    404 `no_report` when the cohort has no report."""
+    resolved_input(assay_uuid, cohort, FINDINGS_SAMPLE_TYPE)
+    pdf = summary.summary_pdf(cohort)
+    if pdf is None:
+        raise _error(404, "no_report", "No report is available for this scan.")
+    return pdf
 
 
 @router.get("/api/patients/{assay_uuid}/{cohort}/report.pdf")
-def get_report_pdf(
-    assay_uuid: str,
-    cohort: str,
-    tz: str | None = Query(None, description="The reader's IANA time zone; the report prints its times in it"),
-    service: MinIOService = Depends(get_minio_service),
-):
-    """The findings report as a PDF, rendered on first request and then served from the cache.
-
-    A plain `def` route, so FastAPI runs it, and the render, in the threadpool: a render never
-    blocks other requests. The cache key names the cohort, every source object's identity, the
-    reader's zone and the report's own version, so a re-uploaded input, another zone or a
-    changed template each get a fresh render. The cohort is there because an identity comes
-    from an object's bytes, not its path, and the report prints the cohort: two patients with
-    identical inputs must not share a PDF.
-    """
-    findings_url = resolved_input(assay_uuid, cohort, FINDINGS_SAMPLE_TYPE)
-    findings_identity = _identity_or_none(service, findings_url)
-    if findings_url is None or findings_identity is None:
-        raise _error(404, "no_findings", f"Cohort {cohort} has no findings record.")
-    volume_url = resolved_input(assay_uuid, cohort, MRI_SAMPLE_TYPE)
-    volume_identity = _identity_or_none(service, volume_url)
-    mask_url = resolved_input(assay_uuid, cohort, MASK_SAMPLE_TYPE)
-    mask_identity = _identity_or_none(service, mask_url)
-    zone = resolve_zone(tz)
-    key = ":".join([
-        "pdf",
-        cohort,
-        volume_identity or "none",
-        mask_identity or "none",
-        findings_identity,
-        _zone_key(zone),
-        report.report_version(),
-    ])
-
-    def unavailable(e: report.ReportUnavailable) -> HTTPException:
-        logger.warning("no report for %s: %s", cohort, e)
-        return _error(503, "report_unavailable", "Report rendering needs the Docker backend.")
-
-    def build() -> bytes:
-        # Before any download: on a host without WeasyPrint the volumes would be read for nothing.
-        try:
-            report.require_weasyprint()
-        except report.ReportUnavailable as e:
-            raise unavailable(e) from e
-        record = _load_findings(service, findings_url, cohort)
-        # An input absent from the dataset renders as a reason in the report. One that exists
-        # but fails to download is transient: refusing it keeps a degraded PDF out of a cache
-        # entry keyed on that object's identity, where it would otherwise stay. Without a mask
-        # there is nothing to outline, so the volume is not downloaded at all.
-        mask = service.read_object_bytes(mask_url) if mask_identity else None
-        volume = service.read_object_bytes(volume_url) if volume_identity and mask is not None else None
-        if (mask_identity and mask is None) or (mask is not None and volume_identity and volume is None):
-            raise _error(503, "input_unreadable", "An imaging input could not be read; try again.")
-        try:
-            return report.build_report_pdf(cohort, record, volume, mask, zone, assay_uuid=assay_uuid)
-        except report.ReportUnavailable as e:
-            raise unavailable(e) from e
-
-    path = DerivedCache(Config.CACHE_DIR).get_or_build(key, ".pdf", build)
+def get_report_pdf(assay_uuid: str, cohort: str):
+    """The cohort's report PDF, as it was delivered (`app.reports.summary`)."""
+    pdf = _summary_or_404(assay_uuid, cohort)
     filename = f"{_UNSAFE_FILENAME.sub('_', cohort)}-mri-report.pdf"
-    return FileResponse(
-        path,
+    return Response(
+        content=pdf,
         media_type="application/pdf",
         headers={
             # inline, so an iframe previews it rather than downloading it.
@@ -268,3 +220,30 @@ def get_report_pdf(
             **_NO_STORE,
         },
     )
+
+
+@router.get("/api/patients/{assay_uuid}/{cohort}/report/pages")
+def get_report_pages(assay_uuid: str, cohort: str):
+    """The report's pages, for the page-image reader on touch devices: each page's size in
+    points and its text (for screen readers), plus a version that changes with the PDF."""
+    pdf = _summary_or_404(assay_uuid, cohort)
+    body = {"version": summary.pdf_version(pdf), "pages": summary.page_info(pdf)}
+    return JSONResponse(content=body, headers=_NO_STORE)
+
+
+@router.get("/api/patients/{assay_uuid}/{cohort}/report/pages/{index}.png")
+def get_report_page_png(assay_uuid: str, cohort: str, index: int):
+    """Page `index` (0-based) of the report as a PNG `_PAGE_WIDTH_PX` wide, rendered on first
+    request and then served from the cache. The key is the PDF's digest, so a changed report
+    is rendered afresh; 404 `no_page` past the last page (or before the first)."""
+    pdf = _summary_or_404(assay_uuid, cohort)
+
+    def build() -> bytes:
+        try:
+            return summary.render_page_png(pdf, index, _PAGE_WIDTH_PX)
+        except IndexError as e:
+            raise _error(404, "no_page", f"The report has no page {index}.") from e
+
+    key = f"report-page:{summary.pdf_version(pdf)}:{index}:{_PAGE_WIDTH_PX}"
+    path = DerivedCache(Config.CACHE_DIR).get_or_build(key, ".png", build)
+    return FileResponse(path, media_type="image/png", headers=_NO_STORE)

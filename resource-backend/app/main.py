@@ -15,7 +15,9 @@ and behind the portal's /plugin/<expose>/ location, which strips its prefix):
     GET /api/patients/<assay>/<cohort>/mri       registration-1 volume, gzip-encoded NRRD
     GET /api/patients/<assay>/<cohort>/findings  the findings record
     GET /api/patients/<assay>/<cohort>/mask.glb  the mask as one coloured mesh per label
-    GET /api/patients/<assay>/<cohort>/report.pdf?tz=<IANA>  the findings report PDF
+    GET /api/patients/<assay>/<cohort>/report.pdf              the report PDF (sub-1 only, for now)
+    GET /api/patients/<assay>/<cohort>/report/pages            its pages: size in pt, text, version
+    GET /api/patients/<assay>/<cohort>/report/pages/<n>.png    page n (0-based), 1600 px wide
 """
 
 import mimetypes
