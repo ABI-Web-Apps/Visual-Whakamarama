@@ -83,7 +83,7 @@ const feedback = useFeedbackDialog()
               <p class="tw:mt-0.5 tw:text-body-sm tw:text-text-muted">{{ person.role }}</p>
             </div>
           </div>
-          <EmailButton class="tw:mt-auto" :email="person.email" :name="person.name" />
+          <EmailButton :email="person.email" :name="person.name" />
         </li>
       </ul>
 

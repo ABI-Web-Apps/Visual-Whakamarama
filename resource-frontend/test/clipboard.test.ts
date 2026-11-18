@@ -45,6 +45,16 @@ describe('copyText', () => {
     expect(document.querySelector('textarea')).toBeNull()
   })
 
+  it('gives focus back to where it was after the textarea fallback', async () => {
+    setSecure(false)
+    setClipboard(undefined)
+    const button = document.createElement('button')
+    document.body.appendChild(button)
+    button.focus()
+    await copyText('x@y.z')
+    expect(document.activeElement).toBe(button)
+  })
+
   it('falls back when the Clipboard API refuses (no permission)', async () => {
     setSecure(true)
     setClipboard({ writeText: vi.fn(async () => { throw new DOMException('denied', 'NotAllowedError') }) })

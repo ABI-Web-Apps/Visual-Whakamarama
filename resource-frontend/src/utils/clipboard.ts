@@ -19,6 +19,8 @@ export async function copyText(text: string): Promise<boolean> {
 }
 
 function copyWithSelection(text: string): boolean {
+  // Selecting the textarea takes focus; it goes back where it was after.
+  const before = document.activeElement as HTMLElement | null
   const area = document.createElement('textarea')
   area.value = text
   area.setAttribute('readonly', '')
@@ -38,5 +40,6 @@ function copyWithSelection(text: string): boolean {
   }
   finally {
     area.remove()
+    before?.focus?.({ preventScroll: true })
   }
 }

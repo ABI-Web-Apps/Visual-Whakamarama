@@ -39,6 +39,13 @@ export const CONTACT_COPY = {
   copyFailed: (email: string) => `Copying isn't available here. The address is ${email}.`,
   emailLabel: (name: string, email: string) => `Email ${name} at ${email}`,
   copyLabel: (email: string) => `Copy ${email}`,
+  /** When no mail app took the click (none set up, as often on Windows). */
+  noApp: 'No email app opened.',
+  noAppCopied: 'The address is copied: paste it into your email, or write from the web.',
+  noAppNotCopied: (email: string) => `Write to ${email}, or from the web.`,
+  outlook: 'Outlook',
+  gmail: 'Gmail',
+  close: 'Close',
   /** The sidebar's and About's way in. */
   ctaQuestion: 'Questions about this resource?',
   /** The sidebar is 240px wide: the short form keeps the card to two lines. */
@@ -51,6 +58,16 @@ const SUBJECT = 'About Visual Whakamārama'
 /** A mail link with the subject filled in, so the reader's message says what it is about. */
 export function mailtoHref(email: string): string {
   return `mailto:${email}?subject=${encodeURIComponent(SUBJECT)}`
+}
+
+/** A new message in Outlook on the web (the University's own mail), to and subject filled in. */
+export function outlookComposeHref(email: string): string {
+  return `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(email)}&subject=${encodeURIComponent(SUBJECT)}`
+}
+
+/** A new message in Gmail, to and subject filled in. */
+export function gmailComposeHref(email: string): string {
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(SUBJECT)}`
 }
 
 /** "Dr Alex Trevarton" -> "AT": the first and last names' initials, titles left out. */
