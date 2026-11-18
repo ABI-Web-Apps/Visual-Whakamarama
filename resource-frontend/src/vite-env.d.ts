@@ -12,8 +12,6 @@ interface ImportMetaEnv {
   /** Dev only: where the FastAPI backend listens. */
   readonly VITE_PLUGIN_API_URL?: string
   readonly VITE_PLUGIN_API_PORT?: string
-  /** Optional imaging base for a deploy with no backend. */
-  readonly VITE_ASSET_BASE?: string
 }
 
 interface ImportMeta {

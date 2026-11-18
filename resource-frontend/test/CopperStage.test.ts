@@ -386,12 +386,12 @@ describe('CopperStage navigation choreography', () => {
     mountStage({})
     await settle()
 
-    expect(renderer.createScene).toHaveBeenCalledWith('/modelView/density-1/left/density25.glb', { controls: 'copper3d' })
+    expect(renderer.createScene).toHaveBeenCalledWith('http://localhost:8082/api/modelView/density-1/left/density25.glb', { controls: 'copper3d' })
     expect(gltfLoad).toHaveBeenCalledTimes(1)
-    expect(gltfLoad.mock.calls[0]![0]).toBe('/modelView/density-1/left/density25.glb')
+    expect(gltfLoad.mock.calls[0]![0]).toBe('http://localhost:8082/api/modelView/density-1/left/density25.glb')
     // The new guarantee this app now owns instead of copper3d: without this
     // call the model would decode perfectly and simply never appear.
-    expect(scenes.get('/modelView/density-1/left/density25.glb')!.scene.add).toHaveBeenCalledTimes(1)
+    expect(scenes.get('http://localhost:8082/api/modelView/density-1/left/density25.glb')!.scene.add).toHaveBeenCalledTimes(1)
   })
 
   /**
@@ -435,7 +435,7 @@ describe('CopperStage navigation choreography', () => {
   it('crossfades within the existing scene on a density step, without loading a second scene', async () => {
     const wrapper = mountStage({})
     await settle()
-    const scene = scenes.get('/modelView/density-1/left/density25.glb')!
+    const scene = scenes.get('http://localhost:8082/api/modelView/density-1/left/density25.glb')!
     expect(scene.objects).toHaveLength(1)
 
     await wrapper.setProps({ slug: 'density-b', modality: DENSITY_B })
@@ -447,7 +447,7 @@ describe('CopperStage navigation choreography', () => {
     // The incoming model was loaded into the SAME scene and the outgoing one
     // removed once the crossfade committed.
     expect(gltfLoad).toHaveBeenCalledTimes(2)
-    expect(gltfLoad.mock.calls[1]![0]).toBe('/modelView/density-2/left/density50.glb')
+    expect(gltfLoad.mock.calls[1]![0]).toBe('http://localhost:8082/api/modelView/density-2/left/density50.glb')
     // Adding the incoming model to the scene is this app's own job now, not
     // copper3d's -- once for the initial load, once for the morph.
     expect(scene.scene.add).toHaveBeenCalledTimes(2)
@@ -461,7 +461,7 @@ describe('CopperStage navigation choreography', () => {
   it('leaves the camera exactly where it was through a density crossfade', async () => {
     const wrapper = mountStage({})
     await settle()
-    const scene = scenes.get('/modelView/density-1/left/density25.glb')!
+    const scene = scenes.get('http://localhost:8082/api/modelView/density-1/left/density25.glb')!
     scene.camera.position.set(5, 6, 7)
     scene.loadView.mockClear()
 
@@ -547,9 +547,9 @@ describe('CopperStage navigation choreography', () => {
 
     // One scene, built once, for one file -- not one per case.
     expect(renderer.createScene).toHaveBeenCalledTimes(1)
-    expect(renderer.createScene).toHaveBeenCalledWith('/modelView/density-1/left/density25.glb', { controls: 'copper3d' })
+    expect(renderer.createScene).toHaveBeenCalledWith('http://localhost:8082/api/modelView/density-1/left/density25.glb', { controls: 'copper3d' })
     // And the model in it is left alone: no teardown, no second download.
-    expect(scenes.get('/modelView/density-1/left/density25.glb')!.scene.remove).not.toHaveBeenCalled()
+    expect(scenes.get('http://localhost:8082/api/modelView/density-1/left/density25.glb')!.scene.remove).not.toHaveBeenCalled()
     expect(gltfLoad).toHaveBeenCalledTimes(1)
   })
 
@@ -571,7 +571,7 @@ describe('CopperStage navigation choreography', () => {
 
     const wrapper = mountStage({})
     await settle()
-    const first = scenes.get('/modelView/density-1/left/density25.glb')!
+    const first = scenes.get('http://localhost:8082/api/modelView/density-1/left/density25.glb')!
 
     // Hold density-b's GLB open, as a slow network would.
     let landB!: () => void
@@ -627,7 +627,7 @@ describe('CopperStage navigation choreography', () => {
 
     const wrapper = mountStage({})
     await settle()
-    const scene = scenes.get('/modelView/density-1/left/density25.glb')!
+    const scene = scenes.get('http://localhost:8082/api/modelView/density-1/left/density25.glb')!
     const outgoing = scene.objects[0]!
 
     await wrapper.setProps({ slug: 'density-b', modality: DENSITY_B })

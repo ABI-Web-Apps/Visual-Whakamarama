@@ -3,18 +3,15 @@ import { useViewerStore } from '@/stores/viewer'
 import { useAssetUrl } from '@/composables/useAssetUrl'
 import { computed, nextTick, ref, watch } from 'vue'
 import { CASE_GROUP_LABEL, enabledCases } from '@/content/cases'
-import { organisations } from '@/content/team'
+import { shownLogos } from '@/content/team'
 import type { CaseGroup } from '@/content/types'
 import { GROUP_INK, RESULTS_INK } from '@/utils/groupInk'
+import ContactCta from '@/components/contact/ContactCta.vue'
 import AppLink from '@/navigation/AppLink.vue'
 import { useOptionalPageRoute } from '@/navigation/router'
-import { hasBackend } from '@/runtime/env'
 
 const store = useViewerStore()
 const { publicUrl } = useAssetUrl()
-
-/** MY RESULTS is the patient's own data, which only a build with the backend can serve. */
-const showResults = hasBackend()
 
 // Pages are kept alive, so the page's own route is the one to read; the
 // stored case slug alone would keep a case row lit while My Report is open.
@@ -138,6 +135,14 @@ watch(() => store.sidebarOpen, (open) => {
   }
 })
 
+/** Choosing anything in the drawer closes it: the reader came for that page,
+ *  and should not have to shut the menu by hand (client feedback,
+ *  2026-11-18). No-op at xl+, where the sidebar is resident. */
+function onNavClick(event: MouseEvent) {
+  if (!store.sidebarOpen || !isDrawerMode()) return
+  if ((event.target as Element | null)?.closest?.('a')) store.sidebarOpen = false
+}
+
 /** Escape closes the drawer; Tab traps focus inside it while it's the
  *  modal drawer. Both no-op at xl+, where this <nav> is not a modal. */
 function onKeydown(event: KeyboardEvent) {
@@ -172,6 +177,7 @@ function onKeydown(event: KeyboardEvent) {
     aria-label="Cases"
     class="tw:pane-flat tw:flex tw:w-60 tw:shrink-0 tw:flex-col tw:gap-6 tw:overflow-y-auto tw:border-r tw:border-border tw:p-4"
     @keydown="onKeydown"
+    @click="onNavClick"
   >
     <AppLink
       v-if="home"
@@ -249,7 +255,7 @@ function onKeydown(event: KeyboardEvent) {
       </ul>
     </div>
 
-    <div v-if="showResults">
+    <div>
       <h2
         class="tw:mb-2 tw:flex tw:items-center tw:gap-1.5 tw:px-2 tw:text-caption tw:font-bold tw:uppercase tw:tracking-wide"
         :class="RESULTS_INK"
@@ -302,7 +308,7 @@ function onKeydown(event: KeyboardEvent) {
       copy. `mt-auto` pins them to the bottom on tall viewports and lets them
       simply follow the list on short ones.
 
-      One link wrapping all three, to About, where the same organisations are
+      One link wrapping the shown logos (`shownLogos`), to About, where the same organisations are
       named in text: three separate outbound links here would be three tab
       stops on every page for something nobody navigates by.
 
@@ -310,14 +316,19 @@ function onKeydown(event: KeyboardEvent) {
       placed against anything further out, it sat below the window and
       stretched the page.
     -->
+    <!-- Contact us, above the logos and pinned to the foot with them
+         (`mt-auto` moved here from the logos' link). On a phone this is the
+         way to it: the header has no room there (AppHeader). -->
+    <ContactCta class="tw:mt-auto" />
+
     <AppLink
       to="/about"
-      class="tw:relative tw:mt-auto tw:flex tw:flex-col tw:items-start tw:gap-3 tw:rounded-card tw:border-t tw:border-border
+      class="tw:relative tw:-mt-2 tw:flex tw:flex-col tw:items-start tw:gap-3 tw:rounded-card tw:border-t tw:border-border
              tw:px-2 tw:pb-1 tw:pt-5 tw:opacity-70 tw:transition-opacity tw:hover:opacity-100"
     >
       <span class="tw:sr-only">About this resource and the team behind it</span>
       <img
-        v-for="org in organisations.filter(o => o.logo)"
+        v-for="org in shownLogos()"
         :key="org.name"
         :src="publicUrl(`logos/${org.logo}`)"
         :alt="org.name"

@@ -45,6 +45,12 @@ export interface Organisation {
    * artwork, and the artwork is what lives here.
    */
   logoWidth?: number
+  /**
+   * Keep the logo file but do not show it, anywhere. The organisation, its
+   * people and its name in the text are unaffected. Set back to false (or
+   * delete the line) to show the logo again.
+   */
+  logoHidden?: boolean
   members: TeamMember[]
 }
 
@@ -57,15 +63,19 @@ export const organisations: Organisation[] = [
   {
     name: 'Breast Cancer Foundation NZ',
     logo: 'breast-cancer-foundation-nz.webp',
+    // Hidden for now at the client's request (2026-11-18); to come back later.
+    logoHidden: true,
     // The legacy app's own ratios (Logo.vue: w-20 / w-32 / w-48).
     logoWidth: 5,
-    members: ['Suzanne Bull', 'Natalie James'].map(member),
+    // Its people are no longer listed (client request, 2026-11-18); the
+    // organisation stays for its partnership and its (hidden) logo.
+    members: [],
   },
   {
     name: 'Iwi United Engaged',
     logo: 'iwi-united-engaged.webp',
     logoWidth: 8,
-    members: ['Kika Faagatu', 'Misty Edmonds'].map(member),
+    members: ['Misty Edmonds'].map(member),
   },
   {
     /**
@@ -98,6 +108,17 @@ export const organisations: Organisation[] = [
     ].map(member),
   },
 ]
+
+/** The partner logos to show: every organisation with one, unless it is hidden. */
+export function shownLogos(): Organisation[] {
+  return organisations.filter(o => o.logo && !o.logoHidden)
+}
+
+/**
+ * People who worked on this resource before, thanked by name only (no photo,
+ * no role), as the client asked. Written exactly as the client gave them.
+ */
+export const PAST_CONTRIBUTORS: string[] = ['Talia', 'Iosefa']
 
 export interface Citation {
   /** What this source provided, in this app's own words. */
@@ -137,6 +158,3 @@ export const citations: Citation[] = [
   },
 ]
 
-/** The legacy app's feedback form (frontend/components/about/AboutUs.vue). */
-export const FEEDBACK_FORM_URL
-  = 'https://docs.google.com/forms/d/e/1FAIpQLScsab93B7uPg389gxCNfCSgG4sMNIFk_mxDFTFF_-UC2TcSJQ/viewform?usp=sf_link'

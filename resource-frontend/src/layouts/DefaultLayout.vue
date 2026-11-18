@@ -208,7 +208,7 @@ onMounted(() => { tourMounted.value = true })
           id="case-content-panel"
           data-tour-region
           class="tw:pane-flat tw:shrink-0 tw:border-border
-                 tw:max-md:border-t
+                 tw:max-md:border-t tw:max-md:pb-20 tw:xl:pb-20
                  tw:md:max-xl:fixed tw:md:max-xl:inset-x-0 tw:md:max-xl:bottom-0 tw:md:max-xl:z-10 tw:md:max-xl:overflow-y-auto
                  tw:md:max-xl:rounded-t-card tw:md:max-xl:border tw:md:max-xl:pane-lift
                  tw:md:max-xl:transition-[max-height] tw:md:max-xl:duration-200

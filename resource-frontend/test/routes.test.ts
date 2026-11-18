@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { enabledCases } from '../src/content/cases'
 import { HOME_PATH, normalisePath, resolveFinal, resolvePath } from '../src/navigation/routes'
 
@@ -7,59 +7,47 @@ import { HOME_PATH, normalisePath, resolveFinal, resolvePath } from '../src/navi
  * one the old app had: index.vue's redirect, the `[slug]/[[modality]]`
  * page with its `validate` guard, about.vue, and the router's own matching.
  */
-/**
- * The patient pages need the backend, so only a build that has one serves
- * them. The suite's own `VITE_ASSET_BASE` (vitest.config.ts) is the GitHub
- * Pages build's, which has none; each case here picks its build explicitly.
- */
-describe('/my-report by build', () => {
-  afterEach(() => { vi.unstubAllEnvs() })
-
-  it('serves /my-report, case-insensitively, where a backend is deployed', () => {
-    vi.stubEnv('VITE_ASSET_BASE', '')
+/** Every build has the backend, so the patient pages are always in the table. */
+describe('/my-report', () => {
+  it('serves /my-report, case-insensitively', () => {
     expect(resolvePath('/my-report')).toEqual({ route: { path: '/my-report', name: 'my-report', params: {} } })
     expect(resolvePath('/My-Report')).toMatchObject({ route: { name: 'my-report' } })
   })
 
   it('sends the old /my-mri to /my-report', () => {
-    vi.stubEnv('VITE_ASSET_BASE', '')
     expect(resolvePath('/my-mri')).toEqual({ redirect: '/my-report' })
     expect(resolvePath('/MY-MRI')).toEqual({ redirect: '/my-report' })
     expect(resolveFinal('/my-mri')).toMatchObject({ route: { name: 'my-report' }, redirected: true })
   })
+})
 
-  it('404s /my-report and /my-mri in a build without a backend (GitHub Pages)', () => {
-    vi.stubEnv('VITE_ASSET_BASE', '/modelView/')
-    expect(resolvePath('/my-report')).toEqual({ route: { path: '/my-report', name: 'not-found', params: {} } })
-    expect(resolvePath('/my-mri')).toEqual({ route: { path: '/my-mri', name: 'not-found', params: {} } })
+describe('/contact', () => {
+  it('serves the Contact us page, case-insensitively', () => {
+    expect(resolvePath('/contact')).toEqual({ route: { path: '/contact', name: 'contact', params: {} } })
+    expect(resolvePath('/Contact')).toMatchObject({ route: { name: 'contact' } })
   })
 })
 
-describe('/my-images by build', () => {
-  afterEach(() => { vi.unstubAllEnvs() })
+describe('/feedback-review', () => {
+  it('serves the hidden review page, linked from nowhere', () => {
+    expect(resolvePath('/feedback-review')).toEqual({ route: { path: '/feedback-review', name: 'feedback-review', params: {} } })
+  })
+})
 
-  it('serves /my-images, case-insensitively, where a backend is deployed', () => {
-    vi.stubEnv('VITE_ASSET_BASE', '')
+describe('/my-images', () => {
+  it('serves /my-images, case-insensitively', () => {
     expect(resolvePath('/my-images')).toEqual({ route: { path: '/my-images', name: 'my-images', params: {} } })
     expect(resolvePath('/My-Images')).toMatchObject({ route: { name: 'my-images' } })
   })
 
   it('serves the MRI page at /my-images/mri, case-insensitively', () => {
-    vi.stubEnv('VITE_ASSET_BASE', '')
     expect(resolvePath('/my-images/mri')).toEqual({ route: { path: '/my-images/mri', name: 'my-images-mri', params: {} } })
     expect(resolvePath('/My-Images/MRI')).toMatchObject({ route: { name: 'my-images-mri' } })
   })
 
   it('404s any other page under /my-images', () => {
-    vi.stubEnv('VITE_ASSET_BASE', '')
     expect(resolvePath('/my-images/other')).toMatchObject({ route: { name: 'not-found' } })
     expect(resolvePath('/my-images/mri/x')).toMatchObject({ route: { name: 'not-found' } })
-  })
-
-  it('404s /my-images and /my-images/mri in a build without a backend (GitHub Pages)', () => {
-    vi.stubEnv('VITE_ASSET_BASE', '/modelView/')
-    expect(resolvePath('/my-images')).toEqual({ route: { path: '/my-images', name: 'not-found', params: {} } })
-    expect(resolvePath('/my-images/mri')).toEqual({ route: { path: '/my-images/mri', name: 'not-found', params: {} } })
   })
 })
 

@@ -23,16 +23,21 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_SERVER_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SERVER_SECRET_KEY:-minioadmin}
       - DERIVED_CACHE_DIR=/resource_backend/cache
-      # 0 turns off the demo reading the report lays over sub-1 (resource-backend/demo/README.md).
-      - DEMO_READINGS=${DEMO_READINGS:-1}
+      # Anonymous feedback (JSON Lines) and the password that lists it.
+      - FEEDBACK_DIR=/resource_backend/feedback
+      - FEEDBACK_ADMIN_PASSWORD=${FEEDBACK_ADMIN_PASSWORD:-qwerty}
     volumes:
       - backend_cache:/resource_backend/cache
+      # Survives a redeploy (up --force-recreate); the portal's "delete plugin"
+      # runs `down --volumes`, which removes it -- export the CSV first.
+      - feedback_data:/resource_backend/feedback
     restart: unless-stopped
     networks:
       - digitaltwins
 
 volumes:
   backend_cache:
+  feedback_data:
 
 networks:
   digitaltwins:

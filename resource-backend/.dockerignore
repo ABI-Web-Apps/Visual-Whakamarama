@@ -27,5 +27,5 @@ static/workdir/
 minio_data/
 cache/
 
-# The demo reading and its measuring script are uploaded to MinIO, not served
-demo/
+# Readers' feedback and contacts, should a local run ever write them here
+feedback/

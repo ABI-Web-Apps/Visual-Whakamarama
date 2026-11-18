@@ -26,6 +26,9 @@ export const useTourStore = defineStore('tour', () => {
   const stepCount = ref(0)
   const phase = ref<TourPhase>('playing')
   const hasSeen = ref(false)
+  /** The first-visit invitation (TourLauncher) is on screen; the feedback
+   *  button sits above it rather than on it. */
+  const launcherShown = ref(false)
 
   /** Auto-advance. Defaults on, except under reduced motion -- timed content
    *  is hostile to vestibular-sensitive readers (WCAG 2.2.2 permits
@@ -107,7 +110,7 @@ export const useTourStore = defineStore('tour', () => {
   }
 
   return {
-    active, layout, stepIndex, stepCount, phase, hasSeen, entryRoute, runToken, playing,
+    active, layout, stepIndex, stepCount, phase, hasSeen, launcherShown, entryRoute, runToken, playing,
     atEnd, start, next, back, goToStep, exit, markSeen, restoreSeen, togglePlaying, pause,
   }
 })

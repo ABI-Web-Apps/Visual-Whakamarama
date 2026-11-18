@@ -70,6 +70,21 @@ def test_dev_server_origin_may_read_the_catalogue(catalogue):
     assert response.headers["access-control-allow-origin"] == "http://localhost:3158"
 
 
+def test_dev_server_origin_may_delete_review_entries(catalogue):
+    """The review page on the Vite dev server deletes cross-origin, with the password header."""
+    client, _ = catalogue
+    response = client.options(
+        "/api/feedback/some-id",
+        headers={
+            "Origin": "http://localhost:3158",
+            "Access-Control-Request-Method": "DELETE",
+            "Access-Control-Request-Headers": "x-feedback-password",
+        },
+    )
+    assert response.status_code == 200
+    assert "DELETE" in response.headers["access-control-allow-methods"]
+
+
 def test_other_origins_get_no_cors_grant(catalogue):
     client, _ = catalogue
     response = client.get("/api/modelView/left_breast_view.json", headers={"Origin": "https://example.org"})

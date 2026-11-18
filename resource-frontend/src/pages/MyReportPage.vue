@@ -95,7 +95,7 @@ useDocumentTitle(() => `${MY_MRI_COPY.title} — ${APP_TITLE}`)
           >
             <MyMriReport
               v-if="status === 'ready' && urls"
-              :url-for="urls.report"
+              :urls="urls"
               :cohort="cohort"
               :with-reload="withReload"
             />

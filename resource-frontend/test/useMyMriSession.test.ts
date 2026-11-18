@@ -69,8 +69,8 @@ describe('useMyMriSession', () => {
     expect(session.cohort.value).toBe('sub-1')
     expect(session.urls.value!.findings).toBe('http://api.test/api/patients/a-1/sub-1/findings')
     expect(session.findings.value).toEqual([
-      { label: 'Finding 1', channel: 1, color: '#ff7043' },
-      { label: 'Finding 2', channel: 2, color: '#42a5f5' },
+      { label: 'Area 1', channel: 1, color: '#ff7043' },
+      { label: 'Area 2', channel: 2, color: '#42a5f5' },
     ])
   })
 

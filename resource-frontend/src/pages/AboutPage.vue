@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAssetUrl } from '@/composables/useAssetUrl'
-import { citations, FEEDBACK_FORM_URL, organisations } from '@/content/team'
+import { FEEDBACK_COPY } from '@/content/feedback'
+import { citations, organisations, PAST_CONTRIBUTORS, shownLogos } from '@/content/team'
+import { useFeedbackDialog } from '@/feedback/useFeedbackDialog'
+import ContactCta from '@/components/contact/ContactCta.vue'
 import AppLink from '@/navigation/AppLink.vue'
+import { useAppRouter } from '@/navigation/router'
+import { createTapCounter } from '@/utils/adminShortcut'
 import { APP_TITLE, useDocumentTitle } from '@/navigation/head'
 import type { PageRoute } from '@/navigation/routes'
 
@@ -24,34 +29,27 @@ defineProps<{ route?: PageRoute }>()
 useDocumentTitle(() => `About — ${APP_TITLE}`)
 
 const { publicUrl } = useAssetUrl()
+const feedback = useFeedbackDialog()
+
+// A phone has no Ctrl + Shift + F: five quick taps on the version line open
+// the team's inbox instead (which still asks for the password).
+const router = useAppRouter()
+const versionTaps = createTapCounter({
+  taps: 5,
+  windowMs: 2000,
+  onTrigger: () => { void router.navigateTo('/feedback-review') },
+})
 const appVersion = __APP_VERSION__
 
-/**
- * The two-person partner groups share one row; the twelve-person research
- * group gets its own.
- *
- * Stacked, each two-person group left most of a row empty and the section
- * ran on for three screens of mostly whitespace. Side by side they read as
- * what they are -- the two partner organisations -- and the page gets
- * shorter without anything shrinking.
- *
- * The "subtle distinction" between them is a single hairline rule, and only
- * between groups actually sharing a row (`sm:` and up, `first:` excluded).
- * Boxing them or tinting them would have made two small groups look more
- * important than the twelve-person one below.
- */
-const SIDE_BY_SIDE_MAX = 3
-const compactOrgs = computed(() =>
-  organisations.filter(o => o.members.length <= SIDE_BY_SIDE_MAX))
-const fullWidthOrgs = computed(() =>
-  organisations.filter(o => o.members.length > SIDE_BY_SIDE_MAX))
+/** Organisations with people to show, in content order; one row each. */
+const teamOrgs = computed(() => organisations.filter(o => o.members.length > 0))
 </script>
 
 <template>
   <!-- A `<main>`, not a `<div>`: this page does not use the case layout (it
        has no stage and no sidebar), so nothing else on it provides the one
        main landmark every page owes. -->
-  <main class="tw:mx-auto tw:max-w-5xl tw:px-6 tw:py-10 tw:sm:px-10 tw:sm:py-16">
+  <main class="tw:mx-auto tw:max-w-5xl tw:px-6 tw:py-10 tw:max-md:pb-28 tw:sm:px-10 tw:sm:py-16">
     <!-- The legacy About page was a dead end: it had no way back to the app
          at all, which is the second half of the human's #13. -->
     <AppLink
@@ -70,6 +68,7 @@ const fullWidthOrgs = computed(() =>
       Te Uma is an educational resource from the Auckland Bioengineering
       Institute, built with Breast Cancer Foundation NZ and Iwi United Engaged.
     </p>
+    <ContactCta variant="banner" class="tw:mt-8 tw:max-w-xl" />
 
     <!-- ── Partners ─────────────────────────────────────────────────────── -->
     <section class="tw:mt-14" aria-labelledby="partners-heading">
@@ -77,7 +76,7 @@ const fullWidthOrgs = computed(() =>
         Partners
       </h2>
       <ul class="tw:mt-5 tw:flex tw:flex-wrap tw:items-center tw:gap-x-12 tw:gap-y-8">
-        <li v-for="org in organisations.filter(o => o.logo)" :key="org.name">
+        <li v-for="org in shownLogos()" :key="org.name">
           <img
             :src="publicUrl(`logos/${org.logo}`)"
             :alt="org.name"
@@ -89,83 +88,62 @@ const fullWidthOrgs = computed(() =>
       </ul>
     </section>
 
-    <!-- ── Team ─────────────────────────────────────────────────────────── -->
+    <!-- ── Team ─────────────────────────────────────────────────────────
+         One row per organisation: its name on the left, its people on the
+         right, so a group of one and a group of twelve both sit well. An
+         organisation with nobody listed has no row. Past contributors close
+         the section, by name only. -->
     <section class="tw:mt-14" aria-labelledby="team-heading">
       <h2 id="team-heading" class="tw:text-caption tw:uppercase tw:tracking-[0.14em] tw:text-text-muted">
         Our Team
       </h2>
 
-      <!-- The two partner groups, side by side, divided by a hairline. -->
-      <div class="tw:mt-8 tw:flex tw:flex-col tw:gap-8 tw:sm:flex-row tw:sm:gap-10">
+      <div class="tw:mt-5 tw:divide-y tw:divide-border tw:border-y tw:border-border">
         <div
-          v-for="org in compactOrgs"
+          v-for="org in teamOrgs"
           :key="org.name"
-          class="tw:sm:border-l tw:sm:border-border tw:sm:pl-10 tw:sm:first:border-l-0 tw:sm:first:pl-0"
+          data-team-row
+          class="tw:grid tw:gap-5 tw:py-8 tw:md:grid-cols-[13rem_minmax(0,1fr)] tw:md:gap-10"
         >
-          <h3 class="tw:text-body tw:font-bold tw:text-text">{{ org.name }}</h3>
-          <!-- Sized off the member count so a pair of portraits stays the
-               same size here as in the twelve-person grid below, instead of
-               stretching to fill half the page. -->
-          <ul
-            class="tw:mt-4 tw:grid tw:gap-x-6 tw:gap-y-6"
-            :style="{ gridTemplateColumns: `repeat(${org.members.length}, minmax(0, 7.5rem))` }"
-          >
-          <li v-for="person in org.members" :key="person.name" class="tw:text-center">
-            <!--
-              `object-contain` in a fixed 3:4 frame, NOT `object-cover` in a
-              circle. The circle version clipped every portrait's edges and
-              took the top of several heads with them. Nothing is cropped
-              here: the frame letterboxes against the page's own sunken
-              surface, so tiles stay a uniform size while each face stays
-              whole.
-
-              Decorative: the person's name is the very next node in the
-              accessibility tree, so an `alt` repeating it would announce
-              everyone twice.
-            -->
-            <img
-              :src="publicUrl(`team/${person.photo}`)"
-              alt=""
-              aria-hidden="true"
-              width="240"
-              height="320"
-              loading="lazy"
-              class="tw:aspect-3/4 tw:w-full tw:rounded-card tw:bg-surface-sunken tw:object-contain tw:ring-1 tw:ring-border"
-            >
-            <span class="tw:mt-2 tw:block tw:text-body-sm tw:leading-snug tw:text-text">{{ person.name }}</span>
-          </li>
+          <h3 class="tw:text-body tw:font-bold tw:leading-snug tw:text-text tw:md:pt-1">{{ org.name }}</h3>
+          <ul class="tw:grid tw:grid-cols-3 tw:gap-x-5 tw:gap-y-6 tw:sm:grid-cols-4 tw:lg:grid-cols-5">
+            <li v-for="person in org.members" :key="person.name" class="tw:text-center">
+              <!--
+                `object-contain` in a fixed 3:4 frame, NOT `object-cover` in a
+                circle: nothing of a face is cropped. Decorative: the name is
+                the very next node, so an `alt` would announce everyone twice.
+              -->
+              <img
+                :src="publicUrl(`team/${person.photo}`)"
+                alt=""
+                aria-hidden="true"
+                width="240"
+                height="320"
+                loading="lazy"
+                class="tw:aspect-3/4 tw:w-full tw:rounded-card tw:bg-surface-sunken tw:object-contain tw:ring-1 tw:ring-border"
+              >
+              <span class="tw:mt-2 tw:block tw:text-body-sm tw:leading-snug tw:text-text">{{ person.name }}</span>
+            </li>
           </ul>
         </div>
-      </div>
 
-      <div v-for="org in fullWidthOrgs" :key="org.name" class="tw:mt-10">
-        <h3 class="tw:text-body tw:font-bold tw:text-text">{{ org.name }}</h3>
-        <ul class="tw:mt-4 tw:grid tw:grid-cols-3 tw:gap-x-6 tw:gap-y-6 tw:sm:grid-cols-4 tw:md:grid-cols-6">
-          <li v-for="person in org.members" :key="person.name" class="tw:text-center">
-            <!--
-              `object-contain` in a fixed 3:4 frame, NOT `object-cover` in a
-              circle. The circle version clipped every portrait's edges and
-              took the top of several heads with them. Nothing is cropped
-              here: the frame letterboxes against the page's own sunken
-              surface, so tiles stay a uniform size while each face stays
-              whole.
-
-              Decorative: the person's name is the very next node in the
-              accessibility tree, so an `alt` repeating it would announce
-              everyone twice.
-            -->
-            <img
-              :src="publicUrl(`team/${person.photo}`)"
-              alt=""
-              aria-hidden="true"
-              width="240"
-              height="320"
-              loading="lazy"
-              class="tw:aspect-3/4 tw:w-full tw:rounded-card tw:bg-surface-sunken tw:object-contain tw:ring-1 tw:ring-border"
-            >
-            <span class="tw:mt-2 tw:block tw:text-body-sm tw:leading-snug tw:text-text">{{ person.name }}</span>
-          </li>
-        </ul>
+        <div
+          v-if="PAST_CONTRIBUTORS.length"
+          data-team-row="past"
+          class="tw:grid tw:gap-4 tw:py-8 tw:md:grid-cols-[13rem_minmax(0,1fr)] tw:md:gap-10"
+        >
+          <div>
+            <h3 class="tw:text-body tw:font-bold tw:leading-snug tw:text-text">Past contributors</h3>
+            <p class="tw:mt-1 tw:text-body-sm tw:text-text-muted">With thanks for their work on this resource.</p>
+          </div>
+          <ul class="tw:flex tw:flex-wrap tw:content-start tw:gap-2 tw:md:pt-0.5">
+            <li
+              v-for="name in PAST_CONTRIBUTORS"
+              :key="name"
+              class="tw:rounded-full tw:bg-surface-sunken tw:px-4 tw:py-1.5 tw:text-body-sm tw:font-medium tw:text-text"
+            >{{ name }}</li>
+          </ul>
+        </div>
       </div>
     </section>
 
@@ -193,19 +171,31 @@ const fullWidthOrgs = computed(() =>
 
     <!-- ── Feedback ─────────────────────────────────────────────────────── -->
     <section class="tw:mt-14 tw:border-t tw:border-border tw:pt-8">
-      <p class="tw:text-body-sm tw:text-text-muted">
-        Visit our
-        <a
-          :href="FEEDBACK_FORM_URL"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="tw:font-bold tw:text-brand-hover tw:underline tw:decoration-brand/40 tw:underline-offset-2 tw:hover:decoration-brand"
-        >online form</a>
-        to give us your valuable feedback about this app.
+      <!-- The in-app feedback (the floating button's own dialog), not the
+           legacy app's Google Form. -->
+      <p v-if="feedback" class="tw:flex tw:flex-wrap tw:items-center tw:gap-x-3 tw:gap-y-2 tw:text-body-sm tw:text-text-muted">
+        {{ FEEDBACK_COPY.openLead }}
+        <button
+          type="button"
+          data-feedback-open
+          class="tw:min-h-11 tw:rounded-full tw:bg-surface-sunken tw:px-4 tw:font-bold tw:text-text tw:transition-colors tw:hover:bg-border"
+          @click="feedback.open()"
+        >{{ FEEDBACK_COPY.open }}</button>
       </p>
-      <p class="tw:mt-4 tw:text-caption tw:tabular-nums tw:text-text-muted" data-app-version>
+      <!-- touch-action: manipulation turns off double-tap zoom on this line
+           only (pinch zoom stays); select-none keeps fast taps from selecting it. -->
+      <p
+        class="vw-version tw:mt-4 tw:inline-block tw:touch-manipulation tw:select-none tw:text-caption tw:tabular-nums tw:text-text-muted"
+        data-app-version
+        @click="versionTaps.tap()"
+      >
         {{ APP_TITLE }} v{{ appVersion }}
       </p>
     </section>
   </main>
 </template>
+
+<style scoped>
+/* Five quick taps open the team's inbox: no grey flash on each one. */
+.vw-version { -webkit-tap-highlight-color: transparent; }
+</style>

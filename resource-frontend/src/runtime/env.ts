@@ -1,5 +1,3 @@
-import { resolveAssetBase } from '@/composables/assetUrl'
-
 /**
  * Where things live, for each of the three ways this app runs.
  *
@@ -9,10 +7,8 @@ import { resolveAssetBase } from '@/composables/assetUrl'
  *   standalone     BASE_URL                 backend /api/modelView   <base>/api
  *   plugin         the UMD script's folder  backend /api/modelView   <route prefix>/api
  *
- * `VITE_ASSET_BASE` overrides the imaging column for a deploy with no
- * backend (GitHub Pages copies the catalogue next to the app): an absolute
- * URL is used verbatim, a root-relative one is resolved against the app's
- * own base, exactly as Nuxt's `NUXT_PUBLIC_ASSET_BASE` was.
+ * Every deployment has the backend: the imaging catalogue and the patient
+ * pages are always served by it.
  */
 
 /**
@@ -50,20 +46,7 @@ export function publicBase(): string {
   return import.meta.env.BASE_URL
 }
 
-/**
- * Whether this build has the backend behind it. A build that sets
- * `VITE_ASSET_BASE` is the no-backend deploy (GitHub Pages): the imaging is
- * copied beside the app and there is no API, so the pages that need one (My
- * Images, its MRI page and My Report) are left out of it -- YOUR RESULTS
- * hidden in the sidebar, their paths a 404.
- */
-export function hasBackend(): boolean {
-  return !import.meta.env.VITE_ASSET_BASE
-}
-
-/** The base imaging assets are joined onto. */
+/** The base imaging assets are joined onto: the backend's catalogue. */
 export function assetBase(): string {
-  const configured = import.meta.env.VITE_ASSET_BASE
-  if (configured) return resolveAssetBase(configured, publicBase())
   return `${getApiBaseUrl()}/modelView/`
 }

@@ -15,7 +15,7 @@ plan
 assets-src/
 
 # The compressed catalogue itself (resource-backend/static/modelView) IS
-# committed: the backend image and the GitHub Pages build both copy it.
+# committed: the backend image copies it.
 # Only the pipeline's staging directories are disposable.
 resource-backend/static/modelView.staging
 resource-backend/static/modelView.complete

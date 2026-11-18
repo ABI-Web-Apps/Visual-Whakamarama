@@ -2,6 +2,7 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { fetchJson, isAbort, patientUrls, postToolConfig } from '@/myMri/api'
 import type { MyMriError } from '@/myMri/api'
 import { getToolConfig } from '@/myMri/config'
+import { areaLabel } from '@/content/myMri'
 import { findingColour } from '@/myMri/findingColour'
 
 /** One finding as the page shows it. `color` is always `#rrggbb`: the
@@ -16,7 +17,7 @@ interface FindingsRecord {
 function mapFindings(record: FindingsRecord | null): FindingSummary[] {
   try {
     return (record?.findings ?? []).map(f => ({
-      label: f.label, channel: f.lesion.channel, color: findingColour(f.lesion.color),
+      label: areaLabel(f.label), channel: f.lesion.channel, color: findingColour(f.lesion.color),
     }))
   } catch {
     const err: MyMriError = {

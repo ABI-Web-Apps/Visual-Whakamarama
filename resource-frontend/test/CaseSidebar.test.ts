@@ -19,14 +19,6 @@ function mountSidebar() {
   })
 }
 
-/**
- * The sidebar as it ships with a backend (standalone, plugin). The suite's
- * own `VITE_ASSET_BASE` (vitest.config.ts) is the GitHub Pages build's, which
- * has no backend and so no MY RESULTS group; that build has its own block.
- */
-beforeEach(() => { vi.stubEnv('VITE_ASSET_BASE', '') })
-afterEach(() => { vi.unstubAllEnvs() })
-
 /** Focus assertions need real DOM attachment (`document.activeElement`
  *  otherwise never updates) and a way to simulate "below xl" without a
  *  real browser evaluating the `max-xl:fixed` rule, since Tailwind's
@@ -258,6 +250,52 @@ describe('CaseSidebar', () => {
   })
 })
 
+describe('CaseSidebar as a drawer', () => {
+  beforeEach(() => { setActivePinia(createPinia()) })
+  afterEach(() => {
+    vi.restoreAllMocks()
+    document.body.innerHTML = ''
+  })
+
+  it('closes itself when a page is chosen, so no second tap is needed', async () => {
+    const wrapper = mountSidebarAsDrawer(true)
+    const store = useViewerStore()
+    await wrapper.findAll('a').find(a => a.attributes('href') === '/density-b')!.trigger('click')
+    expect(store.sidebarOpen).toBe(false)
+  })
+
+  it('closes for every link in it, Contact the team included', async () => {
+    const wrapper = mountSidebarAsDrawer(true)
+    const store = useViewerStore()
+    await wrapper.get('a[href="/contact"]').trigger('click')
+    expect(store.sidebarOpen).toBe(false)
+  })
+
+  it('leaves the resident desktop sidebar alone', async () => {
+    vi.spyOn(window, 'getComputedStyle').mockReturnValue({ position: 'static' } as CSSStyleDeclaration)
+    const store = useViewerStore()
+    store.sidebarOpen = true
+    const wrapper = mount(CaseSidebar, { attachTo: document.body, global: { stubs: { AppLink: AppLinkStub } } })
+    await wrapper.findAll('a').find(a => a.attributes('href') === '/density-b')!.trigger('click')
+    expect(store.sidebarOpen).toBe(true)
+  })
+})
+
+describe('CaseSidebar: contact', () => {
+  beforeEach(() => { setActivePinia(createPinia()) })
+
+  it('ends with a way to contact the team, above the partner logos', () => {
+    const wrapper = mountSidebar()
+    const links = wrapper.findAll('a')
+    const contact = links.findIndex(a => a.attributes('href') === '/contact')
+    expect(contact).toBeGreaterThan(-1)
+    expect(links[contact]!.text()).toContain('Contact the team')
+    // The logos (to /about) stay the very last link.
+    expect(links[links.length - 1]!.attributes('href')).toBe('/about')
+    expect(contact).toBe(links.length - 2)
+  })
+})
+
 describe('CaseSidebar: MY RESULTS group', () => {
   beforeEach(() => { setActivePinia(createPinia()) })
   afterEach(() => { document.body.innerHTML = '' })
@@ -320,19 +358,5 @@ describe('CaseSidebar: MY RESULTS group', () => {
   it('does not mark My Report active on a case page', () => {
     const wrapper = mountOn({ path: '/the-breast', name: 'case', params: { slug: 'the-breast' } })
     expect(reportLink(wrapper).attributes('aria-current')).toBeUndefined()
-  })
-})
-
-describe('CaseSidebar in a build without a backend (GitHub Pages)', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-    vi.stubEnv('VITE_ASSET_BASE', '/modelView/')
-  })
-
-  it('leaves out MY RESULTS, whose page needs the backend', () => {
-    const wrapper = mountSidebar()
-    expect(wrapper.findAll('h2').map(h => h.text()))
-      .toEqual(['Breast Density', 'Benign Conditions', 'Breast Cancer'])
-    expect(wrapper.findAll('a').some(a => a.attributes('href')!.startsWith('/my-'))).toBe(false)
   })
 })

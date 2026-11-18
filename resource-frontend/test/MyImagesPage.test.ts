@@ -121,7 +121,7 @@ describe('MyImagesPage', () => {
     const viewer = wrapper.getComponent({ name: 'MyMriViewer' })
     expect(viewer.props('mri')).toMatch(/\/api\/patients\/a-1\/sub-1\/mri$/)
     expect(viewer.props('initialView')).toBe('3d')
-    expect(viewer.props('findings')).toEqual([{ label: 'Finding 1', channel: 1, color: '#ff7043' }])
+    expect(viewer.props('findings')).toEqual([{ label: 'Area 1', channel: 1, color: '#ff7043' }])
   })
 
   it('keeps the examples when the session fails, loading them at once, and offers Try again in the MRI column', async () => {

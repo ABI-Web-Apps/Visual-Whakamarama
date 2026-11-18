@@ -1,6 +1,5 @@
 import { getCase } from '@/content/cases'
 import { LEGACY_ROUTES } from '@/content/legacyRoutes'
-import { hasBackend } from '@/runtime/env'
 
 /**
  * The app's page table, without a router library.
@@ -15,21 +14,20 @@ import { hasBackend } from '@/runtime/env'
  *   /                      -> redirect to /the-breast (pages/index.vue)
  *   LEGACY_ROUTES          -> redirect (nuxt.config.ts's routeRules)
  *   /about                 -> about (pages/about.vue)
- *   /my-report             -> the patient's own scan and report (404 in a
- *                             build without a backend, see `hasBackend`)
- *   /my-mri                -> redirect to /my-report (the page's old name;
- *                             404 without a backend too)
+ *   /contact               -> Contact us
+ *   /feedback-review       -> the team's feedback inbox (linked from nowhere;
+ *                             password-gated by the backend)
+ *   /my-report             -> the patient's own scan and report
+ *   /my-mri                -> redirect to /my-report (the page's old name)
  *   /my-images             -> the patient's own anatomy, mammogram and MRI
- *                             (404 without a backend)
  *   /my-images/mri         -> that MRI: current slice, previous MRI, 3D
- *                             (404 without a backend)
  *   /:slug                 -> case, when the slug names an enabled case
  *   /:slug/:modality       -> case; an unknown modality falls back inside
  *                             the page, exactly as `[[modality]].vue` did
  *   anything else          -> 404 (the page's `validate` guard)
  */
 
-export type PageName = 'case' | 'about' | 'my-report' | 'my-images' | 'my-images-mri' | 'not-found'
+export type PageName = 'case' | 'about' | 'contact' | 'feedback-review' | 'my-report' | 'my-images' | 'my-images-mri' | 'not-found'
 
 export interface PageRoute {
   /** Normalised: no query, no hash, no trailing slash (except `/`). */
@@ -66,10 +64,14 @@ export function resolvePath(raw: string): Resolution {
   if (segments.length === 1 && segments[0]!.toLowerCase() === 'about') {
     return { route: { path, name: 'about', params: {} } }
   }
+  if (segments.length === 1 && segments[0]!.toLowerCase() === 'contact') {
+    return { route: { path, name: 'contact', params: {} } }
+  }
+  if (segments.length === 1 && segments[0]!.toLowerCase() === 'feedback-review') {
+    return { route: { path, name: 'feedback-review', params: {} } }
+  }
 
-  // The patient pages need the backend. A build without one (GitHub Pages)
-  // cannot serve them, so their paths 404 there.
-  if (hasBackend() && segments.length === 1) {
+  if (segments.length === 1) {
     const page = segments[0]!.toLowerCase()
     if (page === 'my-report') return { route: { path, name: 'my-report', params: {} } }
     if (page === 'my-images') return { route: { path, name: 'my-images', params: {} } }
@@ -77,7 +79,7 @@ export function resolvePath(raw: string): Resolution {
     // the old Nuxt site's case paths, and its tests hold every target to a case.
     if (page === 'my-mri') return { redirect: '/my-report' }
   }
-  if (hasBackend() && segments.length === 2
+  if (segments.length === 2
     && segments[0]!.toLowerCase() === 'my-images' && segments[1]!.toLowerCase() === 'mri') {
     return { route: { path, name: 'my-images-mri', params: {} } }
   }

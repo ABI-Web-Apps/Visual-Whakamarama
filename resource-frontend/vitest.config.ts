@@ -22,10 +22,8 @@ export default defineConfig({
     // copper3d's own harness. What is left here is this app's own code.
     include: ['test/**/*.test.ts'],
     setupFiles: ['./test/setup.ts'],
-    // Imaging URLs as a root-relative deploy resolves them, so assertions
-    // read `/modelView/...` rather than the dev backend's absolute origin.
-    // It also marks a build without a backend (`hasBackend()`), so a test
-    // that needs My MRI's route or sidebar entry stubs it empty.
-    env: { VITE_ASSET_BASE: '/modelView/' },
+    // The dev backend's address, pinned so a developer's own `.env` cannot
+    // change what the suite's imaging and API URLs read.
+    env: { VITE_PLUGIN_API_URL: 'http://localhost', VITE_PLUGIN_API_PORT: '8082' },
   },
 })

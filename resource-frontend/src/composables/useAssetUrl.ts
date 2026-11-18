@@ -2,9 +2,6 @@ import { assetBase, publicBase } from '@/runtime/env'
 import { assetUrl, publicUrl } from './assetUrl'
 
 export function useAssetUrl() {
-  // `assetBase()` already resolves a root-relative override against the
-  // deployment base, so a subpath deploy cannot 404 every asset by asking
-  // the site root for them. See `resolveAssetBase`.
   const base = assetBase()
   const appBase = publicBase()
   return {

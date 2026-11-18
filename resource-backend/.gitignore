@@ -9,3 +9,7 @@ venv/
 static/workdir/
 minio_data/
 cache/
+
+# Readers' feedback and contacts, should FEEDBACK_DIR ever point here (its default,
+# default_feedback_dir(), is outside the source tree)
+/feedback/

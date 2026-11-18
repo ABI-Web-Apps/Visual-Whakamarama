@@ -30,7 +30,11 @@ const emit = defineEmits<{ startTour: [] }>()
       aria-label="Toggle case navigation"
       @click="store.sidebarOpen = !store.sidebarOpen"
     >
-      <svg viewBox="0 0 24 24" class="tw:size-5" aria-hidden="true">
+      <!-- A close (X) while the menu is open: the same button shuts it. -->
+      <svg v-if="store.sidebarOpen" data-icon="close" viewBox="0 0 24 24" class="tw:size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M6 6l12 12M18 6 6 18" />
+      </svg>
+      <svg v-else data-icon="menu" viewBox="0 0 24 24" class="tw:size-5" aria-hidden="true">
         <path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" />
       </svg>
     </button>
@@ -130,23 +134,47 @@ const emit = defineEmits<{ startTour: [] }>()
         Border is text-muted, not border-strong (1.48:1 on white -- under
         the 3:1 non-text floor; see nav-contrast.test.ts's existing rejection
         of border-strong for the same reason on ModalityStepper/DefaultLayout.vue).
+
+        On a phone it is a soft round button in About's own fill, with no
+        outline: an outlined circle with the corner-bracket glyph read as a
+        stray frame (client feedback, 2026-11-18). The glyph is a compass on
+        every screen: a guided tour, not a viewfinder.
       -->
       <button
         type="button"
         data-tour-open
-        class="tw:flex tw:min-h-11 tw:shrink-0 tw:items-center tw:gap-1.5 tw:rounded-full tw:border tw:border-text-muted
-               tw:px-2.5 tw:text-body-sm tw:font-semibold tw:text-text-muted tw:hover:bg-surface-sunken tw:hover:text-text tw:md:px-4"
+        class="tw:flex tw:min-h-11 tw:shrink-0 tw:items-center tw:justify-center tw:gap-1.5 tw:rounded-full tw:border tw:border-text-muted
+               tw:px-2.5 tw:text-body-sm tw:font-semibold tw:text-text-muted tw:hover:bg-surface-sunken tw:hover:text-text tw:md:px-4
+               tw:max-md:size-11 tw:max-md:border-0 tw:max-md:bg-surface-sunken tw:max-md:px-0 tw:max-md:text-text tw:max-md:hover:bg-border"
         :aria-label="tour.active ? 'Guided tour is running' : 'Start the guided tour'"
         @click="emit('startTour')"
       >
-        <svg viewBox="0 0 16 16" class="tw:size-4 tw:shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
-          <path d="M1 4.5V1h3.5" />
-          <path d="M11.5 1H15v3.5" />
-          <path d="M15 11.5V15h-3.5" />
-          <path d="M4.5 15H1v-3.5" />
+        <svg data-icon="compass" viewBox="0 0 24 24" class="tw:size-[1.125rem] tw:shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="m15.6 8.4-2.2 5-5 2.2 2.2-5z" />
         </svg>
         <span data-tour-label class="tw:max-md:sr-only">Guided tour</span>
       </button>
+
+      <!--
+        Contact us (client request: easy to find). Tablet and up only: at a
+        360px phone the header has no room for another 44px control -- the
+        wordmark already fights for every pixel -- so there it is the card
+        at the foot of the menu drawer (CaseSidebar). Violet, the colour of
+        the patient's own pages, not rose (the focus semantic) and not
+        About's neutral fill, so it reads as its own destination.
+      -->
+      <AppLink
+        to="/contact"
+        class="tw:hidden tw:min-h-11 tw:shrink-0 tw:items-center tw:gap-1.5 tw:rounded-full tw:bg-group-results/10 tw:px-4
+               tw:text-body-sm tw:font-bold tw:text-group-results tw:transition-colors tw:hover:bg-group-results/15 tw:md:flex"
+      >
+        <svg viewBox="0 0 24 24" class="tw:size-4 tw:shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+          <path d="m4 7.5 8 5.5 8-5.5" />
+        </svg>
+        <span>Contact us</span>
+      </AppLink>
 
       <!--
         A filled control, not a text link -- a touch device never hovers, so
