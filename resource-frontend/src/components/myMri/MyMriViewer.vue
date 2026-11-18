@@ -12,10 +12,12 @@ import { findingColour } from '@/myMri/findingColour'
 import { useMyMriScene } from '@/myMri/useMyMriScene'
 import type { MyMriView } from '@/myMri/useMyMriScene'
 import type { FindingSummary } from '@/myMri/useMyMriSession'
+import { prefersTouchReader } from '@/utils/touchReader'
 
 /**
  * The patient's MRI: its three planes with the marked areas over them, and
- * the views -- 3D, or one plane face-on, Ctrl+scroll moving through its slices.
+ * the views -- 3D, or one plane face-on, Ctrl+scroll (or, on a phone, a
+ * one-finger drag) moving through its slices.
  *
  * Built like a case stage (CopperStage) so every panel reads the same: the
  * scan on the stage ground, and under it the same control bar (StageControls)
@@ -41,6 +43,15 @@ const emit = defineEmits<{ retry: [], settled: [] }>()
 
 const helpId = `vw-my-mri-help-${++viewerCount}`
 const host = ref<HTMLElement | null>(null)
+/**
+ * The gestures on this device. A finger has no Ctrl, no wheel and no right
+ * button: it pinches, and in a single view it drags through the slices
+ * (useMyMriScene). Same test as the report's page reader, iPadOS in desktop
+ * mode included.
+ */
+const touch = prefersTouchReader()
+const viewHint = touch ? MY_MRI_COPY.viewerHintTouch : MY_MRI_COPY.viewerHint
+const sliceHint = touch ? MY_MRI_COPY.viewerSliceHintTouch : MY_MRI_COPY.viewerSliceHint
 // Read once: a different scan is a different viewer (the page keys it by URL).
 const { status, error, noMask, view, slice, setView, resetView } = useMyMriScene(host, {
   mri: props.mri,
@@ -91,7 +102,7 @@ const viewClass = 'tw:group tw:relative tw:flex tw:min-h-11 tw:items-center tw:r
         :aria-describedby="helpId"
       />
       <p :id="helpId" class="tw:sr-only">
-        {{ view === '3d' ? MY_MRI_COPY.viewerHint : MY_MRI_COPY.viewerSliceHint }}
+        {{ view === '3d' ? viewHint : sliceHint }}
       </p>
 
       <div
@@ -156,7 +167,7 @@ const viewClass = 'tw:group tw:relative tw:flex tw:min-h-11 tw:items-center tw:r
       :ready="status === 'ready'"
       :compact="true"
       :tour="false"
-      :slice-hint="MY_MRI_COPY.viewerSliceHint"
+      :slice-hint="sliceHint"
       @reset="resetView()"
     >
       <!-- The views, in the bar after Reset view and Fullscreen. A container

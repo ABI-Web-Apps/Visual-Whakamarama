@@ -86,6 +86,27 @@ describe('MyMriViewer', () => {
     expect(help().text()).toBe(MY_MRI_COPY.viewerSliceHint)
   })
 
+  it('tells a touch device its own gestures: it has no Ctrl, no wheel and no right button', async () => {
+    const coarse = vi.spyOn(window, 'matchMedia').mockImplementation(query => ({
+      matches: query === '(pointer: coarse)', media: query,
+    }) as MediaQueryList)
+    try {
+      const wrapper = mountViewer()
+      const help = () => wrapper.get(`#${wrapper.get('[role="img"]').attributes('aria-describedby')}`)
+      expect(help().text()).toBe(MY_MRI_COPY.viewerHintTouch)
+      expect(MY_MRI_COPY.viewerHintTouch).not.toMatch(/right-drag|scroll/)
+      scene.view.value = 'axial'
+      scene.slice.value = { current: 46, total: 104 }
+      await nextTick()
+      expect(help().text()).toBe(MY_MRI_COPY.viewerSliceHintTouch)
+      expect(wrapper.get('[data-slice-hint]').text()).toBe(MY_MRI_COPY.viewerSliceHintTouch)
+      expect(MY_MRI_COPY.viewerSliceHintTouch).not.toContain('Ctrl')
+    }
+    finally {
+      coarse.mockRestore()
+    }
+  })
+
   it('has no hints or controls over the scan: the bar under it holds them all', () => {
     const wrapper = mountViewer()
     expect(wrapper.text()).not.toContain('drag · right-drag · scroll')
