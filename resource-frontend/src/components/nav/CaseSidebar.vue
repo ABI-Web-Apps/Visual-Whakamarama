@@ -135,6 +135,14 @@ watch(() => store.sidebarOpen, (open) => {
   }
 })
 
+/** Choosing anything in the drawer closes it: the reader came for that page,
+ *  and should not have to shut the menu by hand (client feedback,
+ *  2026-11-18). No-op at xl+, where the sidebar is resident. */
+function onNavClick(event: MouseEvent) {
+  if (!store.sidebarOpen || !isDrawerMode()) return
+  if ((event.target as Element | null)?.closest?.('a')) store.sidebarOpen = false
+}
+
 /** Escape closes the drawer; Tab traps focus inside it while it's the
  *  modal drawer. Both no-op at xl+, where this <nav> is not a modal. */
 function onKeydown(event: KeyboardEvent) {
@@ -169,6 +177,7 @@ function onKeydown(event: KeyboardEvent) {
     aria-label="Cases"
     class="tw:pane-flat tw:flex tw:w-60 tw:shrink-0 tw:flex-col tw:gap-6 tw:overflow-y-auto tw:border-r tw:border-border tw:p-4"
     @keydown="onKeydown"
+    @click="onNavClick"
   >
     <AppLink
       v-if="home"

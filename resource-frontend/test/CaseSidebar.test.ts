@@ -250,6 +250,37 @@ describe('CaseSidebar', () => {
   })
 })
 
+describe('CaseSidebar as a drawer', () => {
+  beforeEach(() => { setActivePinia(createPinia()) })
+  afterEach(() => {
+    vi.restoreAllMocks()
+    document.body.innerHTML = ''
+  })
+
+  it('closes itself when a page is chosen, so no second tap is needed', async () => {
+    const wrapper = mountSidebarAsDrawer(true)
+    const store = useViewerStore()
+    await wrapper.findAll('a').find(a => a.attributes('href') === '/density-b')!.trigger('click')
+    expect(store.sidebarOpen).toBe(false)
+  })
+
+  it('closes for every link in it, Contact the team included', async () => {
+    const wrapper = mountSidebarAsDrawer(true)
+    const store = useViewerStore()
+    await wrapper.get('a[href="/contact"]').trigger('click')
+    expect(store.sidebarOpen).toBe(false)
+  })
+
+  it('leaves the resident desktop sidebar alone', async () => {
+    vi.spyOn(window, 'getComputedStyle').mockReturnValue({ position: 'static' } as CSSStyleDeclaration)
+    const store = useViewerStore()
+    store.sidebarOpen = true
+    const wrapper = mount(CaseSidebar, { attachTo: document.body, global: { stubs: { AppLink: AppLinkStub } } })
+    await wrapper.findAll('a').find(a => a.attributes('href') === '/density-b')!.trigger('click')
+    expect(store.sidebarOpen).toBe(true)
+  })
+})
+
 describe('CaseSidebar: contact', () => {
   beforeEach(() => { setActivePinia(createPinia()) })
 

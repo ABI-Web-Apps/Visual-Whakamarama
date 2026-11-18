@@ -258,6 +258,26 @@ describe('AppHeader', () => {
       expect(tourIndex).toBeLessThan(aboutIndex)
     })
 
+    it('on a phone the tour is a soft round button with a compass, not an outlined circle', () => {
+      const btn = mountHeader().get('[data-tour-open]')
+      const cls = btn.classes()
+      expect(cls).toContain('max-md:size-11')
+      expect(cls).toContain('max-md:border-0')
+      expect(cls).toContain('max-md:bg-surface-sunken')
+      expect(btn.get('svg').attributes('data-icon')).toBe('compass')
+      // The corner-bracket glyph is gone.
+      expect(btn.html()).not.toContain('M1 4.5V1h3.5')
+    })
+
+    it('the hamburger turns into a close button while the menu is open', async () => {
+      const wrapper = mountHeader()
+      const toggle = () => wrapper.get('button[aria-label="Toggle case navigation"]')
+      expect(toggle().get('svg').attributes('data-icon')).toBe('menu')
+      useViewerStore().sidebarOpen = true
+      await wrapper.vm.$nextTick()
+      expect(toggle().get('svg').attributes('data-icon')).toBe('close')
+    })
+
     it('the Guided tour button is an outline, never a rose fill', () => {
       // Rose is the focus semantic; spending it on a permanent button blurs
       // what "current" means in the sidebar and on the focused panel.
