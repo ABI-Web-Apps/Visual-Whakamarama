@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import AppToast from '@/components/common/AppToast.vue'
+import FeedbackWidget from '@/components/feedback/FeedbackWidget.vue'
 import { provideToast } from '@/composables/useToast'
+import { provideFeedbackDialog } from '@/feedback/useFeedbackDialog'
 import { createAppRouter, provideAppRouter } from '@/navigation/router'
 import { pageKeyFor } from '@/utils/pageKey'
 import AboutPage from '@/pages/AboutPage.vue'
@@ -26,6 +28,8 @@ const router = createAppRouter({
 provideAppRouter(router)
 // One toast for every page (the email buttons' "copied").
 provideToast()
+// The feedback dialog: drawn by FeedbackWidget below, opened from About and Contact us too.
+provideFeedbackDialog()
 
 onMounted(() => router.start())
 onBeforeUnmount(() => router.stop())
@@ -64,5 +68,7 @@ const page = computed(() => {
   <KeepAlive v-else>
     <component :is="page" :key="pageKey" :route="route" />
   </KeepAlive>
+  <!-- On every page, 404 included: outside the kept-alive tree. -->
+  <FeedbackWidget />
   <AppToast />
 </template>

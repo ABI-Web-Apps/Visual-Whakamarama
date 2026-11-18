@@ -48,6 +48,21 @@ describe('TourLauncher', () => {
     expect(w.find('[data-tour-launcher]').exists()).toBe(false)
   })
 
+  it('tells the store while it is on screen, so the feedback button can sit above it', async () => {
+    const store = useTourStore()
+    const w = mount(TourLauncher)
+    expect(store.launcherShown).toBe(true)
+    await w.get('[data-tour-dismiss]').trigger('click')
+    expect(store.launcherShown).toBe(false)
+  })
+
+  it('stops claiming the corner when it unmounts', () => {
+    const store = useTourStore()
+    const w = mount(TourLauncher)
+    w.unmount()
+    expect(store.launcherShown).toBe(false)
+  })
+
   it('offers a short tour, with no duration it was not timed for', () => {
     const text = mount(TourLauncher).get('[data-tour-launcher]').text()
     expect(text).toContain('New here? A short guided tour.')

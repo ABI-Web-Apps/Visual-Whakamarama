@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import EmailButton from '@/components/contact/EmailButton.vue'
 import { CONTACT_ADDRESS, CONTACT_COPY, CONTACT_PEOPLE, initials } from '@/content/contact'
+import { FEEDBACK_COPY } from '@/content/feedback'
+import { useFeedbackDialog } from '@/feedback/useFeedbackDialog'
 import AppLink from '@/navigation/AppLink.vue'
 import { APP_TITLE, useDocumentTitle } from '@/navigation/head'
 import type { PageRoute } from '@/navigation/routes'
@@ -23,6 +25,7 @@ defineProps<{ route?: PageRoute }>()
  * the device's mail app and copying the address (EmailButton).
  */
 useDocumentTitle(() => `${CONTACT_COPY.title} — ${APP_TITLE}`)
+const feedback = useFeedbackDialog()
 </script>
 
 <template>
@@ -112,6 +115,17 @@ useDocumentTitle(() => `${CONTACT_COPY.title} — ${APP_TITLE}`)
         </a>
       </div>
     </section>
+
+    <p v-if="feedback" class="tw:mt-8 tw:flex tw:flex-wrap tw:items-center tw:gap-x-3 tw:gap-y-2 tw:text-body-sm tw:text-text-muted">
+      {{ FEEDBACK_COPY.openLead }}
+      <button
+        type="button"
+        data-feedback-open
+        class="tw:min-h-11 tw:rounded-full tw:bg-surface tw:px-4 tw:font-bold tw:text-text tw:ring-1 tw:ring-border
+               tw:transition-shadow tw:hover:ring-group-results/45"
+        @click="feedback.open()"
+      >{{ FEEDBACK_COPY.open }}</button>
+    </p>
   </main>
 </template>
 

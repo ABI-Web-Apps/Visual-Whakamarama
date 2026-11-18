@@ -65,3 +65,22 @@ describe('ContactPage', () => {
     expect(mountPage().get('a[href="/"]').text()).toContain('Back to the resource')
   })
 })
+
+describe('ContactPage and feedback', () => {
+  it('offers the feedback dialog to someone with a quick note', async () => {
+    const { FEEDBACK_DIALOG_KEY } = await import('../src/feedback/useFeedbackDialog')
+    const open = (await import('vitest')).vi.fn()
+    const w = mount(ContactPage, {
+      global: {
+        stubs: { AppLink: AppLinkStub },
+        provide: { [FEEDBACK_DIALOG_KEY as symbol]: { isOpen: { value: false }, open, close: () => {} } },
+      },
+    })
+    await w.get('[data-feedback-open]').trigger('click')
+    expect(open).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves the feedback line out where there is no dialog to open', () => {
+    expect(mountPage().find('[data-feedback-open]').exists()).toBe(false)
+  })
+})

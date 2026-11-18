@@ -137,6 +137,3 @@ export const citations: Citation[] = [
   },
 ]
 
-/** The legacy app's feedback form (frontend/components/about/AboutUs.vue). */
-export const FEEDBACK_FORM_URL
-  = 'https://docs.google.com/forms/d/e/1FAIpQLScsab93B7uPg389gxCNfCSgG4sMNIFk_mxDFTFF_-UC2TcSJQ/viewform?usp=sf_link'

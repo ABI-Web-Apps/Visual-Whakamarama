@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watchEffect } from 'vue'
 import { useTourStore } from '@/stores/tour'
 
 /**
@@ -19,6 +19,10 @@ const dismissed = ref(false)
 store.restoreSeen()
 
 const visible = computed(() => !store.hasSeen && !dismissed.value && !store.active)
+
+// The feedback button shares this corner; it moves up while this is showing.
+watchEffect(() => { store.launcherShown = visible.value })
+onBeforeUnmount(() => { store.launcherShown = false })
 </script>
 
 <template>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAssetUrl } from '@/composables/useAssetUrl'
-import { citations, FEEDBACK_FORM_URL, organisations } from '@/content/team'
+import { FEEDBACK_COPY } from '@/content/feedback'
+import { citations, organisations } from '@/content/team'
+import { useFeedbackDialog } from '@/feedback/useFeedbackDialog'
 import ContactCta from '@/components/contact/ContactCta.vue'
 import AppLink from '@/navigation/AppLink.vue'
 import { APP_TITLE, useDocumentTitle } from '@/navigation/head'
@@ -25,6 +27,7 @@ defineProps<{ route?: PageRoute }>()
 useDocumentTitle(() => `About — ${APP_TITLE}`)
 
 const { publicUrl } = useAssetUrl()
+const feedback = useFeedbackDialog()
 const appVersion = __APP_VERSION__
 
 /**
@@ -195,15 +198,16 @@ const fullWidthOrgs = computed(() =>
 
     <!-- ── Feedback ─────────────────────────────────────────────────────── -->
     <section class="tw:mt-14 tw:border-t tw:border-border tw:pt-8">
-      <p class="tw:text-body-sm tw:text-text-muted">
-        Visit our
-        <a
-          :href="FEEDBACK_FORM_URL"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="tw:font-bold tw:text-brand-hover tw:underline tw:decoration-brand/40 tw:underline-offset-2 tw:hover:decoration-brand"
-        >online form</a>
-        to give us your valuable feedback about this app.
+      <!-- The in-app feedback (the floating button's own dialog), not the
+           legacy app's Google Form. -->
+      <p v-if="feedback" class="tw:flex tw:flex-wrap tw:items-center tw:gap-x-3 tw:gap-y-2 tw:text-body-sm tw:text-text-muted">
+        {{ FEEDBACK_COPY.openLead }}
+        <button
+          type="button"
+          data-feedback-open
+          class="tw:min-h-11 tw:rounded-full tw:bg-surface-sunken tw:px-4 tw:font-bold tw:text-text tw:transition-colors tw:hover:bg-border"
+          @click="feedback.open()"
+        >{{ FEEDBACK_COPY.open }}</button>
       </p>
       <p class="tw:mt-4 tw:text-caption tw:tabular-nums tw:text-text-muted" data-app-version>
         {{ APP_TITLE }} v{{ appVersion }}
