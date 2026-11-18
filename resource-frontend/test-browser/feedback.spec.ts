@@ -29,6 +29,7 @@ test.describe('feedback on a phone', () => {
     await skipTourInvite(page)
     await page.goto('/the-breast')
     await page.getByRole('button', { name: 'Feedback' }).click()
+    await page.getByRole('tab', { name: 'Feedback' }).click() // it opens on Stay in touch
     const dialog = page.getByRole('dialog', { name: 'Quick feedback' })
     await expect(dialog).toBeVisible()
     await page.waitForTimeout(500) // the slide-up
@@ -118,6 +119,7 @@ test.describe('feedback on a desktop', () => {
     })
     await page.goto('/density-a')
     await page.getByRole('button', { name: 'Feedback' }).click()
+    await page.getByRole('tab', { name: 'Feedback' }).click() // it opens on Stay in touch
     const dialog = page.getByRole('dialog', { name: 'Quick feedback' })
     await dialog.getByRole('radio', { name: 'Easy', exact: true }).click()
     await dialog.getByRole('textbox').fill('Clear, thank you')

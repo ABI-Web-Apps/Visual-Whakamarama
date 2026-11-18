@@ -663,6 +663,130 @@ describe('useMyMriScene', () => {
       expect(slices.z.index).toBe(index)
     })
 
+    /**
+     * A pointer on the stage. happy-dom has no PointerEvent constructor; the
+     * handlers read only these fields.
+     */
+    function pointer(target: EventTarget, type: string, id: number, clientY = 0, pointerType = 'touch') {
+      const event = new Event(type, { bubbles: true, cancelable: true }) as Event & Record<string, unknown>
+      Object.assign(event, { pointerId: id, pointerType, isPrimary: id === 1, clientX: 0, clientY, button: 0 })
+      target.dispatchEvent(event)
+      return event
+    }
+    /** A drag moves the slice once per frame; this waits for that frame. */
+    const nextFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+
+    /** What the trackball, on the canvas, gets to see of a gesture. */
+    function trackball(canvas: HTMLCanvasElement) {
+      const moves = vi.fn()
+      canvas.addEventListener('pointermove', moves)
+      return moves
+    }
+
+    it('moves through the slices of a single view when one finger drags up or down', async () => {
+      const { api, slices, canvas } = await mountReady()
+      const moves = trackball(canvas)
+      api.setView('axial')
+      const start = api.slice.value!.current
+      const eye = scene.camera.position.clone()
+      renderer.render.mockClear()
+
+      // The stage has no height here, so the drag runs at its slowest: 0.25 a pixel.
+      pointer(canvas, 'pointerdown', 1, 100)
+      pointer(canvas, 'pointermove', 1, 120)
+      pointer(canvas, 'pointermove', 1, 140)
+      await nextFrame()
+      expect(api.slice.value!.current).toBe(start + 10)
+      expect(slices.z.repaint.mock.contexts.at(-1)).toBe(slices.z)
+      expect(renderer.render).toHaveBeenCalled()
+
+      pointer(canvas, 'pointermove', 1, 120)
+      await nextFrame()
+      expect(api.slice.value!.current).toBe(start + 5)
+      pointer(canvas, 'pointerup', 1, 120)
+
+      // The trackball never saw the finger move, so the plane stays face-on.
+      expect(moves).not.toHaveBeenCalled()
+      expect(scene.camera.position.distanceTo(eye)).toBe(0)
+    })
+
+    it('makes one full-height drag sweep the whole scan, but never more than a slice a pixel', async () => {
+      const { wrapper, api, canvas } = await mountReady()
+      api.setView('axial') // 104 slices
+      Object.defineProperty(wrapper.element, 'clientHeight', { configurable: true, value: 208 })
+      const start = api.slice.value!.current
+      pointer(canvas, 'pointerdown', 1, 0)
+      pointer(canvas, 'pointermove', 1, 20)
+      await nextFrame()
+      expect(api.slice.value!.current).toBe(start + 10) // 104 / 208 = 0.5 a pixel
+      pointer(canvas, 'pointerup', 1, 20)
+
+      api.setView('sagittal') // 384 slices: capped at 1 a pixel
+      const side = api.slice.value!.current
+      pointer(canvas, 'pointerdown', 1, 0)
+      pointer(canvas, 'pointermove', 1, -20)
+      await nextFrame()
+      expect(api.slice.value!.current).toBe(side - 20)
+    })
+
+    it('leaves two fingers to the trackball\'s pinch, and moves no slice until every finger lifts', async () => {
+      const { api, canvas } = await mountReady()
+      const moves = trackball(canvas)
+      api.setView('coronal')
+      const start = api.slice.value!.current
+
+      pointer(canvas, 'pointerdown', 1, 100)
+      pointer(canvas, 'pointerdown', 2, 200)
+      pointer(canvas, 'pointermove', 1, 60)
+      pointer(canvas, 'pointermove', 2, 260)
+      await nextFrame()
+      expect(moves).toHaveBeenCalledTimes(2)
+      expect(api.slice.value!.current).toBe(start)
+
+      // One finger lifted: the other neither turns the plane nor moves the slice.
+      pointer(canvas, 'pointerup', 2, 260)
+      pointer(canvas, 'pointermove', 1, 100)
+      await nextFrame()
+      expect(moves).toHaveBeenCalledTimes(2)
+      expect(api.slice.value!.current).toBe(start)
+      pointer(canvas, 'pointerup', 1, 100)
+
+      // A fresh finger moves the slices again.
+      pointer(canvas, 'pointerdown', 1, 100)
+      pointer(canvas, 'pointermove', 1, 104)
+      await nextFrame()
+      expect(api.slice.value!.current).toBe(start + 1)
+    })
+
+    it('starts afresh on a new first finger, even when a lift went unseen', async () => {
+      const { api, canvas } = await mountReady()
+      api.setView('axial')
+      const start = api.slice.value!.current
+      pointer(canvas, 'pointerdown', 7, 0) // its pointerup never arrives
+      pointer(canvas, 'pointerdown', 1, 0) // the primary pointer: the first finger of a new touch
+      pointer(canvas, 'pointermove', 1, 8)
+      await nextFrame()
+      expect(api.slice.value!.current).toBe(start + 2)
+    })
+
+    it('leaves a finger in the 3D view, and the mouse in every view, to the trackball', async () => {
+      const { api, slices, canvas } = await mountReady()
+      const moves = trackball(canvas)
+      const index = slices.z.index
+
+      pointer(canvas, 'pointerdown', 1, 0)
+      pointer(canvas, 'pointermove', 1, 40)
+      pointer(canvas, 'pointerup', 1, 40)
+      api.setView('axial')
+      pointer(canvas, 'pointerdown', 1, 0, 'mouse')
+      pointer(canvas, 'pointermove', 1, 40, 'mouse')
+      pointer(canvas, 'pointerup', 1, 40, 'mouse')
+      await nextFrame()
+
+      expect(moves).toHaveBeenCalledTimes(2)
+      expect(slices.z.index).toBe(index)
+    })
+
     it('keeps a scrolled slice across view changes', async () => {
       const { api, canvas } = await mountReady()
       api.setView('axial')
@@ -767,6 +891,19 @@ describe('useMyMriScene', () => {
       const index = slices.z.index
       wrapper.unmount()
       wheel(canvas, { ctrlKey: true })
+      expect(slices.z.index).toBe(index)
+    })
+
+    it('stops listening for fingers on unmount, and drops a slice step still waiting for its frame', async () => {
+      const { wrapper, api, slices, canvas } = await mountReady()
+      api.setView('axial')
+      const index = slices.z.index
+      pointer(canvas, 'pointerdown', 1, 0)
+      pointer(canvas, 'pointermove', 1, 40) // queued for the next frame
+      wrapper.unmount()
+      pointer(canvas, 'pointerdown', 1, 0)
+      pointer(canvas, 'pointermove', 1, 40)
+      await nextFrame()
       expect(slices.z.index).toBe(index)
     })
   })

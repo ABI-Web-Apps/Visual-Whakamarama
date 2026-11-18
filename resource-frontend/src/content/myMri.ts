@@ -46,7 +46,11 @@ export const MY_MRI_COPY = {
   viewerLabel: 'Your MRI scan',
   /** Screen-reader help for the viewer, per view. */
   viewerHint: 'Drag to turn the view, right-drag to move it, scroll to zoom.',
+  /** The 3D view's gestures on a phone or tablet (the trackball's touch gestures). */
+  viewerHintTouch: 'Drag to turn the view, pinch to zoom, drag with two fingers to move it.',
   viewerSliceHint: 'Ctrl + scroll: change slice',
+  /** A phone or tablet has no Ctrl and no wheel: one finger drags through the slices. */
+  viewerSliceHintTouch: 'Drag up or down: change slice',
   viewerViewsLabel: 'View',
   /** `short` is the label when the control bar is too narrow for the full one. */
   viewerViews: [
@@ -77,9 +81,9 @@ export const MY_MRI_COPY = {
   intro: 'This is your breast MRI, opened on the slice through the area your clinician marked. Choose 3D in the bar under the scan to see three slices together, one in each direction.',
   markedAreas: 'The coloured shapes are the areas your clinician marked.',
   colourMatch: (sentence: string) => `Each colour matches an area in your report: ${sentence}.`,
-  controlsLead: 'Scroll to zoom in any view. In 3D, drag to turn the view and right-drag to move it.',
+  controlsLead: 'Scroll or pinch to zoom in any view. In 3D, drag to turn the view; right-drag, or drag with two fingers, to move it.',
   controlsReset: 'Reset view',
   controlsTail: 'puts it back, and Fullscreen fills the screen with it.',
-  views: 'Axial, Coronal and Sagittal show one slice at a time: across your body, from the front and from the side. Hold Ctrl while you scroll to move through the slices.',
+  views: 'Axial, Coronal and Sagittal show one slice at a time: across your body, from the front and from the side. To move through the slices, hold Ctrl while you scroll, or on a phone or tablet drag up or down with one finger.',
   reportNote: 'Your report summary is beside your scan. Drag the bar between them to give either more room. If anything is unclear, ask your care team.',
 } as const

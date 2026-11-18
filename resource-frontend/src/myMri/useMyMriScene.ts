@@ -105,6 +105,12 @@ const MESH_RENDER_ORDER = 4
  *  2.0 / 0.8 are tuned for a continuous loop without `updateOnInput`. */
 const ROTATE_SPEED = 1.5
 const PAN_SPEED = 0.5
+/**
+ * Slices per pixel of a finger's drag in a single view. One full-height drag
+ * sweeps the whole scan, as on the case stages (`useSliceControl`), but never
+ * slower than their 0.25 a pixel nor faster than one slice a pixel.
+ */
+const TOUCH_SLICES_PER_PX = { min: 0.25, max: 1 }
 /** Dolly limits, as multiples of the planes' bounding-sphere radius (the validator's). */
 const MIN_DISTANCE_FACTOR = 0.3
 const MAX_DISTANCE_FACTOR = 20
@@ -347,6 +353,13 @@ export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSourc
   let slices: Slices | undefined
   /** Where each plane opened, which Reset puts it back to. */
   const openingIndex: Partial<Record<Axis, number>> = {}
+  /** The fingers on the stage, by pointer id. */
+  const fingers = new Set<number>()
+  /** The finger moving through the slices: the only one down, in a single view. */
+  let sliceFinger: { id: number, lastY: number, carry: number } | undefined
+  /** Whole slices a drag has asked for since the last frame, and that frame. */
+  let pendingSteps = 0
+  let stepFrame: number | undefined
 
   // Registered before the stage's own disposal, so the scene's GPU resources are
   // freed while the renderer that owns them still exists.
@@ -525,6 +538,104 @@ export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSourc
     stepSlice(event.deltaY > 0 ? 1 : -1)
   }
 
+  /**
+   * Touch, in a single view: one finger drags up or down through the slices,
+   * and two pinch and pan as they do in every view. A phone has no Ctrl and no
+   * wheel, so this is its only way through the slices.
+   *
+   * The trackball still sees every finger go down and up, so a second finger
+   * becomes its pinch. Only a lone finger's moves are kept from it (stopped in
+   * the capture phase, before its listener on the canvas), so the plane is
+   * never turned away from face-on, and the trackball is left with no
+   * half-made turn to apply later -- which suppressing rotation for the drag
+   * would leave it, to be applied on the next frame.
+   *
+   * Once a second finger has landed, the drag is over until every finger has
+   * lifted: the finger left after a pinch moves nothing. A drag through the
+   * slices is not a camera gesture, as Ctrl+wheel is not; a pinch is.
+   */
+  function isSingleViewTouch(event: PointerEvent) {
+    return event.pointerType === 'touch' && view.value !== '3d'
+  }
+
+  function onPointerDown(event: PointerEvent) {
+    if (!isSingleViewTouch(event)) markPosed()
+  }
+
+  function onFingerDown(event: PointerEvent) {
+    if (event.pointerType !== 'touch') return
+    // The primary pointer is the first finger of a new touch: a lift that went
+    // unseen must not leave a finger behind to make this one a pinch.
+    if (event.isPrimary) fingers.clear()
+    fingers.add(event.pointerId)
+    if (view.value === '3d') return
+    if (fingers.size === 1) {
+      sliceFinger = { id: event.pointerId, lastY: event.clientY, carry: 0 }
+      return
+    }
+    endSliceFinger()
+    markPosed()
+  }
+
+  function onFingerMove(event: PointerEvent) {
+    if (!isSingleViewTouch(event) || fingers.size !== 1) return
+    event.stopPropagation()
+    if (sliceFinger?.id !== event.pointerId) return
+    sliceFinger.carry += (event.clientY - sliceFinger.lastY) * touchSlicesPerPx()
+    sliceFinger.lastY = event.clientY
+    const whole = Math.trunc(sliceFinger.carry)
+    if (whole === 0) return
+    sliceFinger.carry -= whole
+    queueSteps(whole)
+  }
+
+  function onFingerUp(event: PointerEvent) {
+    if (event.pointerType !== 'touch') return
+    fingers.delete(event.pointerId)
+    if (sliceFinger?.id === event.pointerId) endSliceFinger()
+  }
+
+  function touchSlicesPerPx() {
+    const total = (activeSlice()?.MaxIndex ?? 0) + 1
+    const height = host.value?.clientHeight ?? 0
+    const { min, max } = TOUCH_SLICES_PER_PX
+    return height > 0 ? Math.min(max, Math.max(min, total / height)) : min
+  }
+
+  /**
+   * At most one slice step a frame: a finger reports moves faster than the
+   * screen draws, and every step repaints the plane from the volume.
+   */
+  function queueSteps(steps: number) {
+    pendingSteps += steps
+    if (stepFrame !== undefined) return
+    stepFrame = requestAnimationFrame(() => {
+      stepFrame = undefined
+      applySteps()
+    })
+  }
+
+  function applySteps() {
+    const steps = pendingSteps
+    pendingSteps = 0
+    if (steps !== 0) stepSlice(steps)
+  }
+
+  function cancelSteps() {
+    if (stepFrame !== undefined) cancelAnimationFrame(stepFrame)
+    stepFrame = undefined
+    pendingSteps = 0
+  }
+
+  /** The drag is over: the step its last move asked for still lands. */
+  function endSliceFinger() {
+    if (!sliceFinger) return
+    sliceFinger = undefined
+    if (stepFrame !== undefined) cancelAnimationFrame(stepFrame)
+    stepFrame = undefined
+    applySteps()
+  }
+
   /** Shows a view and turns the camera to face it. Waits for the scan, mask included. */
   function setView(next: MyMriView) {
     if (status.value !== 'ready' || !planes) return
@@ -639,9 +750,13 @@ export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSourc
     // A real gesture means the reader has chosen this camera. Only from here
     // on: input while the volume loads must not cost it its opening fit.
     inputHost = host.value ?? undefined
-    inputHost?.addEventListener('pointerdown', markPosed)
+    inputHost?.addEventListener('pointerdown', onPointerDown)
     inputHost?.addEventListener('wheel', markPosed, { passive: true })
     inputHost?.addEventListener('wheel', onWheel, { capture: true, passive: false })
+    inputHost?.addEventListener('pointerdown', onFingerDown, { capture: true })
+    inputHost?.addEventListener('pointermove', onFingerMove, { capture: true })
+    inputHost?.addEventListener('pointerup', onFingerUp, { capture: true })
+    inputHost?.addEventListener('pointercancel', onFingerUp, { capture: true })
 
     loadMask(target, worldFromLps(volume.orientation.geometry, volume.RASDimensions), landed)
   }
@@ -718,9 +833,16 @@ export function useMyMriScene(host: Ref<HTMLElement | null>, sources: MyMriSourc
     clearTimer()
     // Stops the volume's transfer; a mask still in flight is dropped on arrival.
     controller.abort()
-    inputHost?.removeEventListener('pointerdown', markPosed)
+    inputHost?.removeEventListener('pointerdown', onPointerDown)
     inputHost?.removeEventListener('wheel', markPosed)
     inputHost?.removeEventListener('wheel', onWheel, { capture: true })
+    inputHost?.removeEventListener('pointerdown', onFingerDown, { capture: true })
+    inputHost?.removeEventListener('pointermove', onFingerMove, { capture: true })
+    inputHost?.removeEventListener('pointerup', onFingerUp, { capture: true })
+    inputHost?.removeEventListener('pointercancel', onFingerUp, { capture: true })
+    cancelSteps()
+    sliceFinger = undefined
+    fingers.clear()
     if (registered) {
       getSceneBudget().unpin(budgetKey)
       getSceneBudget().release(budgetKey)

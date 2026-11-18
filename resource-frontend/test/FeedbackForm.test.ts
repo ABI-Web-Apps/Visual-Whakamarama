@@ -34,7 +34,7 @@ describe('FeedbackForm', () => {
     const text = w.text()
     expect(text).toContain('Quick feedback')
     expect(text).toContain('No names. Skip anything you like.')
-    expect(text).toContain('How easy was this page to understand?')
+    expect(text).toContain('How easy was this interface to understand?')
     expect(text).toContain('What\'s one thing you\'d change?')
     expect(text).toContain('Please don\'t include personal or health details.')
     expect(w.get('textarea').attributes('placeholder')).toBe('Type here, in English or te reo Māori…')
@@ -44,7 +44,7 @@ describe('FeedbackForm', () => {
   it('offers five faces as one radio group, labelled from Very hard to Very easy', () => {
     const { w } = mountForm()
     const group = w.get('[role="radiogroup"]')
-    expect(group.attributes('aria-label')).toBe('How easy was this page to understand?')
+    expect(group.attributes('aria-label')).toBe('How easy was this interface to understand?')
     const radios = group.findAll('[role="radio"]')
     expect(radios.map(r => r.attributes('aria-label'))).toEqual(['Very hard', 'Hard', 'Okay', 'Easy', 'Very easy'])
     expect(radios.every(r => r.attributes('aria-checked') === 'false')).toBe(true)
