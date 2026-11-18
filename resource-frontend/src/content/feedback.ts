@@ -3,7 +3,7 @@ export const FEEDBACK_COPY = {
   launcher: 'Feedback',
   title: 'Quick feedback',
   lead: 'No names. Skip anything you like.',
-  easeQuestion: 'How easy was this page to understand?',
+  easeQuestion: 'How easy was this interface to understand?',
   changeQuestion: 'What\'s one thing you\'d change?',
   placeholder: 'Type here, in English or te reo Māori…',
   privacy: 'Please don\'t include personal or health details.',
