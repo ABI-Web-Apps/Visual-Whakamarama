@@ -28,6 +28,13 @@ describe('feedbackCsv', () => {
     expect(line.startsWith('f-1,2026-11-18T01:02:03.456Z,,,')).toBe(true)
   })
 
+  it('defuses a formula hidden behind a leading tab or carriage return too', () => {
+    const tab = feedbackCsv([entry({ comment: '\t=1+1' })]).slice(1).split('\r\n')[1]!
+    expect(tab).toContain("'\t=1+1")
+    const cr = feedbackCsv([entry({ page: '\r=1+1' })]).slice(1).split('\r\n').slice(1).join('\r\n')
+    expect(cr).toContain("\"'\r=1+1\"")
+  })
+
   it('defuses a comment a spreadsheet would run as a formula', () => {
     const line = feedbackCsv([entry({ comment: '=HYPERLINK("x")' })]).slice(1).split('\r\n')[1]!
     expect(line).toContain(`"'=HYPERLINK(""x"")"`)

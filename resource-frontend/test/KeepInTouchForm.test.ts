@@ -82,6 +82,27 @@ describe('KeepInTouchForm', () => {
     expect(document.activeElement).toBe(done.element)
   })
 
+  it('comes back blank three seconds later, ready for the next person', async () => {
+    vi.useFakeTimers()
+    const w = mount(KeepInTouchForm, { attachTo: document.body })
+    await w.get('input[autocomplete="given-name"]').setValue('Aroha')
+    await w.get('input[autocomplete="email"]').setValue('aroha@example.nz')
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    expect(w.find('[data-keep-in-touch-done]').exists()).toBe(true)
+    vi.advanceTimersByTime(2900)
+    await flushPromises()
+    expect(w.find('[data-keep-in-touch-done]').exists()).toBe(true)
+    vi.advanceTimersByTime(200)
+    await flushPromises()
+    expect(w.find('[data-keep-in-touch-done]').exists()).toBe(false)
+    expect((w.get('input[autocomplete="given-name"]').element as HTMLInputElement).value).toBe('')
+    expect((w.get('input[autocomplete="email"]').element as HTMLInputElement).value).toBe('')
+    // Focus stays in the form rather than falling to the page.
+    expect(document.activeElement).toBe(w.get('input[autocomplete="given-name"]').element)
+    vi.useRealTimers()
+  })
+
   it('works without a name', async () => {
     const w = mount(KeepInTouchForm)
     await w.get('input[autocomplete="email"]').setValue('021 123 4567')
@@ -98,6 +119,15 @@ describe('KeepInTouchForm', () => {
     await flushPromises()
     expect(w.get('[role="alert"]').text()).toBe('Too many messages — please try again later.')
     expect((w.get('input[autocomplete="email"]').element as HTMLInputElement).value).toBe('aroha@example.nz')
+  })
+
+  it('never shows an empty error box', async () => {
+    vi.mocked(postSubscriber).mockRejectedValueOnce({})
+    const w = mount(KeepInTouchForm)
+    await w.get('input[autocomplete="email"]').setValue('aroha@example.nz')
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    expect(w.get('[role="alert"]').text()).toBe('Your details could not be saved. Please try again.')
   })
 
   it('splits into copy and form side by side on a wide page', () => {

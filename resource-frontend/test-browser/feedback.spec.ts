@@ -87,6 +87,18 @@ test.describe('feedback on a desktop', () => {
     }
   })
 
+  test('stays clear of the tour invitation, even with the text column collapsed', async ({ page }) => {
+    // A first visit: the invitation card is showing.
+    await page.goto('/the-breast')
+    const invite = page.locator('[data-tour-launcher]')
+    await expect(invite).toBeVisible()
+    await page.getByRole('button', { name: 'Toggle content panel' }).click()
+    await page.waitForTimeout(600)
+    const button = (await page.locator('[data-feedback-launcher]').boundingBox())!
+    const card = (await invite.boundingBox())!
+    expect(intersects(button, card)).toBe(false)
+  })
+
   test('lifts under the pointer once it has arrived', async ({ page }) => {
     await skipTourInvite(page)
     await page.goto('/the-breast')

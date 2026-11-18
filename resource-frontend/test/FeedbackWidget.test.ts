@@ -118,7 +118,7 @@ describe('FeedbackWidget', () => {
     expect(w.find('[role="dialog"]').exists()).toBe(true)
   })
 
-  it('signing up leaves an unsent feedback note where it was', async () => {
+  it('signing up keeps the dialog open, resets the form, and leaves an unsent note where it was', async () => {
     vi.useFakeTimers()
     const w = mountWidget()
     await launcher(w).trigger('click')
@@ -129,8 +129,9 @@ describe('FeedbackWidget', () => {
     await flushPromises()
     vi.advanceTimersByTime(5100)
     await flushPromises()
-    expect(w.find('[role="dialog"]').exists()).toBe(false)
-    await launcher(w).trigger('click')
+    expect(w.find('[role="dialog"]').exists()).toBe(true)
+    expect((w.get('input[autocomplete="email"]').element as HTMLInputElement).value).toBe('')
+    await w.findAll('[role="tab"]')[0]!.trigger('click')
     expect((w.get('textarea').element as HTMLTextAreaElement).value).toBe('half a thought')
   })
 
@@ -167,6 +168,25 @@ describe('FeedbackWidget', () => {
     await flushPromises()
     await w.get('[data-feedback-sent] button').trigger('click')
     expect(w.get('[role="tab"][aria-selected="true"]').text()).toBe('Stay in touch')
+  })
+
+  it('gives focus back to whatever opened it, not always the floating button', async () => {
+    const Opener2 = defineComponent({
+      setup() {
+        const d = useFeedbackDialog()!
+        return () => h('button', { 'data-page-opener': '', 'onClick': () => d.open() }, 'Send feedback')
+      },
+    })
+    const w = mount(defineComponent({
+      setup() { provideFeedbackDialog(); return () => h('div', [h(FeedbackWidget), h(Opener2)]) },
+    }), { global: { stubs: { AppLink: AppLinkStub } }, attachTo: document.body })
+    const opener = w.get('[data-page-opener]')
+    ;(opener.element as HTMLElement).focus()
+    await opener.trigger('click')
+    await flushPromises()
+    await w.get('[role="dialog"]').trigger('keydown', { key: 'Escape' })
+    await flushPromises()
+    expect(document.activeElement).toBe(opener.element)
   })
 
   it('can be opened from elsewhere in the app (About, Contact us)', async () => {

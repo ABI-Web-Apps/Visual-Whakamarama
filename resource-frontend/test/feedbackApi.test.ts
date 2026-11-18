@@ -135,6 +135,13 @@ describe('stay in touch and deleting', () => {
     expect((calls[0]![1].headers as Record<string, string>)['X-Feedback-Password']).toBe('qwerty')
   })
 
+  it('words a failure by what was being done, not as a message that was not sent', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<html>bad gateway</html>', { status: 502 })))
+    const { deleteFeedback } = await import('../src/feedback/api')
+    await expect(fetchFeedback('qwerty')).rejects.toEqual({ status: 502, summary: 'The inbox could not be loaded (HTTP 502).' })
+    await expect(deleteFeedback('qwerty', 'x')).rejects.toEqual({ status: 502, summary: 'The entry could not be deleted (HTTP 502).' })
+  })
+
   it('passes on "no longer exists" for an entry already gone', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonRes(404, { detail: { code: 'not_found', summary: 'That entry no longer exists.' } })))
     const { deleteFeedback } = await import('../src/feedback/api')
