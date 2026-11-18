@@ -2,6 +2,7 @@
 rate limits use, UTC time stamps and error bodies."""
 
 import hmac
+import ipaddress
 import time
 from datetime import datetime, timezone
 from typing import Optional
@@ -35,14 +36,29 @@ def require_review_password(password: Optional[str] = Header(None, alias="X-Feed
         raise api_error(401, "bad_password", "Wrong password.")
 
 
-def client_key(request: Request) -> str:
-    """The first X-Forwarded-For hop (both nginx layers append to it), else the peer address.
+def _ip(text: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    try:
+        return ipaddress.ip_address(text.strip())
+    except ValueError:
+        return None
 
-    Used only as a rate-limit key in memory; never stored.
+
+def client_key(request: Request) -> str:
+    """The address a rate limit counts a request against. Used only in memory; never stored.
+
+    Every nginx layer appends the address it saw to X-Forwarded-For
+    (`$proxy_add_x_forwarded_for`), so the right of the header is written by our proxies and the
+    left by the client, who can put anything there. Walking from the right, the first global
+    address is the one the outermost proxy saw: the client's real one. Entries that are not an
+    IP address are skipped. With no global entry (a reader on the same private network), the
+    right-most valid entry; with no valid entry at all, the peer address.
     """
-    forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-    if forwarded:
-        return forwarded
+    hops = [ip for ip in map(_ip, request.headers.get("x-forwarded-for", "").split(",")) if ip is not None]
+    for ip in reversed(hops):
+        if ip.is_global:
+            return str(ip)
+    if hops:
+        return str(hops[-1])
     return request.client.host if request.client else "unknown"
 
 

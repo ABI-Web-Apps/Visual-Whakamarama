@@ -175,7 +175,8 @@ def test_line_separators_in_a_comment_stay_on_one_line(api, feedback_dir):
 
 
 def test_rate_limit_429_after_20(api, feedback_dir):
-    headers = {"X-Forwarded-For": "203.0.113.7, 10.0.0.2"}
+    # 1.1.1.1 and 8.8.4.4 are global addresses; 10.0.0.2 is the proxy nginx appended.
+    headers = {"X-Forwarded-For": "1.1.1.1, 10.0.0.2"}
     for _ in range(20):
         assert api.post(URL, json=_body(), headers=headers).status_code == 201
     response = api.post(URL, json=_body(), headers=headers)
@@ -183,9 +184,12 @@ def test_rate_limit_429_after_20(api, feedback_dir):
     assert response.json() == {
         "detail": {"code": "rate_limited", "summary": "Too many messages — please try again later."}
     }
-    # The first hop is the client; the proxy after it is not.
-    assert api.post(URL, json=_body(), headers={"X-Forwarded-For": "203.0.113.7"}).status_code == 429
-    assert api.post(URL, json=_body(), headers={"X-Forwarded-For": "198.51.100.4, 10.0.0.2"}).status_code == 201
+    # The client writes the left of the header, so a made-up address there does not get it a
+    # fresh allowance: the key is still the right-most global address, its real one.
+    assert api.post(URL, json=_body(), headers={"X-Forwarded-For": "8.8.4.4, 1.1.1.1, 10.0.0.2"}).status_code == 429
+    assert api.post(URL, json=_body(), headers={"X-Forwarded-For": "1.1.1.1"}).status_code == 429
+    # Another real client is unaffected.
+    assert api.post(URL, json=_body(), headers={"X-Forwarded-For": "8.8.4.4, 10.0.0.2"}).status_code == 201
     # Without the header, the connection's own address is the key.
     assert api.post(URL, json=_body()).status_code == 201
     assert len(_lines(feedback_dir)) == 22
