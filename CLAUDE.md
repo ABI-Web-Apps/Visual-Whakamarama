@@ -38,7 +38,15 @@ backend) that also runs as a standalone site. See `README.md` for commands and
   plugin build uploads `public/` to the portal's tools bucket on every build).
 - Backend deployment changes go in **both** compose files: the root
   `docker-compose.yml` (standalone) and `resource-backend/docker-compose.yml`
-  (plugin, on the `digitaltwins-platform` network, no published port).
+  (plugin, on the `digitaltwins-platform` network, no published port). That
+  includes the `feedback_data` volume, `FEEDBACK_DIR` and
+  `FEEDBACK_ADMIN_PASSWORD`.
+- The report PDF is temporary: one file for `sub-1`, owned by
+  `resource-backend/app/reports/summary.py`. It is to become a dataset input;
+  nothing else may assume it ships in the image.
+- Feedback and Stay in touch hold personal data. Store nothing that identifies
+  a browser, keep every read and delete behind the backend's password check,
+  and never let `resource-backend/feedback/` reach a portal upload.
 
 ## Checks
 

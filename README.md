@@ -6,8 +6,9 @@ grades, benign findings and cancers, with a guided tour. Under YOUR RESULTS,
 **My Images** shows a patient's own anatomy, mammogram and MRI in the same
 three columns (only the MRI exists in the data so far; the other two hold their
 place), and **My Report** shows their scan, one slice at a time or in 3D, with
-the marked areas, beside a findings report (PDF) built from a dataset held in
-MinIO.
+the marked areas, beside their report summary (a PDF; read as page images on a
+phone or tablet). Readers can send feedback or sign up to **Stay in touch** from
+a button on every page, and **Contact us** puts them in touch with the team.
 
 It runs two ways from one source tree:
 
@@ -57,11 +58,19 @@ The patient pages (`/my-images`, `/my-images/mri`, `/my-report`) read a SPARC
 dataset from the `measurements` bucket, so they need a MinIO with the dataset
 in it. The education pages do not.
 
-The report for sub-1 is filled from a demo reading, measured from the images and
-chosen for the demo, which the backend lays over sub-1's unread record at report
-time: nothing to upload. Every report says so under its masthead.
-`DEMO_READINGS=0` turns it off; `resource-backend/demo/README.md` says where each
-value came from.
+The report is, for now, one fixed file: the client's one-page patient summary,
+`resource-backend/app/reports/sub-1-patient-summary.pdf`, served for `sub-1` only
+(any other patient's report column says "No report is available for this
+scan."). `app/reports/summary.py` is the one place that knows this; the PDF will
+become an input delivered in the dataset, read from MinIO like `findings_json`.
+The backend no longer generates reports.
+
+A browser with a mouse shows the PDF in an iframe. A touch device (phones,
+tablets, iPadOS asking for the desktop site), where an iframe shows page 1 as a
+still picture (iOS) or nothing (Android), gets the pages as images instead:
+`GET /api/patients/<assay>/<cohort>/report/pages` lists them and
+`.../report/pages/<n>.png` renders one (pypdfium2, 1600px wide, cached), with
+**Open** handing the PDF to the device's own viewer.
 
 MinIO publishes its API on host port 9000 and its console on 9001. When
 something else already holds those ports (for example the validator), set
@@ -106,11 +115,8 @@ Instead of step 2 you can upload through the MinIO console
 `minioadmin`): open the `measurements` bucket and upload the contents of
 `static/workdir/` into a `workdir/` folder.
 
-Then open <http://localhost:3158/my-report>. The report is a WeasyPrint PDF, which
-needs system libraries (Pango, fonts) that only the Docker image installs: on a
-local backend the report column shows "Report rendering needs the Docker
-backend." and the PDF tests are skipped. Use the full Docker stack to see the
-report.
+Then open <http://localhost:3158/my-report>. The report works the same on a local
+backend and in Docker.
 
 `resource-frontend/test-browser/my-report.spec.ts` covers the page end to end. It
 runs only with `MY_MRI_E2E=1` and a dataset in place. Its base URL is the Docker
@@ -136,6 +142,35 @@ running: a uvicorn that Playwright spawns itself does not have that variable.
 ```bash
 MY_MRI_E2E=1 MY_MRI_BASE_URL=http://localhost:3158 yarn playwright test my-report
 ```
+
+### Feedback, Stay in touch and the inbox
+
+A button on every page (bottom-right; a round icon on a phone) opens a dialog
+with two tabs: **Feedback** (how easy the page was, five faces, and one thing to
+change) and **Stay in touch** (first name, optional, and an email address or
+mobile number). Contact us has the Stay in touch form too.
+
+| Endpoint | |
+|---|---|
+| `POST /api/feedback` | `{rating 1-5 or null, comment, page, device, app_version, mode}`; the backend adds a uuid and a UTC time |
+| `POST /api/subscribers` | `{first_name, contact}`; a contact already on the list returns its entry (200) |
+| `GET /api/feedback`, `GET /api/subscribers` | header `X-Feedback-Password` |
+| `DELETE /api/feedback/<id>`, `DELETE /api/subscribers/<id>` | header `X-Feedback-Password` |
+
+Nothing that identifies a browser is stored: no IP address, no user agent. The
+client address is used only, in memory, to rate-limit posts.
+
+Both lists are JSON Lines files in `FEEDBACK_DIR` (`feedback.jsonl`,
+`subscribers.jsonl`), the named volume `feedback_data` in both compose files, so
+rebuilds and redeploys keep them. **The portal's "delete plugin" runs
+`docker compose down --volumes`, which deletes them**: export them first.
+
+**The inbox** is `/feedback-review`, linked from nowhere: press **Ctrl + Shift +
+F** (Ctrl on a Mac too) anywhere in the app, or tap the version line at the foot
+of About five times quickly on a phone. It asks for a password, which only the
+backend checks: `FEEDBACK_ADMIN_PASSWORD`, `qwerty` unless set. **Set your own on
+any server** (in `.env`). The inbox lists both, newest first, deletes an entry
+after a confirm, and exports either list as CSV.
 
 ### Data
 
@@ -218,7 +253,9 @@ port 8082.
 >
 > - `resource-backend/static/workdir/`: the patient dataset
 > - `resource-backend/minio_data/`: the local MinIO's storage, the same data again
-> - `resource-backend/cache/`: report PDFs and meshes built from it
+> - `resource-backend/cache/`: report page images and meshes built from it
+> - `resource-backend/feedback/`: readers' feedback and Stay in touch sign-ups
+>   (names, emails, phone numbers), when the backend ran outside Docker
 >
 > To register without GitHub, upload a clean export of the committed tree,
 > which holds none of them:
@@ -252,7 +289,7 @@ Publishing a release deploys it to a server running the standalone stack.
    MinIO), `resource-backend/static/workdir/`. Edits made on the server to
    tracked files are saved to `.deploy-backups/` first and listed as a warning
    in the run, so keep server settings in `.env` (`FRONTEND_PORT`, `MINIO_*`,
-   `DEMO_READINGS`).
+   `FEEDBACK_ADMIN_PASSWORD`).
 2. Runs `docker compose up -d --build --remove-orphans` and waits up to five
    minutes for `/` and `/api/health` to answer.
 3. Removes this stack's images that the rebuild left unused.

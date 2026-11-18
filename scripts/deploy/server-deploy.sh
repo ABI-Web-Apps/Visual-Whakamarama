@@ -15,7 +15,7 @@
 #     lives (.env, resource-backend/minio_data -- the dataset, static/workdir),
 #     and git never touches them. Edits made on the server to tracked files are
 #     saved as a patch in .deploy-backups/ before they are overwritten: put
-#     server settings in .env instead (FRONTEND_PORT, MINIO_*, DEMO_READINGS).
+#     server settings in .env instead (FRONTEND_PORT, MINIO_*, FEEDBACK_ADMIN_PASSWORD).
 #
 # Then it rebuilds and restarts the stack, waits until the site and its API
 # answer, and removes the images the rebuild left unused.
