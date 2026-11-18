@@ -153,23 +153,36 @@ mobile number). Contact us has the Stay in touch form too.
 | Endpoint | |
 |---|---|
 | `POST /api/feedback` | `{rating 1-5 or null, comment, page, device, app_version, mode}`; the backend adds a uuid and a UTC time |
-| `POST /api/subscribers` | `{first_name, contact}`; a contact already on the list returns its entry (200) |
+| `POST /api/subscribers` | `{first_name, contact}`; always `201 {"ok": true}`, so nobody can learn who is on the list; a contact already on it is left as it is |
 | `GET /api/feedback`, `GET /api/subscribers` | header `X-Feedback-Password` |
 | `DELETE /api/feedback/<id>`, `DELETE /api/subscribers/<id>` | header `X-Feedback-Password` |
 
 Nothing that identifies a browser is stored: no IP address, no user agent. The
-client address is used only, in memory, to rate-limit posts.
+client address is used only, in memory, to rate-limit posts (20 notes and 10
+sign-ups per 10 minutes) and wrong passwords (10 per 10 minutes, then that
+address is refused even the right one until the window passes). The address is
+the right-most public one in `X-Forwarded-For`, which a client cannot forge. On
+a deployment reached only from a private network, every reader shares one
+allowance.
 
 Both lists are JSON Lines files in `FEEDBACK_DIR` (`feedback.jsonl`,
-`subscribers.jsonl`), the named volume `feedback_data` in both compose files, so
-rebuilds and redeploys keep them. **The portal's "delete plugin" runs
+`subscribers.jsonl`): the named volume `feedback_data` in both compose files, so
+rebuilds and redeploys keep them, or `~/.visual-whakamarama/feedback` for a
+backend run outside Docker -- never inside the source tree. **The portal's "delete plugin" runs
 `docker compose down --volumes`, which deletes them**: export them first.
 
 **The inbox** is `/feedback-review`, linked from nowhere: press **Ctrl + Shift +
 F** (Ctrl on a Mac too) anywhere in the app, or tap the version line at the foot
 of About five times quickly on a phone. It asks for a password, which only the
 backend checks: `FEEDBACK_ADMIN_PASSWORD`, `qwerty` unless set. **Set your own on
-any server** (in `.env`). The inbox lists both, newest first, deletes an entry
+any server**:
+
+- standalone: in the deploy folder's `.env`;
+- portal plugin: the portal runs this plugin's compose with **portal-backend's**
+  environment, so add `FEEDBACK_ADMIN_PASSWORD` to `portal-backend`'s
+  `environment` in the portal's `docker-compose.yml`, restart it, then redeploy
+  the plugin. Never put it in a file inside this project: a portal upload of the
+  source goes to the public `tools` bucket. The inbox lists both, newest first, deletes an entry
 after a confirm, and exports either list as CSV.
 
 ### Data
@@ -255,7 +268,8 @@ port 8082.
 > - `resource-backend/minio_data/`: the local MinIO's storage, the same data again
 > - `resource-backend/cache/`: report page images and meshes built from it
 > - `resource-backend/feedback/`: readers' feedback and Stay in touch sign-ups
->   (names, emails, phone numbers), when the backend ran outside Docker
+>   (names, emails, phone numbers), left by a backend run outside Docker before
+>   the default moved to `~/.visual-whakamarama/feedback`
 >
 > To register without GitHub, upload a clean export of the committed tree,
 > which holds none of them:
