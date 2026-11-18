@@ -36,9 +36,8 @@ describe('partner logos', () => {
     }
   })
 
-  it('keeps the foundation\'s people on About', () => {
+  it('keeps the foundation named in About\'s own text', () => {
     const about = mount(AboutPage, { global: { stubs: { AppLink: AppLinkStub } } })
-    expect(about.text()).toContain('Suzanne Bull')
-    expect(about.text()).toContain('Natalie James')
+    expect(about.text()).toContain('Breast Cancer Foundation NZ')
   })
 })

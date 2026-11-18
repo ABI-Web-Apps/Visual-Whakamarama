@@ -67,13 +67,15 @@ export const organisations: Organisation[] = [
     logoHidden: true,
     // The legacy app's own ratios (Logo.vue: w-20 / w-32 / w-48).
     logoWidth: 5,
-    members: ['Suzanne Bull', 'Natalie James'].map(member),
+    // Its people are no longer listed (client request, 2026-11-18); the
+    // organisation stays for its partnership and its (hidden) logo.
+    members: [],
   },
   {
     name: 'Iwi United Engaged',
     logo: 'iwi-united-engaged.webp',
     logoWidth: 8,
-    members: ['Kika Faagatu', 'Misty Edmonds'].map(member),
+    members: ['Misty Edmonds'].map(member),
   },
   {
     /**
@@ -111,6 +113,12 @@ export const organisations: Organisation[] = [
 export function shownLogos(): Organisation[] {
   return organisations.filter(o => o.logo && !o.logoHidden)
 }
+
+/**
+ * People who worked on this resource before, thanked by name only (no photo,
+ * no role), as the client asked. Written exactly as the client gave them.
+ */
+export const PAST_CONTRIBUTORS: string[] = ['Talia', 'Iosefa']
 
 export interface Citation {
   /** What this source provided, in this app's own words. */
