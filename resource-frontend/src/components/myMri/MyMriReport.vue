@@ -80,9 +80,19 @@ async function refetch(): Promise<void> {
   }
 }
 
+/**
+ * Back to how the report first opened. The page reader has two scrollers to
+ * reset: its own (side by side, and in fullscreen) and, stacked on a phone,
+ * the page around it -- there the pages take their natural height and it is
+ * the page that has moved.
+ */
 function resetView() {
-  if (reader === 'frame') frameKey.value++
-  else pagesEl.value?.scrollTo({ top: 0 })
+  if (reader === 'frame') {
+    frameKey.value++
+    return
+  }
+  pagesEl.value?.scrollTo({ top: 0 })
+  pagesEl.value?.scrollIntoView({ block: 'start' })
 }
 
 onBeforeUnmount(() => {
@@ -115,7 +125,7 @@ defineExpose({ refetch })
         data-report-pages
         :aria-label="MY_MRI_COPY.reportTitle"
         role="document"
-        class="tw:bg-surface-sunken tw:p-3 tw:@[1000px]:min-h-0 tw:@[1000px]:flex-1 tw:@[1000px]:overflow-y-auto"
+        class="vw-report-pages tw:bg-surface-sunken tw:p-3 tw:@[1000px]:min-h-0 tw:@[1000px]:flex-1 tw:@[1000px]:overflow-y-auto"
       >
         <ReportPages :pages="pages" :page-url="urls.reportPage" />
       </div>
@@ -177,3 +187,20 @@ defineExpose({ refetch })
     </StageControls>
   </div>
 </template>
+
+<style scoped>
+/* Fullscreen fills the screen with this panel, and nothing outside it can
+   scroll any more: the pages have to scroll themselves, at every width (the
+   container query only does this side by side). Two rules, not one list: a
+   browser drops a whole selector list over one pseudo-class it does not know. */
+[data-stage-panel]:fullscreen .vw-report-pages {
+  min-height: 0;
+  flex: 1 1 0%;
+  overflow-y: auto;
+}
+[data-stage-panel]:-webkit-full-screen .vw-report-pages {
+  min-height: 0;
+  flex: 1 1 0%;
+  overflow-y: auto;
+}
+</style>

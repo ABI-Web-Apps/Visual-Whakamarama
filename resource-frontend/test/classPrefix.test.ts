@@ -21,7 +21,7 @@ const NOT_UTILITIES = new Set([
   'vw-face', 'vw-face-icon', 'vw-face-head', 'vw-face-dot', 'vw-face-line',
   'vw-fb-check', 'vw-fb-check-ring', 'vw-fb-check-mark',
   'vw-fb-launcher', 'vw-fb-panel', 'vw-fb-masthead', 'vw-fb-body',
-  'vw-review-masthead', 'vw-version',
+  'vw-review-masthead', 'vw-version', 'vw-report-pages',
 ])
 const OWN_CSS_FILES = new Set(['pages/NotFoundPage.vue'])
 

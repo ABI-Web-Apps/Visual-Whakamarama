@@ -122,9 +122,22 @@ describe('MyMriReport', () => {
     await flushPromises()
     const scroller = w.get('[data-report-pages]').element as HTMLElement
     const scrollTo = vi.fn()
+    const scrollIntoView = vi.fn()
     scroller.scrollTo = scrollTo as unknown as typeof scroller.scrollTo
+    scroller.scrollIntoView = scrollIntoView as unknown as typeof scroller.scrollIntoView
     await w.get('button[aria-label="Reset view"]').trigger('click')
+    // Its own scroll (side by side, or fullscreen) back to page 1 ...
     expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
+    // ... and, stacked on a phone, where the page scrolls instead, the page
+    // brought back to the report's top.
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' })
+  })
+
+  it('makes the pages their own scroller in fullscreen, where nothing else scrolls', async () => {
+    vi.mocked(prefersTouchReader).mockReturnValue(true)
+    const w = mountReport()
+    await flushPromises()
+    expect(w.get('[data-report-pages]').classes()).toContain('vw-report-pages')
   })
 
   it('uses the page images on a desktop whose browser will not show a PDF inline', async () => {
